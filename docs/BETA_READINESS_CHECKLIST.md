@@ -2,13 +2,13 @@
 
 **This checklist is not the current release.** It was written for a 0.9.0-rc.1 cut of InControl-Desktop, including a signed MSIX. That cut was not published.
 
-The published app is **0.3.0** in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). Tag `v0.3.0` is the source tree. There is no MSIX. Install from `docs/INSTALLATION.md`. Do not download `InControl-Desktop-0.9.0-rc.1.msix`.
+The GitHub release tag is still `v0.3.0` on [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol), and that tag has no MSIX. Current main is app 2.0.0, not that tag. Install the current tree from `docs/INSTALLATION.md`. Do not download `InControl-Desktop-0.9.0-rc.1.msix`.
 
-The tables below are the old checklist. Their "Done" and "Pass" marks are not a claim about 0.3.0.
+The tables below are the old checklist. Their "Done" and "Pass" marks are not a claim about the current tree.
 
 > **Version**: 0.9.0-rc.1 (not shipped)
 > **Target Date**: 2026-02-03
-> **Status**: Historical. Not the 0.3.0 release.
+> **Status**: Historical. Not the current tree.
 
 ## Pre-Release Verification
 

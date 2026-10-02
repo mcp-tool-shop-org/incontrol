@@ -1,6 +1,6 @@
 # Packaging
 
-Nothing in this directory is an upload. Tag v0.3.0 is the source tree. Install that release from `docs/INSTALLATION.md`.
+Nothing in this directory is an upload. Current main is app 2.0.0. Tag v0.3.0 is an older source-only release and is not this tree. Install the current tree from `docs/INSTALLATION.md`.
 
 Partner Center already has this product through package 1.4.0. The newest upload file is `InControl.App_1.4.0_x64.msixupload`. The next package is accepted only when both of these are true:
 
