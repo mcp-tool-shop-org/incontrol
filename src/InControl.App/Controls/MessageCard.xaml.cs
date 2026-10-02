@@ -154,8 +154,14 @@ public sealed partial class MessageCard : UserControl
                 ReportedAt = DateTimeOffset.Now
             };
 
-            ContentReportService.Instance.SaveReport(report);
-            CopyFeedback.ShowSuccess("Report submitted");
+            if (ContentReportService.Instance.SaveReport(report))
+            {
+                CopyFeedback.ShowSuccess("Report submitted");
+            }
+            else
+            {
+                CopyFeedback.ShowError("Report was not saved");
+            }
         }
     }
 

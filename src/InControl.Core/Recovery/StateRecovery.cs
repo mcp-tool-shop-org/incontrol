@@ -261,10 +261,12 @@ public sealed class StateRecovery
             if (exportFirst)
             {
                 var backupResult = await CreateBackupAsync(ct).ConfigureAwait(false);
-                if (backupResult.IsSuccess)
+                if (!backupResult.IsSuccess)
                 {
-                    exportPath = backupResult.Value;
+                    return Result<ResetResult>.Failure(backupResult.Error!);
                 }
+
+                exportPath = backupResult.Value;
             }
 
             // Clear all application data

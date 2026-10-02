@@ -232,13 +232,14 @@ public sealed class ChatService : IChatService
             yield break;
         }
 
-        // Update conversation without the last assistant message
+        // Build the request without the last assistant message, but leave the
+        // stored transcript alone until the new answer is saved. A cancel or a
+        // failed stream must not make the next save delete the previous answer.
         conversation = conversation with
         {
             Messages = messages,
             ModifiedAt = DateTimeOffset.UtcNow
         };
-        _conversations[conversationId] = conversation;
 
         var model = conversation.Model
             ?? throw new InvalidOperationException("No model selected for this conversation");

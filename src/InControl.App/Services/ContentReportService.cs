@@ -16,6 +16,7 @@ public sealed class ContentReportService
 
     private readonly string _dataPath;
     private readonly List<ContentReport> _reports = new();
+    private bool _reportsUnreadable;
 
     /// <summary>
     /// Gets the singleton instance.
@@ -55,17 +56,25 @@ public sealed class ContentReportService
     /// <summary>
     /// Saves a content report.
     /// </summary>
-    public void SaveReport(ContentReport report)
+    public bool SaveReport(ContentReport report)
     {
+        if (_reportsUnreadable)
+        {
+            return false;
+        }
+
         try
         {
             _reports.Add(report);
             PersistReports();
             Debug.WriteLine($"Content report saved: {report.Reason}");
+            return true;
         }
         catch (Exception ex)
         {
+            _reports.Remove(report);
             Debug.WriteLine($"Failed to save report: {ex.Message}");
+            return false;
         }
     }
 
@@ -90,6 +99,7 @@ public sealed class ContentReportService
             }
             catch (Exception ex)
             {
+                _reportsUnreadable = true;
                 Debug.WriteLine($"Failed to load reports: {ex.Message}");
             }
         }
@@ -98,15 +108,10 @@ public sealed class ContentReportService
     private void PersistReports()
     {
         var filePath = Path.Combine(_dataPath, ReportsFileName);
-        try
-        {
-            var json = JsonSerializer.Serialize(_reports, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(filePath, json);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to persist reports: {ex.Message}");
-        }
+        var json = JsonSerializer.Serialize(_reports, new JsonSerializerOptions { WriteIndented = true });
+        var temporary = filePath + ".tmp";
+        File.WriteAllText(temporary, json);
+        File.Move(temporary, filePath, overwrite: true);
     }
 }
 
