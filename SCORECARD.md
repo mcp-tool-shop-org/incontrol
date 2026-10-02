@@ -1,6 +1,10 @@
 # Scorecard
 
-**Repo:** InControl-Desktop
+**Repo:** incontrol
+**Date:** 2026-10-02
+
+The February 2026 card below scored the dormant prototype, including translations and a release tag this tree does not have. It is history. The 2026-10-02 ship gate is the current list: app version 0.2.0, no tag, no MSIX rebuild, translations not regenerated yet.
+
 **Date:** 2026-02-27
 **Type tags:** `[desktop]`
 

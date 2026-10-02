@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/InControl-Desktop/readme.png" alt="InControl" width="400"></p>
+<p align="center"><img src="logo.png" alt="InControl" width="400"></p>
 
 <h1 align="center">InControl</h1>
 
