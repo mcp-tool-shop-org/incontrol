@@ -1,4 +1,5 @@
 using InControl.Core.Connectivity;
+using InControl.Core.Security;
 
 namespace InControl.Core.Plugins;
 
@@ -309,14 +310,19 @@ internal sealed class PluginContext : IPluginContext
     {
         return Manifest.Permissions.Any(p =>
             p.Type == type &&
-            p.Access >= access &&
-            (scope == null || p.Scope == null || MatchesScope(scope, p.Scope)));
+            p.Access == access &&
+            (scope == null || p.Scope == null || ScopeCovers(type, scope, p.Scope)));
     }
 
-    private static bool MatchesScope(string requested, string permitted)
+    private static bool ScopeCovers(PermissionType type, string requested, string permitted)
     {
-        // Simple prefix matching for paths/endpoints
-        return requested.StartsWith(permitted, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(permitted))
+            return false;
+
+        if (type == PermissionType.Network)
+            return EndpointPattern.Covers(permitted, requested);
+
+        return PathBoundary.IsInside(requested, permitted);
     }
 
     public void Dispose()
@@ -349,9 +355,9 @@ internal sealed class PluginFileAccessImpl : IPluginFileAccess
     {
         return _manifest.Permissions.Any(p =>
             p.Type == PermissionType.File &&
-            p.Access >= access &&
+            p.Access == access &&
             !string.IsNullOrEmpty(p.Scope) &&
-            path.StartsWith(p.Scope, StringComparison.OrdinalIgnoreCase));
+            PathBoundary.IsInside(path, p.Scope));
     }
 
     public async Task<PluginFileResult> ReadAsync(string path, CancellationToken ct = default)
@@ -443,7 +449,43 @@ internal sealed class PluginNetworkAccessImpl : IPluginNetworkAccess
         return _manifest.Permissions.Any(p =>
             p.Type == PermissionType.Network &&
             !string.IsNullOrEmpty(p.Scope) &&
-            endpoint.StartsWith(p.Scope, StringComparison.OrdinalIgnoreCase));
+            EndpointPattern.Covers(p.Scope, endpoint));
+    }
+
+    private bool IsRequestPermitted(string endpoint, string method)
+    {
+        if (!TryRequiredAccess(method, out var required))
+            return false;
+
+        return _manifest.Permissions.Any(p =>
+            p.Type == PermissionType.Network &&
+            p.Access == required &&
+            !string.IsNullOrEmpty(p.Scope) &&
+            EndpointPattern.Covers(p.Scope, endpoint));
+    }
+
+    private static bool TryRequiredAccess(string method, out PermissionAccess access)
+    {
+        access = default;
+        if (string.IsNullOrWhiteSpace(method))
+            return false;
+
+        switch (method.Trim().ToUpperInvariant())
+        {
+            case "GET":
+            case "HEAD":
+            case "OPTIONS":
+                access = PermissionAccess.Read;
+                return true;
+            case "POST":
+            case "PUT":
+            case "PATCH":
+            case "DELETE":
+                access = PermissionAccess.Write;
+                return true;
+            default:
+                return false;
+        }
     }
 
     public async Task<PluginNetworkResult> RequestAsync(
@@ -453,7 +495,7 @@ internal sealed class PluginNetworkAccessImpl : IPluginNetworkAccess
         string intent,
         CancellationToken ct = default)
     {
-        var permitted = IsEndpointPermitted(endpoint);
+        var permitted = IsRequestPermitted(endpoint, method);
         _auditLog?.LogResourceAccess(_manifest.Id, ResourceAccessType.NetworkRequest, endpoint, permitted, $"{method}: {intent}");
 
         if (!permitted)
@@ -515,10 +557,10 @@ internal sealed class PluginMemoryAccessImpl : IPluginMemoryAccess
     }
 
     private bool HasReadPermission => _manifest.Permissions.Any(p =>
-        p.Type == PermissionType.Memory && p.Access >= PermissionAccess.Read);
+        p.Type == PermissionType.Memory && p.Access == PermissionAccess.Read);
 
     private bool HasWritePermission => _manifest.Permissions.Any(p =>
-        p.Type == PermissionType.Memory && p.Access >= PermissionAccess.Write);
+        p.Type == PermissionType.Memory && p.Access == PermissionAccess.Write);
 
     public Task<bool> StoreAsync(string key, string content, CancellationToken ct = default)
     {
@@ -582,21 +624,59 @@ internal sealed class PluginStorageImpl : IPluginStorage, IDisposable
         Directory.CreateDirectory(_storagePath);
     }
 
-    private string GetFilePath(string key) => Path.Combine(_storagePath, $"{key}.json");
+    private string? ResolveStorageFile(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return null;
+        if (key.Contains("..", StringComparison.Ordinal))
+            return null;
+        if (Path.IsPathRooted(key))
+            return null;
+        if (key.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            return null;
+
+        try
+        {
+            var root = Path.GetFullPath(_storagePath);
+            var full = Path.GetFullPath(Path.Combine(root, key + ".json"));
+            if (!PathBoundary.IsInside(full, root))
+                return null;
+
+            var parent = Path.GetDirectoryName(full);
+            var trimmedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (parent == null || !string.Equals(
+                    parent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                    trimmedRoot,
+                    StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return full;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or IOException)
+        {
+            return null;
+        }
+    }
+
+    private string RequireStorageFile(string key, ResourceAccessType access)
+    {
+        var path = ResolveStorageFile(key);
+        _auditLog?.LogResourceAccess(_pluginId, access, key, path != null);
+        if (path == null)
+            throw new ArgumentException("Storage key must name one file inside the plugin directory.", nameof(key));
+
+        return path;
+    }
 
     public async Task SetAsync(string key, string value, CancellationToken ct = default)
     {
-        _auditLog?.LogResourceAccess(_pluginId, ResourceAccessType.StorageWrite, key, true);
-
-        var path = GetFilePath(key);
+        var path = RequireStorageFile(key, ResourceAccessType.StorageWrite);
         await File.WriteAllTextAsync(path, value, ct);
     }
 
     public async Task<string?> GetAsync(string key, CancellationToken ct = default)
     {
-        _auditLog?.LogResourceAccess(_pluginId, ResourceAccessType.StorageRead, key, true);
-
-        var path = GetFilePath(key);
+        var path = RequireStorageFile(key, ResourceAccessType.StorageRead);
         if (!File.Exists(path))
             return null;
 
@@ -605,9 +685,7 @@ internal sealed class PluginStorageImpl : IPluginStorage, IDisposable
 
     public Task<bool> RemoveAsync(string key, CancellationToken ct = default)
     {
-        _auditLog?.LogResourceAccess(_pluginId, ResourceAccessType.StorageDelete, key, true);
-
-        var path = GetFilePath(key);
+        var path = RequireStorageFile(key, ResourceAccessType.StorageDelete);
         if (!File.Exists(path))
             return Task.FromResult(false);
 

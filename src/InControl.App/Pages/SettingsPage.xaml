@@ -521,7 +521,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Current version" />
-                                    <TextBlock Text="v1.0.0"
+                                    <TextBlock x:Name="CurrentVersionText"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>

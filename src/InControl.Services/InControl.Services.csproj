@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="KokoroSharp" />
+    <PackageReference Include="KokoroSharp.CPU" />
     <PackageReference Include="System.Speech" />
   </ItemGroup>
 

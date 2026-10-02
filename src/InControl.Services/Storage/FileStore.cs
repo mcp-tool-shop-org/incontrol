@@ -32,8 +32,12 @@ public sealed class FileStore : IFileStore
     {
         try
         {
-            var fullPath = NormalizePath(Path.GetFullPath(path));
-            return _allowedRoots.Any(root => fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+            // GetFullPath then require an exact root or a child. A sibling whose name
+            // merely extends the root (root + "extra") must not match the prefix.
+            var fullPath = NormalizePath(path);
+            return _allowedRoots.Any(root =>
+                string.Equals(fullPath, root, StringComparison.OrdinalIgnoreCase)
+                || fullPath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         }
         catch
         {

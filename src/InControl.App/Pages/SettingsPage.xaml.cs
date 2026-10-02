@@ -1,10 +1,13 @@
+using System.Reflection;
 using Microsoft.Extensions.Options;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using InControl.App.Services;
 using InControl.Core.Compute;
 using InControl.Core.Configuration;
+using InControl.Services.Interfaces;
 using InControl.Services.Voice;
 
 namespace InControl.App.Pages;
@@ -25,6 +28,7 @@ public sealed partial class SettingsPage : UserControl
     public SettingsPage()
     {
         this.InitializeComponent();
+        CurrentVersionText.Text = InformationalVersion();
         CollectSections();
         SetupEventHandlers();
         InitializeThemeComboBox();
@@ -303,6 +307,22 @@ public sealed partial class SettingsPage : UserControl
     {
         try
         {
+            var voiceOpts = App.GetService<IOptions<VoiceOptions>>().Value;
+            AutoSpeakToggle.IsOn = voiceOpts.AutoSpeak;
+            VoiceVolumeSlider.Value = voiceOpts.Volume;
+            VoiceSpeedSlider.Value = voiceOpts.Speed;
+        }
+        catch
+        {
+            // Leave the XAML defaults when options are not available yet.
+        }
+
+        AutoSpeakToggle.Toggled += OnAutoSpeakToggled;
+        VoiceVolumeSlider.ValueChanged += OnVoiceVolumeChanged;
+        VoiceSpeedSlider.ValueChanged += OnVoiceSpeedChanged;
+
+        try
+        {
             var voiceService = App.GetService<IVoiceService>();
 
             // Ensure the engine is loaded so we can list voices
@@ -346,6 +366,61 @@ public sealed partial class SettingsPage : UserControl
             var voiceOpts = App.GetService<IOptions<VoiceOptions>>();
             voiceOpts.Value.DefaultVoice = selectedVoice;
         }
+    }
+
+    private void OnAutoSpeakToggled(object sender, RoutedEventArgs e)
+    {
+        WriteVoice(options => options.AutoSpeak = AutoSpeakToggle.IsOn);
+    }
+
+    private void OnVoiceVolumeChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        WriteVoice(options => options.Volume = (float)e.NewValue);
+    }
+
+    private void OnVoiceSpeedChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        WriteVoice(options => options.Speed = (float)e.NewValue);
+    }
+
+    /// <summary>
+    /// Writes the live options SpeakAsync and auto-speak already read, then the same change through settings when that service is registered.
+    /// </summary>
+    private static void WriteVoice(Action<VoiceOptions> configure)
+    {
+        configure(App.GetService<IOptions<VoiceOptions>>().Value);
+
+        if (App.Services.GetService(typeof(ISettingsService)) is ISettingsService settings)
+        {
+            _ = PersistVoiceAsync(settings, configure);
+        }
+    }
+
+    private static async Task PersistVoiceAsync(ISettingsService settings, Action<VoiceOptions> configure)
+    {
+        try
+        {
+            await settings.UpdateVoiceOptionsAsync(configure);
+        }
+        catch
+        {
+            // The live options already changed. A failed save must not break the page.
+        }
+    }
+
+    private static string InformationalVersion()
+    {
+        var informational = typeof(SettingsPage).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        if (string.IsNullOrWhiteSpace(informational))
+        {
+            return "0.3.0";
+        }
+
+        var plus = informational.IndexOf('+');
+        var version = plus >= 0 ? informational[..plus] : informational;
+        return string.IsNullOrWhiteSpace(version) ? "0.3.0" : version.Trim();
     }
 
     private async void OnTestVoiceClick(object sender, RoutedEventArgs e)
@@ -455,7 +530,7 @@ public sealed partial class SettingsPage : UserControl
         var dialog = new ContentDialog
         {
             Title = "Check for Updates",
-            Content = "You are running the latest version (v1.0.0).",
+            Content = $"This build does not check for updates. The version is {InformationalVersion()}.",
             CloseButtonText = "OK",
             XamlRoot = this.XamlRoot
         };

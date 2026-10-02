@@ -148,11 +148,30 @@ public sealed class ToolApprovalManager
 
             _pendingProposals.Remove(proposal);
 
-            if (rememberDecision)
+            if (_registry.GetPermission(proposal.ToolId) == ToolPermission.Disabled)
+            {
+                rememberDecision = false;
+            }
+            else if (rememberDecision)
             {
                 _rememberedDecisions[proposal.ToolId] = true;
                 _registry.SetPermission(proposal.ToolId, ToolPermission.AlwaysAllow);
             }
+        }
+
+        if (_registry.GetPermission(proposal.ToolId) == ToolPermission.Disabled)
+        {
+            var denied = ToolResult.Failed(
+                InControlError.Create(ErrorCode.ToolPermissionDenied, $"Tool is disabled: {proposal.ToolId}"),
+                TimeSpan.Zero
+            );
+            ProposalDecided?.Invoke(this, new ProposalDecisionEventArgs(
+                proposal,
+                ProposalDecision.Approved,
+                denied,
+                false
+            ));
+            return denied;
         }
 
         var result = await _registry.ExecuteAsync(proposal.ToolId, proposal.Parameters, ct);
@@ -188,6 +207,21 @@ public sealed class ToolApprovalManager
             }
 
             _pendingProposals.Remove(proposal);
+        }
+
+        if (_registry.GetPermission(proposal.ToolId) == ToolPermission.Disabled)
+        {
+            var denied = ToolResult.Failed(
+                InControlError.Create(ErrorCode.ToolPermissionDenied, $"Tool is disabled: {proposal.ToolId}"),
+                TimeSpan.Zero
+            );
+            ProposalDecided?.Invoke(this, new ProposalDecisionEventArgs(
+                proposal,
+                ProposalDecision.ApprovedWithModifications,
+                denied,
+                false
+            ));
+            return denied;
         }
 
         var result = await _registry.ExecuteAsync(proposal.ToolId, modifiedParameters, ct);

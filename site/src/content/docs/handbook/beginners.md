@@ -9,9 +9,7 @@ This guide walks you through everything you need to start using InControl Deskto
 
 ## What is InControl Desktop?
 
-InControl Desktop is a local AI chat application for Windows. It connects to a local LLM backend (such as Ollama) running on your machine and provides a native desktop interface for conversing with large language models. No data leaves your computer -- all inference runs locally on your GPU.
-
-InControl is built for users who want privacy, control, and GPU-accelerated performance without relying on cloud services.
+InControl Desktop is an Ollama chat application for Windows. Chat stays on this PC until a rented GPU is connected. Nothing is sent to a rental until you connect one. A rental sends the prompts you submit to Ollama on that machine, and the banner names that machine while those prompts leave.
 
 ## Prerequisites
 
@@ -46,7 +44,7 @@ dotnet test tests/InControl.Core.Tests
 
 When you launch InControl for the first time, the onboarding wizard guides you through four steps:
 
-1. **Welcome** -- introduces InControl and confirms that everything runs locally.
+1. **Welcome** -- introduces InControl. Chat stays on this PC until a rented GPU is connected.
 2. **Backend Check** -- InControl looks for a running Ollama instance on `localhost:11434`. If Ollama is not running, start it with `ollama serve` in a separate terminal.
 3. **Model Selection** -- pick a model from those available on your Ollama instance. If you have no models yet, pull one first: `ollama pull llama3.2`.
 4. **Ready** -- you are all set. Click "Start" to begin your first conversation.
@@ -57,19 +55,13 @@ You can skip onboarding if you prefer to configure things manually.
 
 ### Conversations and sessions
 
-Each conversation is stored as a session file in `%LOCALAPPDATA%\InControl\sessions\`. Sessions are local JSON files -- they are never uploaded anywhere. You can export conversations from the app and delete them at any time.
+Each conversation is stored as a session file in `%LOCALAPPDATA%\InControl\sessions\`. Nothing is sent to a rental until you connect one. A rental sends the prompts you submit to Ollama on that machine. The banner names that machine while those prompts leave. You can export conversations from the app and delete them at any time.
 
-### Connectivity modes
+### The offline switch
 
-InControl has three network modes that you control:
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
 
-| Mode | What it means |
-|------|---------------|
-| **Offline Only** | No network access at all. Everything stays local. This is the default. |
-| **Assisted** | Network requests require per-endpoint approval before they execute. |
-| **Connected** | Full network access, but every request is logged to the audit trail. |
-
-You can switch modes at any time from the connectivity panel. If anything feels wrong, the "Go Offline" button cuts all network activity instantly.
+Tool-URL allowlisting is a different control. See the repository file `docs/CONNECTIVITY.md`.
 
 ### Assistant profiles
 

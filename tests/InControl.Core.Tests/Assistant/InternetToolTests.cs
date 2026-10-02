@@ -116,6 +116,36 @@ public class InternetToolTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteAsync_DeniesHostThatMerelyExtendsAllowedPattern()
+    {
+        _connectivity.SetMode(ConnectivityMode.Connected);
+        _permissions.SetRule("https://api.example.com", ToolPermission.AlwaysAllow);
+
+        // Host must match, not a string prefix. Userinfo makes the host other-host.
+        var endpoints = new[]
+        {
+            "https://api.example.com.evil",
+            "https://api.example.com@other-host"
+        };
+
+        foreach (var endpoint in endpoints)
+        {
+            var sendsBefore = _gateway.SendCount;
+            var context = CreateContext(
+                endpoint,
+                "GET",
+                "Fetch user data",
+                "User profile",
+                "Session only");
+
+            var result = await _tool.ExecuteAsync(context, CancellationToken.None);
+
+            result.Success.Should().BeFalse();
+            _gateway.SendCount.Should().Be(sendsBefore);
+        }
+    }
+
+    [Fact]
     public async Task ExecuteAsync_FailsWithDeniedPermission()
     {
         _connectivity.SetMode(ConnectivityMode.Connected);
@@ -132,6 +162,27 @@ public class InternetToolTests : IDisposable
 
         result.Success.Should().BeFalse();
         result.Error!.Message.Should().Contain("denied");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_AlwaysAsk_DoesNotRunAsAlwaysAllow()
+    {
+        _connectivity.SetMode(ConnectivityMode.Connected);
+        _permissions.SetRule("https://api.example.com", ToolPermission.AlwaysAsk);
+
+        var context = CreateContext(
+            "https://api.example.com/data",
+            "GET",
+            "Fetch user data",
+            "User profile",
+            "Session only");
+
+        // The permission event cannot wait, so a matching AlwaysAsk rule is a deny, not a send.
+        var result = await _tool.ExecuteAsync(context, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.Error!.Message.Should().Contain("denied");
+        _gateway.SendCount.Should().Be(0);
     }
 
     [Fact]
@@ -235,8 +286,12 @@ public class InternetToolTests : IDisposable
     {
         public bool ShouldFail { get; set; }
 
+        public int SendCount { get; private set; }
+
         public Task<NetworkResponse> SendAsync(NetworkRequest request, CancellationToken ct = default)
         {
+            SendCount++;
+
             if (ShouldFail)
             {
                 return Task.FromResult(new NetworkResponse(
@@ -301,7 +356,7 @@ public class InternetToolPermissionsTests
             "Fetch users");
 
         result.Allowed.Should().BeFalse();
-        result.Reason.Should().Contain("denied by rule");
+        result.Reason.Should().Contain("disabled rule");
     }
 
     [Fact]

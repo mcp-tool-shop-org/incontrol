@@ -1,5 +1,15 @@
 # InControl-Desktop Release Charter
 
+## This charter is not the current ship
+
+Version 0.3.0 is the source tree at [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). There is no MSIX. Install and uninstall from source. See `docs/INSTALLATION.md` and `docs/UNINSTALL.md`.
+
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
+
+Chat stays on this PC until a rented GPU is connected. A rental sends the prompts you submit to Ollama on that machine. The banner names that machine.
+
+The sections below are an older plan: a signed MSIX, and internet disabled until the operator turns connectivity on. That plan is not the current ship. Do not treat this charter as the trust envelope. Current behavior is in `docs/CONNECTIVITY.md`.
+
 ## Purpose
 
 This document defines the release and trust boundary for InControl-Desktop. It establishes what "release" means, what infrastructure is in scope, and what is explicitly forbidden.
@@ -263,4 +273,4 @@ Changes that reduce operator control require:
 
 ---
 
-*This document is the source of truth for release behavior. If the code contradicts this document, the code is wrong.*
+*This charter is not the current ship. Read the banner at the top. The body under that banner is an older plan, not the trust envelope for 0.3.0.*

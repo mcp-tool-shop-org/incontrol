@@ -279,6 +279,24 @@ public class PluginPermissionPolicyTests : IDisposable
         Assert.False(result.IsConfigured);
     }
 
+    [Fact]
+    public void CheckPermission_ScopeRejectsSiblingThatExtendsScopeText()
+    {
+        // Arrange
+        _policy.AddPermissionRule("test-plugin",
+            new PermissionRule(PermissionType.File, PermissionAccess.Read, "/data", PermissionDecision.Allow));
+
+        // Act - names that only extend "/data", plus a real child under the separator
+        var data2 = _policy.CheckPermission("test-plugin", PermissionType.File, PermissionAccess.Read, "/data2");
+        var database = _policy.CheckPermission("test-plugin", PermissionType.File, PermissionAccess.Read, "/database");
+        var subpath = _policy.CheckPermission("test-plugin", PermissionType.File, PermissionAccess.Read, "/data/subdir");
+
+        // Assert
+        Assert.False(data2.IsAllowed);
+        Assert.False(database.IsAllowed);
+        Assert.True(subpath.IsAllowed);
+    }
+
     #endregion
 
     #region RequestPermission Tests

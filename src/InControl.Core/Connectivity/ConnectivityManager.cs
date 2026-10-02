@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using InControl.Core.Security;
 
 namespace InControl.Core.Connectivity;
 
@@ -284,8 +285,7 @@ public sealed class ConnectivityManager
     {
         lock (_lock)
         {
-            return _settings.AllowedEndpoints.Any(allowed =>
-                endpoint.StartsWith(allowed, StringComparison.OrdinalIgnoreCase));
+            return _settings.AllowedEndpoints.Any(allowed => EndpointPattern.Covers(allowed, endpoint));
         }
     }
 

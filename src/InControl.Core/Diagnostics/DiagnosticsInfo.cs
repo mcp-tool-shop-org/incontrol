@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using InControl.Core.Compute;
 using InControl.Core.Configuration;
 using InControl.Core.Storage;
 using InControl.Core.Version;
@@ -91,9 +92,21 @@ public static class DiagnosticsInfo
         CancellationToken ct = default)
     {
         var url = baseUrl ?? new OllamaOptions().BaseUrl;
+        if (!TunnelPort.IsLoopbackProbe(url))
+        {
+            return new OllamaConnectivityInfo(
+                Reachable: false,
+                BaseUrl: url,
+                VersionResponse: null,
+                Error: "Only http://127.0.0.1 is checked. Redirects are not followed.");
+        }
+
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+            {
+                Timeout = TimeSpan.FromSeconds(5)
+            };
             var response = await client.GetAsync($"{url}/api/version", ct);
             if (response.IsSuccessStatusCode)
             {

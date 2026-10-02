@@ -90,6 +90,32 @@ public class DataPathsTests
     }
 
     [Fact]
+    public void IsPathAllowed_RejectsDirectoryNameThatExtendsAllowedRoot()
+    {
+        var appSibling = ExtendRootBeforeSeparator(DataPaths.AppDataRoot);
+        var exportSibling = ExtendRootBeforeSeparator(DataPaths.Exports);
+        var appChild = ChildUnderSeparator(DataPaths.AppDataRoot);
+        var exportChild = ChildUnderSeparator(DataPaths.Exports);
+
+        DataPaths.IsPathAllowed(appSibling).Should().BeFalse();
+        DataPaths.IsPathAllowed(exportSibling).Should().BeFalse();
+        DataPaths.IsPathAllowed(appChild).Should().BeTrue();
+        DataPaths.IsPathAllowed(exportChild).Should().BeTrue();
+    }
+
+    private static string ExtendRootBeforeSeparator(string root)
+    {
+        var trimmed = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return trimmed + "extra" + Path.DirectorySeparatorChar + "file.txt";
+    }
+
+    private static string ChildUnderSeparator(string root)
+    {
+        var trimmed = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return trimmed + Path.DirectorySeparatorChar + "child.txt";
+    }
+
+    [Fact]
     public void IsPathAllowed_ReturnsFalseForNullOrEmpty()
     {
         DataPaths.IsPathAllowed(null!).Should().BeFalse();

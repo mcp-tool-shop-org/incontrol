@@ -222,7 +222,7 @@
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                VerticalAlignment="Center" />
                                 </StackPanel>
-                                <TextBlock Text="Type your message in the input area at the bottom and press Ctrl+Enter or click Run. The AI will process your request locally on your machine."
+                                <TextBlock Text="Type your message in the input area at the bottom and press Enter to send, or click Run. Shift+Enter inserts a newline. Chat stays on this PC unless a rental is connected. A rented GPU session sends the prompts to the machine the banner names."
                                            Style="{StaticResource BodyTextBlockStyle}"
                                            TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -361,7 +361,7 @@
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="Ctrl+N" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
                                     <TextBlock Grid.Row="2" Text="Open settings" />
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl+," FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl+9" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
                                     <TextBlock Grid.Row="3" Text="Search sessions" />
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="Ctrl+F" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -388,16 +388,20 @@
                                         <RowDefinition />
                                         <RowDefinition />
                                         <RowDefinition />
+                                        <RowDefinition />
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Text="Send message / Run" />
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Ctrl+Enter" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Enter" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                                    <TextBlock Grid.Row="1" Text="Cancel generation" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Escape" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Row="1" Text="New line" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Shift+Enter" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                                    <TextBlock Grid.Row="2" Text="Attach file" />
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl+Shift+O" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Row="2" Text="Cancel generation" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Escape" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="3" Text="Attach file" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Ctrl+Shift+O" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </Grid>
                             </StackPanel>
                         </Border>

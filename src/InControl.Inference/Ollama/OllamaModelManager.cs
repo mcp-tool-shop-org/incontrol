@@ -16,6 +16,7 @@ public sealed class OllamaModelManager : IModelManager
     private readonly ILogger<OllamaModelManager> _logger;
     private readonly object _clientGate = new();
     private OllamaApiClient? _client;
+    private HttpClient? _http;
     private string? _clientUrl;
 
     public event EventHandler<ModelListChangedEventArgs>? ModelsChanged;
@@ -27,14 +28,7 @@ public sealed class OllamaModelManager : IModelManager
     {
         _endpoint = endpoint;
         _logger = logger;
-        _endpoint.Changed += (_, _) =>
-        {
-            lock (_clientGate)
-            {
-                _client = null;
-                _clientUrl = null;
-            }
-        };
+        _endpoint.Changed += (_, _) => DropClient();
     }
 
     private OllamaApiClient GetClient()
@@ -42,13 +36,70 @@ public sealed class OllamaModelManager : IModelManager
         var url = _endpoint.BaseUrl;
         lock (_clientGate)
         {
-            if (_client is null || !string.Equals(_clientUrl, url, StringComparison.Ordinal))
-            {
-                _client = new OllamaApiClient(url);
-                _clientUrl = url;
-            }
+            if (_client is not null && string.Equals(_clientUrl, url, StringComparison.Ordinal))
+                return _client;
 
+            DisposeClientLocked();
+            (_client, _http) = CreateNonRedirectingClient(url);
+            _clientUrl = url;
             return _client;
+        }
+    }
+
+    private void DropClient()
+    {
+        lock (_clientGate)
+        {
+            DisposeClientLocked();
+        }
+    }
+
+    /// <summary>
+    /// Drops the cached client. The <see cref="HttpClient"/> overload does not dispose the handler,
+    /// so the previous client and its handler are both disposed when the endpoint URL changes.
+    /// </summary>
+    private void DisposeClientLocked()
+    {
+        var client = _client;
+        var http = _http;
+        _client = null;
+        _http = null;
+        _clientUrl = null;
+        try
+        {
+            client?.Dispose();
+        }
+        finally
+        {
+            http?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Same endpoint URL as <see cref="IOllamaEndpoint.BaseUrl"/>. Redirects are off so a 307 or 308
+    /// cannot replay a pull or delete onto another host.
+    /// </summary>
+    private static (OllamaApiClient Client, HttpClient Http) CreateNonRedirectingClient(string baseUrl)
+    {
+        HttpClientHandler? handler = null;
+        HttpClient? http = null;
+        try
+        {
+            handler = new HttpClientHandler { AllowAutoRedirect = false };
+            http = new HttpClient(handler, disposeHandler: true)
+            {
+                BaseAddress = new Uri(baseUrl)
+            };
+            handler = null;
+            var client = new OllamaApiClient(http);
+            var ownedHttp = http;
+            http = null;
+            return (client, ownedHttp);
+        }
+        finally
+        {
+            http?.Dispose();
+            handler?.Dispose();
         }
     }
 

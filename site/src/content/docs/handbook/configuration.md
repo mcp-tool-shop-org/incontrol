@@ -71,15 +71,11 @@ Organization policies take highest precedence and can be locked to prevent user 
 - **Connectivity** -- allowed modes, default mode, allowed/blocked domains
 - **Updates** -- auto-update toggle, allowed channels (stable/beta/dev/canary), minimum version
 
-## Connectivity modes
+## The offline switch
 
-| Mode | Description |
-|------|-------------|
-| Offline Only | No network access. All operations are local. |
-| Assisted | Network available for approved operations only. Requires per-endpoint approval. |
-| Connected | Full network access. All requests logged to the audit trail. |
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
 
-The connectivity mode can be changed at runtime through the UI. The "Go Offline" button provides an immediate kill switch for all network activity.
+Tool-URL allowlisting is a different control. See the repository file `docs/CONNECTIVITY.md`.
 
 ## Data storage
 

@@ -5,7 +5,7 @@
 ### Documentation
 
 - [Installation Guide](./docs/INSTALLATION.md) - Build 0.3.0 from source. There is no MSIX.
-- [Release Charter](./docs/RELEASE_CHARTER.md) - Trust envelope and update policy
+- [Release Charter](./docs/RELEASE_CHARTER.md) - Older plan, not the current ship. See [Connectivity](./docs/CONNECTIVITY.md).
 - [Connectivity Guide](./docs/CONNECTIVITY.md) - Network feature documentation
 
 ### Self-Help Resources

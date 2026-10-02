@@ -315,12 +315,40 @@ public sealed class PolicyEngine
             }
         }
 
-        // Check each policy in precedence order
-        var result = EvaluatePluginInPolicy(pluginId, author, orgPolicy, PolicySource.Organization)
-            ?? EvaluatePluginInPolicy(pluginId, author, teamPolicy, PolicySource.Team)
-            ?? EvaluatePluginInPolicy(pluginId, author, userPolicy, PolicySource.User)
-            ?? EvaluatePluginInPolicy(pluginId, author, sessionPolicy, PolicySource.Session)
-            ?? GetDefaultPluginDecision(pluginId);
+        // Explicit rules win inside a document. A locked organization default stops the walk.
+        // An unlocked document still contributes plugins.default when the id is unlisted.
+        (PolicyDocument? Policy, PolicySource Source)[] documents =
+        [
+            (orgPolicy, PolicySource.Organization),
+            (teamPolicy, PolicySource.Team),
+            (userPolicy, PolicySource.User),
+            (sessionPolicy, PolicySource.Session)
+        ];
+
+        PolicyEvaluationResult? result = null;
+        PolicyEvaluationResult? unlistedDefault = null;
+        foreach (var (policy, source) in documents)
+        {
+            if (policy?.Plugins == null)
+                continue;
+
+            var listed = EvaluatePluginInPolicy(pluginId, author, policy, source);
+            if (listed != null)
+            {
+                result = listed;
+                break;
+            }
+
+            if (policy.Locked && source == PolicySource.Organization)
+            {
+                result = PluginDefaultResult(policy.Plugins.Default, pluginId, source);
+                break;
+            }
+
+            unlistedDefault ??= PluginDefaultResult(policy.Plugins.Default, pluginId, source);
+        }
+
+        result ??= unlistedDefault ?? GetDefaultPluginDecision(pluginId);
 
         LogEvaluation(PolicyCategory.Plugins, pluginId, "load", result);
         return result;
@@ -439,6 +467,37 @@ public sealed class PolicyEngine
         }
 
         return null;
+    }
+
+    private PolicyEvaluationResult PluginDefaultResult(PolicyDecision decision, string pluginId, PolicySource source)
+    {
+        var sourcePath = GetPathForSource(source);
+        return decision switch
+        {
+            PolicyDecision.Allow => PolicyEvaluationResult.Allow(
+                $"Plugin '{pluginId}' allowed by {source} default policy",
+                source,
+                sourcePath),
+            PolicyDecision.Deny => PolicyEvaluationResult.Deny(
+                $"Plugin '{pluginId}' denied by {source} default policy",
+                source,
+                sourcePath,
+                "plugins.default"),
+            PolicyDecision.AllowWithApproval => PolicyEvaluationResult.RequireApproval(
+                $"Plugin '{pluginId}' requires approval by {source} default policy",
+                source,
+                sourcePath),
+            PolicyDecision.AllowWithConstraints => PolicyEvaluationResult.AllowConstrained(
+                $"Plugin '{pluginId}' allowed with constraints by {source} default policy",
+                source,
+                new Dictionary<string, object>(),
+                sourcePath),
+            _ => PolicyEvaluationResult.Deny(
+                $"Plugin '{pluginId}' denied by {source} default policy",
+                source,
+                sourcePath,
+                "plugins.default")
+        };
     }
 
     private static PolicyEvaluationResult GetDefaultPluginDecision(string pluginId)

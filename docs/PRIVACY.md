@@ -41,19 +41,15 @@ The chat stays on this PC until you connect a rented GPU in **Where this chat ru
 
 ## Network Activity
 
-### Local Model Inference
+### Ollama, and a rental when you connect one
 
-InControl connects to **local inference backends** running on your machine:
+The app talks to Ollama. Chat stays on this PC until a rented GPU is connected. A rental is an SSH local forward. A rental sends the prompts you submit to Ollama on that machine. The banner names that machine.
 
-| Backend | Default Address | Purpose |
-|---------|-----------------|---------|
-| llama.cpp | `http://localhost:8080` | Local LLM inference |
-| Ollama | `http://localhost:11434` | Local LLM inference |
+RunPod lookup reads `RUNPOD_API_KEY` from the environment and does not send the chat. The key is not stored.
 
-These connections are:
-- **Localhost only** by default
-- **Configurable** for custom setups
-- **No external network calls** unless you explicitly configure a remote endpoint
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
+
+There is no llama.cpp backend.
 
 ### What InControl Does NOT Do
 
@@ -138,7 +134,6 @@ Dependencies are scanned for known vulnerabilities:
 | Package | Purpose | Security Notes |
 |---------|---------|----------------|
 | Microsoft.WindowsAppSDK | UI framework | Microsoft-maintained |
-| LLamaSharp | Local inference | Open source |
 | System.Text.Json | Serialization | .NET BCL |
 
 ---

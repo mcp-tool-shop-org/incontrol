@@ -1,3 +1,5 @@
+using InControl.Core.Security;
+
 namespace InControl.Core.Storage;
 
 /// <summary>
@@ -167,17 +169,13 @@ public static class DataPaths
         if (string.IsNullOrEmpty(path))
             return false;
 
-        var fullPath = Path.GetFullPath(path);
-
-        // Allowed roots
         var allowedRoots = new[]
         {
             CurrentConfig.AppDataRoot,
             CurrentConfig.Exports
         };
 
-        return allowedRoots.Any(root =>
-            fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+        return allowedRoots.Any(root => PathBoundary.IsInside(path, root));
     }
 
     /// <summary>

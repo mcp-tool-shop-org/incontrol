@@ -5,15 +5,15 @@
     "ro-crate:1.1",
     "mcp-prototypes:passport:1"
   ],
-  "id": "seed:InControl-Desktop:0.1.0",
+  "id": "seed:InControl-Desktop:0.3.0",
   "swhid": null,
   "name": "incontrol",
   "title": "InControl",
   "description": "Ollama chat for Windows, on this PC or over SSH to a GPU you rented",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "license": "MIT",
   "datePublished": "2026-04-20",
-  "dateModified": "2026-04-20",
+  "dateModified": "2026-10-02",
   "codeRepository": "https://github.com/mcp-tool-shop-org/incontrol",
   "author": [
     {
@@ -22,9 +22,9 @@
   ],
   "keywords": [],
   "lifecycle": {
-    "state": "dormant",
+    "state": "active",
     "stateSince": "2026-04-08",
-    "maturity": "prototype",
+    "maturity": "released",
     "caretaker": null,
     "graduatedTo": null,
     "resurrectionNotes": null
@@ -47,7 +47,7 @@
     ],
     "runtimes": [],
     "operatingSystems": [
-      "any"
+      "windows"
     ]
   },
   "health": {

@@ -4,7 +4,9 @@ namespace InControl.Services.Voice;
 
 /// <summary>
 /// Tries the primary voice engine first (Kokoro), and falls back to Windows TTS when the primary
-/// engine can't connect or errors at runtime.
+/// engine cannot connect or fails at runtime.
+/// Cancellation is not an engine failure and does not start Windows speech.
+/// A real primary failure stops Kokoro playback before the fallback speaks.
 /// </summary>
 public sealed class FallbackVoiceService : IVoiceService
 {
@@ -75,9 +77,21 @@ public sealed class FallbackVoiceService : IVoiceService
                 await _primary.SpeakAsync(text, voice, ct);
                 return;
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Primary TTS failed; switching to Windows TTS fallback");
+                try
+                {
+                    await _primary.StopSpeakingAsync(CancellationToken.None);
+                }
+                catch (Exception stopEx)
+                {
+                    _logger.LogDebug(stopEx, "Failed to stop primary playback before fallback");
+                }
             }
         }
 
@@ -86,7 +100,10 @@ public sealed class FallbackVoiceService : IVoiceService
 
     public async Task StopSpeakingAsync(CancellationToken ct = default)
     {
-        try { await _primary.StopSpeakingAsync(ct); } catch { /* ignore */ }
-        try { await _fallback.StopSpeakingAsync(ct); } catch { /* ignore */ }
+        // Start both stops before awaiting either, so Windows speech is not stuck behind Kokoro.
+        var primaryStop = _primary.StopSpeakingAsync(ct);
+        var fallbackStop = _fallback.StopSpeakingAsync(ct);
+        try { await primaryStop; } catch { /* ignore */ }
+        try { await fallbackStop; } catch { /* ignore */ }
     }
 }

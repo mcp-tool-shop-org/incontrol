@@ -1,4 +1,5 @@
 using System.Text.Json;
+using InControl.Core.Security;
 
 namespace InControl.Core.Plugins;
 
@@ -64,8 +65,8 @@ public sealed class PluginPermissionPolicy
             // Find matching permission rule
             var rule = policy.PermissionRules.FirstOrDefault(r =>
                 r.Type == type &&
-                r.Access >= access &&
-                (scope == null || r.Scope == null || MatchesScope(scope, r.Scope)));
+                r.Access == access &&
+                (scope == null || r.Scope == null || MatchesScope(type, scope, r.Scope)));
 
             if (rule == null)
             {
@@ -234,9 +235,15 @@ public sealed class PluginPermissionPolicy
         AddPermissionRule(pluginId, rule);
     }
 
-    private static bool MatchesScope(string requested, string permitted)
+    private static bool MatchesScope(PermissionType type, string requested, string permitted)
     {
-        return requested.StartsWith(permitted, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(permitted))
+            return false;
+
+        if (type == PermissionType.Network)
+            return EndpointPattern.Covers(permitted, requested);
+
+        return PathBoundary.IsInside(requested, permitted);
     }
 
     private void LoadPolicies()

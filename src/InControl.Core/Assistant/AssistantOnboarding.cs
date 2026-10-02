@@ -265,9 +265,9 @@ public sealed class AssistantOnboarding
                 Description: "Your personal assistant that helps you stay in control.",
                 Items: [
                     "I'm here to help, not to replace you.",
-                    "I'll always explain what I'm about to do.",
-                    "I'll never act without your approval.",
-                    "Your data stays on your device."
+                    "This chat stays on this PC until a rented GPU is connected.",
+                    "While that session is up, the prompts you send leave this PC.",
+                    "The banner names the machine."
                 ],
                 ActionLabel: "Let's get started"
             ),
@@ -289,7 +289,7 @@ public sealed class AssistantOnboarding
                 Description: "Important limitations to understand:",
                 Items: [
                     "I cannot access the internet without explicit tool permission",
-                    "I cannot modify system settings or files",
+                    "Plugins you load run in this app and can use the file and network access you grant them.",
                     "I cannot make decisions on your behalf",
                     "I cannot guarantee perfect accuracy"
                 ],
@@ -300,10 +300,10 @@ public sealed class AssistantOnboarding
                 Title: "Privacy Settings",
                 Description: "Choose how I handle your data:",
                 Items: [
-                    "All data is stored locally on your device",
-                    "You control what I remember",
-                    "You can delete any memory at any time",
-                    "No data is shared without explicit consent"
+                    "This chat stays on this PC until a rented GPU is connected.",
+                    "While that session is up, the prompts you send leave this PC.",
+                    "The banner names the machine.",
+                    "You can delete any memory at any time."
                 ],
                 ActionLabel: "Configure privacy"
             ),

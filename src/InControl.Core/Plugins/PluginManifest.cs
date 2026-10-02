@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using InControl.Core.Errors;
+using InControl.Core.Security;
 
 namespace InControl.Core.Plugins;
 
@@ -175,12 +176,12 @@ public enum PermissionAccess
     Read,
 
     /// <summary>
-    /// Read and write access.
+    /// Write access. Does not grant read or execute.
     /// </summary>
     Write,
 
     /// <summary>
-    /// Execute/invoke access.
+    /// Execute access. Does not grant read or write.
     /// </summary>
     Execute
 }
@@ -606,22 +607,12 @@ public sealed class ManifestValidator
 
             foreach (var endpoint in manifest.NetworkIntent.Endpoints)
             {
-                var baseUrl = GetBaseUrl(endpoint);
-                if (!permittedEndpoints.Any(p => endpoint.StartsWith(p!) || baseUrl == p))
+                if (!permittedEndpoints.Any(p => EndpointPattern.Covers(p, endpoint)))
                 {
                     errors.Add($"NetworkIntent endpoint '{endpoint}' not covered by network permissions");
                 }
             }
         }
-    }
-
-    private static string GetBaseUrl(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            return $"{uri.Scheme}://{uri.Host}";
-        }
-        return url;
     }
 }
 

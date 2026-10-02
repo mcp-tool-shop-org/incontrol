@@ -5,12 +5,15 @@ using KokoroSharp;
 using KokoroSharp.Core;
 using KokoroSharp.Processing;
 using InControl.Core.Configuration;
+using InControl.Core.Storage;
 
 namespace InControl.Services.Voice;
 
 /// <summary>
-/// Voice synthesis service using the KokoroSharp ONNX engine.
-/// Runs fully in-process — no external servers or dependencies.
+/// Voice synthesis service using the KokoroSharp ONNX engine in-process.
+/// KokoroSharp.CPU supplies the native ONNX runtime the session is constructed with.
+/// No external speech server is used. The model is loaded from the application cache
+/// (the LocalApplicationData InControl root DataPaths already uses), not the process working directory.
 /// </summary>
 public sealed class KokoroVoiceService : IVoiceService, IDisposable
 {
@@ -18,11 +21,20 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
     private readonly IAudioPlayer _audioPlayer;
     private readonly ILogger<KokoroVoiceService> _logger;
     private readonly SemaphoreSlim _speakLock = new(1, 1);
+    private readonly SemaphoreSlim _playerLock = new(1, 1);
     private readonly SemaphoreSlim _initLock = new(1, 1);
+    private readonly object _stateGate = new();
 
     private KokoroTTS? _engine;
     private CancellationTokenSource? _speakCts;
+    private KokoroJob? _activeJob;
+    private int _playbackEpoch;
     private bool _audioInitialized;
+
+    /// <summary>
+    /// Relative file name KokoroSharp 0.6.2 writes for <see cref="KModel.float32"/>.
+    /// </summary>
+    private const string WorkingDirectoryModelFileName = "kokoro.onnx";
 
     private VoiceConnectionState _connectionState = VoiceConnectionState.Disconnected;
     private bool _isSpeaking;
@@ -120,62 +132,111 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
             }
         }
 
-        await _speakLock.WaitAsync(ct);
+        // Claim this utterance and cancel the previous one before waiting on the setup lock,
+        // so Stop and a second Speak are not stuck behind playback.
+        var epoch = Interlocked.Increment(ref _playbackEpoch);
+        CancelPublishedSpeech();
+        await StopPlayerIfCurrentAsync(epoch);
+
+        var lockHeld = false;
+        CancellationTokenSource? speakCts = null;
+        CancellationTokenRegistration registration = default;
+        KokoroJob? job = null;
         try
         {
-            // Stop any current speech
-            if (IsSpeaking)
-                await StopSpeakingInternalAsync();
+            await _speakLock.WaitAsync(ct);
+            lockHeld = true;
+
+            if (Volatile.Read(ref _playbackEpoch) != epoch)
+            {
+                ct.ThrowIfCancellationRequested();
+                return;
+            }
+
+            await _playerLock.WaitAsync(ct);
+            try
+            {
+                if (Volatile.Read(ref _playbackEpoch) != epoch)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    return;
+                }
+
+                if (!_audioInitialized)
+                {
+                    await _audioPlayer.InitializeAsync(SampleRate);
+                    _audioInitialized = true;
+                }
+            }
+            finally
+            {
+                _playerLock.Release();
+            }
+
+            if (Volatile.Read(ref _playbackEpoch) != epoch)
+            {
+                ct.ThrowIfCancellationRequested();
+                return;
+            }
 
             var opts = _options.Value;
             var voiceName = voice ?? opts.DefaultVoice;
+            speakCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            lock (_stateGate)
+            {
+                _speakCts = speakCts;
+            }
 
-            _speakCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             IsSpeaking = true;
 
             _audioPlayer.Volume = opts.Volume;
-
-            // Initialize audio player if not done yet
-            if (!_audioInitialized)
-            {
-                await _audioPlayer.InitializeAsync(SampleRate);
-                _audioInitialized = true;
-            }
 
             _logger.LogInformation(
                 "Speaking: voice={Voice}, speed={Speed}, length={Length}chars",
                 voiceName, opts.Speed, text.Length);
 
-            // Get the voice style
             var kokoroVoice = KokoroVoiceManager.GetVoice(voiceName);
-
-            // Tokenize text
             var tokens = Tokenizer.Tokenize(text, "en-us");
-
-            // Segment for streaming playback
             var segments = SegmentationSystem.SplitToSegments(tokens, new DefaultSegmentationConfig());
 
-            // Create a TaskCompletionSource to await all segments
-            var tcs = new TaskCompletionSource();
-            var localCts = _speakCts;
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var segmentCount = segments.Count;
             var completedSegments = 0;
+            var localCts = speakCts;
 
-            // Create job with callback that routes audio to our player
-            var job = KokoroJob.Create(segments, kokoroVoice, opts.Speed, samples =>
+            job = KokoroJob.Create(segments, kokoroVoice, opts.Speed, samples =>
             {
                 try
                 {
-                    if (localCts?.IsCancellationRequested == true)
+                    if (localCts.IsCancellationRequested || Volatile.Read(ref _playbackEpoch) != epoch)
+                    {
+                        tcs.TrySetCanceled();
                         return;
+                    }
 
                     _logger.LogDebug("Audio segment received: {SampleCount} samples", samples.Length);
-
                     var pcmBytes = FloatToPcm16(samples);
-                    _audioPlayer.SubmitSamples(pcmBytes);
 
-                    var done = Interlocked.Increment(ref completedSegments);
-                    if (done >= segmentCount)
+                    // Hold the player lock so a stop or a newer speak cannot re-init between the check and the submit.
+                    _playerLock.Wait();
+                    try
+                    {
+                        if (localCts.IsCancellationRequested
+                            || Volatile.Read(ref _playbackEpoch) != epoch
+                            || !_audioInitialized)
+                        {
+                            tcs.TrySetCanceled();
+                            return;
+                        }
+
+                        _audioPlayer.SubmitSamples(pcmBytes);
+                    }
+                    finally
+                    {
+                        _playerLock.Release();
+                    }
+
+                    if (Interlocked.Increment(ref completedSegments) >= segmentCount)
                     {
                         _logger.LogDebug("All {Count} segments complete", segmentCount);
                         tcs.TrySetResult();
@@ -188,65 +249,156 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
                 }
             });
 
-            // Enqueue the job
-            _engine!.EnqueueJob(job);
+            registration = localCts.Token.Register(() =>
+            {
+                try
+                {
+                    job.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error cancelling speech job");
+                }
 
-            // Wait for completion or cancellation
-            using var reg = localCts.Token.Register(() =>
+                tcs.TrySetCanceled();
+                if (Volatile.Read(ref _playbackEpoch) == epoch)
+                    _ = StopPlayerIfCurrentAsync(epoch);
+            });
+
+            lock (_stateGate)
+            {
+                _activeJob = job;
+            }
+
+            if (Volatile.Read(ref _playbackEpoch) != epoch || localCts.IsCancellationRequested)
             {
                 job.Cancel();
                 tcs.TrySetCanceled();
-            });
+            }
+            else
+            {
+                if (_engine is null)
+                    throw new InvalidOperationException("Voice engine is not loaded.");
+
+                _engine.EnqueueJob(job);
+                if (segmentCount == 0)
+                    tcs.TrySetResult();
+            }
+
+            // Playback wait must not hold the setup lock, or Stop cannot cancel this utterance.
+            _speakLock.Release();
+            lockHeld = false;
 
             await tcs.Task;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogDebug("Speech cancelled");
+            await StopPlayerIfCurrentAsync(epoch);
         }
         catch (OperationCanceledException)
         {
             _logger.LogDebug("Speech cancelled");
+            await StopPlayerIfCurrentAsync(epoch);
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Speech failed");
             ConnectionState = VoiceConnectionState.Error;
+            await StopPlayerIfCurrentAsync(epoch);
             throw;
         }
         finally
         {
-            IsSpeaking = false;
-            _speakCts?.Dispose();
-            _speakCts = null;
-            _speakLock.Release();
+            if (lockHeld)
+                _speakLock.Release();
+
+            registration.Dispose();
+            var clearSpeaking = false;
+            lock (_stateGate)
+            {
+                if (Volatile.Read(ref _playbackEpoch) == epoch)
+                {
+                    if (ReferenceEquals(_speakCts, speakCts))
+                        _speakCts = null;
+                    if (ReferenceEquals(_activeJob, job))
+                        _activeJob = null;
+                    clearSpeaking = true;
+                }
+            }
+
+            if (clearSpeaking && Volatile.Read(ref _playbackEpoch) == epoch)
+                IsSpeaking = false;
+
+            speakCts?.Dispose();
         }
     }
 
     /// <inheritdoc />
     public async Task StopSpeakingAsync(CancellationToken ct = default)
     {
-        await _speakLock.WaitAsync(ct);
-        try
-        {
-            await StopSpeakingInternalAsync();
-        }
-        finally
-        {
-            _speakLock.Release();
-        }
+        // A cancelled caller token must not skip the stop. Playback is cleared either way.
+        _ = ct;
+        var epoch = Interlocked.Increment(ref _playbackEpoch);
+        CancelPublishedSpeech();
+        await StopPlayerIfCurrentAsync(epoch);
+        if (Volatile.Read(ref _playbackEpoch) == epoch)
+            IsSpeaking = false;
     }
 
-    private async Task StopSpeakingInternalAsync()
+    private void CancelPublishedSpeech()
     {
-        _speakCts?.Cancel();
+        CancellationTokenSource? cts;
+        KokoroJob? job;
+        lock (_stateGate)
+        {
+            cts = _speakCts;
+            job = _activeJob;
+        }
 
         try
         {
-            await _audioPlayer.StopAsync();
+            cts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The utterance already finished and disposed its source.
+        }
+
+        try
+        {
+            job?.Cancel();
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error stopping audio player");
+            _logger.LogDebug(ex, "Error cancelling speech job");
         }
+    }
 
-        IsSpeaking = false;
+    private async Task StopPlayerIfCurrentAsync(int epoch)
+    {
+        await _playerLock.WaitAsync();
+        try
+        {
+            if (Volatile.Read(ref _playbackEpoch) != epoch)
+                return;
+
+            try
+            {
+                await _audioPlayer.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error stopping audio player");
+            }
+
+            _audioInitialized = false;
+        }
+        finally
+        {
+            _playerLock.Release();
+        }
     }
 
     /// <summary>
@@ -290,14 +442,71 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
 
     private async Task<KokoroTTS> LoadModelAsync(VoiceOptions opts)
     {
-        if (!string.IsNullOrEmpty(opts.ModelPath))
+        if (!string.IsNullOrWhiteSpace(opts.ModelPath))
+            return KokoroTTS.LoadModel(Path.GetFullPath(opts.ModelPath));
+
+        Directory.CreateDirectory(DataPaths.Cache);
+        var cachePath = Path.GetFullPath(Path.Combine(DataPaths.Cache, WorkingDirectoryModelFileName));
+        if (File.Exists(cachePath))
         {
-            return KokoroTTS.LoadModel(opts.ModelPath);
+            DeleteWorkingDirectoryCopy(cachePath);
+            return KokoroTTS.LoadModel(cachePath);
         }
 
-        return await KokoroTTS.LoadModelAsync(
-            KModel.float32,
-            progress => _logger.LogDebug("Model download progress: {Progress:P0}", progress));
+        // KokoroSharp 0.6.2 only downloads the float32 model beside the process.
+        // Move that file into the app cache and load the absolute path.
+        KokoroTTS? downloaded = null;
+        try
+        {
+            downloaded = await KokoroTTS.LoadModelAsync(
+                KModel.float32,
+                progress => _logger.LogDebug("Model download progress: {Progress:P0}", progress));
+        }
+        finally
+        {
+            try
+            {
+                downloaded?.Dispose();
+            }
+            finally
+            {
+                MoveModelOutOfWorkingDirectory(cachePath);
+            }
+        }
+
+        if (!File.Exists(cachePath))
+            throw new FileNotFoundException("Kokoro model was not stored in the application cache.", cachePath);
+
+        return KokoroTTS.LoadModel(cachePath);
+    }
+
+    private static void MoveModelOutOfWorkingDirectory(string cachePath)
+    {
+        var downloaded = Path.GetFullPath(WorkingDirectoryModelFileName);
+        if (!File.Exists(downloaded))
+            return;
+
+        if (string.Equals(downloaded, cachePath, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var cacheDirectory = Path.GetDirectoryName(cachePath);
+        if (!string.IsNullOrEmpty(cacheDirectory))
+            Directory.CreateDirectory(cacheDirectory);
+
+        File.Move(downloaded, cachePath, overwrite: true);
+        DeleteWorkingDirectoryCopy(cachePath);
+    }
+
+    private static void DeleteWorkingDirectoryCopy(string cachePath)
+    {
+        var downloaded = Path.GetFullPath(WorkingDirectoryModelFileName);
+        if (!File.Exists(downloaded))
+            return;
+
+        if (string.Equals(downloaded, cachePath, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        File.Delete(downloaded);
     }
 
     /// <summary>
@@ -316,9 +525,19 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
 
     public void Dispose()
     {
-        _speakCts?.Cancel();
+        Interlocked.Increment(ref _playbackEpoch);
+        try
+        {
+            CancelPublishedSpeech();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error cancelling speech during dispose");
+        }
+
         _speakCts?.Dispose();
         _speakLock.Dispose();
+        _playerLock.Dispose();
         _initLock.Dispose();
         _engine?.Dispose();
     }

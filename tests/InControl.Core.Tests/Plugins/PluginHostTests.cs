@@ -395,6 +395,28 @@ public class PluginSandboxTests : IDisposable
     }
 
     [Fact]
+    public void FileAccess_SiblingPathExtendingScope_Denied()
+    {
+        var manifest = CreateManifestWithPermissions();
+        var context = _sandbox.CreateContext(manifest);
+
+        context.Files.IsPathPermitted("/documents-secret", PermissionAccess.Read).Should().BeFalse();
+        context.Files.IsPathPermitted("/documents-secret/file.txt", PermissionAccess.Read).Should().BeFalse();
+        context.Files.IsPathPermitted("/documents/test.txt", PermissionAccess.Read).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NetworkAccess_SiblingHostExtendingScope_Denied()
+    {
+        var manifest = CreateManifestWithNetworkScope();
+        var context = _sandbox.CreateContext(manifest);
+
+        context.Network.IsEndpointPermitted("https://api.example.com.evil").Should().BeFalse();
+        context.Network.IsEndpointPermitted("https://api.example.com@other-host").Should().BeFalse();
+        context.Network.IsEndpointPermitted("https://api.example.com/data").Should().BeTrue();
+    }
+
+    [Fact]
     public void NetworkAccess_IsAvailable_ReflectsConnectivity()
     {
         var manifest = CreateManifestWithPermissions();
@@ -461,6 +483,22 @@ public class PluginSandboxTests : IDisposable
                 {
                     Type = PermissionType.Memory,
                     Access = PermissionAccess.Read
+                }
+            }
+        };
+    }
+
+    private static PluginManifest CreateManifestWithNetworkScope()
+    {
+        return CreateManifestWithPermissions() with
+        {
+            Permissions = new List<PluginPermission>
+            {
+                new()
+                {
+                    Type = PermissionType.Network,
+                    Access = PermissionAccess.Read,
+                    Scope = "https://api.example.com"
                 }
             }
         };

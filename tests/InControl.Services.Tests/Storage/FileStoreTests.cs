@@ -53,6 +53,35 @@ public class FileStoreTests : IDisposable
     }
 
     [Fact]
+    public void IsPathAllowed_RejectsSiblingDirectoryExtendingRoot()
+    {
+        var root = Path.GetFullPath(_testRoot)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var inside = root + Path.DirectorySeparatorChar + "inside.txt";
+        var siblingRoot = root + "extra";
+        Directory.CreateDirectory(siblingRoot);
+
+        try
+        {
+            var outside = Path.Combine(siblingRoot, "secret.txt");
+
+            outside.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                .Should().BeFalse();
+            inside.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                .Should().BeTrue();
+            _store.IsPathAllowed(outside).Should().BeFalse();
+            _store.IsPathAllowed(inside).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(siblingRoot))
+            {
+                Directory.Delete(siblingRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void IsPathAllowed_RejectsTraversalAttempts()
     {
         var path = Path.Combine(_testRoot, "..", "escaped.txt");

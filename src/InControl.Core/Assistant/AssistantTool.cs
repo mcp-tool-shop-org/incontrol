@@ -273,6 +273,7 @@ public sealed class ToolRegistry
         CancellationToken ct = default)
     {
         IAssistantTool? tool;
+        ToolPermission permission;
         lock (_lock)
         {
             if (!_tools.TryGetValue(toolId, out tool))
@@ -282,6 +283,10 @@ public sealed class ToolRegistry
                     TimeSpan.Zero
                 );
             }
+
+            permission = _permissions.TryGetValue(toolId, out var stored)
+                ? stored
+                : ToolPermission.AlwaysAsk;
         }
 
         var invocationId = Guid.NewGuid();
@@ -290,23 +295,33 @@ public sealed class ToolRegistry
         var startTime = DateTimeOffset.UtcNow;
         ToolResult result;
 
-        try
-        {
-            result = await tool.ExecuteAsync(context, ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
+        if (permission == ToolPermission.Disabled)
         {
             result = ToolResult.Failed(
-                InControlError.Cancelled($"Tool execution: {toolId}"),
-                DateTimeOffset.UtcNow - startTime
+                InControlError.Create(ErrorCode.ToolPermissionDenied, $"Tool is disabled: {toolId}"),
+                TimeSpan.Zero
             );
         }
-        catch (Exception ex)
+        else
         {
-            result = ToolResult.Failed(
-                InControlError.FromException(ex),
-                DateTimeOffset.UtcNow - startTime
-            );
+            try
+            {
+                result = await tool!.ExecuteAsync(context, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                result = ToolResult.Failed(
+                    InControlError.Cancelled($"Tool execution: {toolId}"),
+                    DateTimeOffset.UtcNow - startTime
+                );
+            }
+            catch (Exception ex)
+            {
+                result = ToolResult.Failed(
+                    InControlError.FromException(ex),
+                    DateTimeOffset.UtcNow - startTime
+                );
+            }
         }
 
         // Record in audit log

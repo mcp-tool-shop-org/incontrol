@@ -63,15 +63,9 @@ The policy engine (`InControl.Core.Policy`) provides layered governance through 
 
 ### Connectivity
 
-The connectivity subsystem (`InControl.Core.Connectivity`) governs network access with three modes:
+See the repository file `docs/CONNECTIVITY.md`. The offline switch is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
 
-| Mode | Behavior |
-|------|----------|
-| Offline Only | No network access. Fully local operation. |
-| Assisted | Network available for approved operations only. |
-| Connected | Full network access with audit logging. |
-
-The ConnectivityViewModel exposes a "Go Offline" panic button, audit log export, and real-time network activity tracking.
+Tool-URL allowlisting is a different control. It does not decide that prompts stay on this PC.
 
 ### Health checks
 

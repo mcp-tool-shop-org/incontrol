@@ -1,5 +1,6 @@
 using InControl.Core.Connectivity;
 using InControl.Core.Errors;
+using InControl.Core.Security;
 
 namespace InControl.Core.Assistant;
 
@@ -172,26 +173,47 @@ public sealed class InternetToolPermissions : IInternetToolPermissions
     {
         lock (_lock)
         {
-            // Check for matching rules
+            var matches = new List<(string Pattern, PermissionRule Rule, int Specificity)>();
             foreach (var (pattern, rule) in _rules)
             {
-                if (MatchesPattern(endpoint, pattern))
-                {
-                    return Task.FromResult(new InternetPermissionResult(
-                        rule.Permission == ToolPermission.AlwaysAllow,
-                        rule.Permission == ToolPermission.AlwaysAllow
-                            ? null
-                            : $"Endpoint denied by rule: {pattern}"
-                    ));
-                }
+                if (!EndpointPattern.Covers(pattern, endpoint))
+                    continue;
+
+                matches.Add((pattern, rule, EndpointPattern.Specificity(pattern)));
             }
 
-            // No matching rule - need operator approval
-            PermissionRequested?.Invoke(this, new InternetPermissionRequestEventArgs(endpoint, purpose));
+            if (matches.Count == 0)
+            {
+                // The event args have no completion task, so this call cannot wait.
+                PermissionRequested?.Invoke(this, new InternetPermissionRequestEventArgs(endpoint, purpose));
 
+                return Task.FromResult(new InternetPermissionResult(
+                    false,
+                    "Endpoint not in approved list. Operator approval required."
+                ));
+            }
+
+            var best = matches.Max(match => match.Specificity);
+            var top = matches.Where(match => match.Specificity == best).ToList();
+
+            if (top.Any(match => match.Rule.Permission == ToolPermission.Disabled))
+            {
+                var denied = top.First(match => match.Rule.Permission == ToolPermission.Disabled);
+                return Task.FromResult(new InternetPermissionResult(
+                    false,
+                    $"Endpoint denied by a disabled rule: {denied.Pattern}"
+                ));
+            }
+
+            if (top.All(match => match.Rule.Permission == ToolPermission.AlwaysAllow))
+            {
+                return Task.FromResult(new InternetPermissionResult(true, null));
+            }
+
+            // AlwaysAsk and AskOnce are not an allow. Nothing here can wait for the operator.
             return Task.FromResult(new InternetPermissionResult(
                 false,
-                "Endpoint not in approved list. Operator approval required."
+                "Approval is required for this call. This check cannot wait for a decision."
             ));
         }
     }
@@ -240,12 +262,6 @@ public sealed class InternetToolPermissions : IInternetToolPermissions
         }
     }
 
-    private static bool MatchesPattern(string endpoint, string pattern)
-    {
-        // Simple prefix matching
-        // Pattern: "https://api.example.com" matches "https://api.example.com/users"
-        return endpoint.StartsWith(pattern, StringComparison.OrdinalIgnoreCase);
-    }
 }
 
 /// <summary>
