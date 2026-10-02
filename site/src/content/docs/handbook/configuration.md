@@ -119,4 +119,4 @@ All data is stored locally on your machine:
 - Use the "Copy Diagnostics" feature in the app to create a support bundle
 - Support bundles include logs, health reports, and sanitized config (never conversation content)
 
-For more details, see [TROUBLESHOOTING.md](https://github.com/mcp-tool-shop-org/InControl-Desktop/blob/main/docs/TROUBLESHOOTING.md).
+For the rental path, see [Where the chat runs](/incontrol/handbook/where-it-runs/). Support notes live in the repository `SUPPORT.md`.

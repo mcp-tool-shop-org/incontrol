@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     runs-on: windows-latest
@@ -14,6 +18,20 @@ jobs:
         with:
           dotnet-version: 9.0.x
       - name: Test
-        run: dotnet test tests/InControl.Core.Tests/InControl.Core.Tests.csproj --configuration Release --nologo
+        run: dotnet test tests/InControl.Core.Tests/InControl.Core.Tests.csproj --configuration Release --nologo --settings coverage.runsettings --collect:"XPlat Code Coverage" --results-directory coverage
+      - name: Collect coverage
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem coverage -Recurse -Filter coverage.info | Select-Object -First 1
+          if (-not $file) { Write-Error "coverage.info was not written"; exit 1 }
+          Copy-Item $file.FullName coverage/lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          version: v11.3.1
+          use_oidc: true
+          fail_ci_if_error: true
+          disable_search: true
+          files: ./coverage/lcov.info
       - name: Vulnerable packages
         run: dotnet list tests/InControl.Core.Tests/InControl.Core.Tests.csproj package --vulnerable --include-transitive

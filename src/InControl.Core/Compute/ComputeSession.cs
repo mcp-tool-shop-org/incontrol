@@ -12,6 +12,7 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
     private readonly string _configRoot;
     private readonly Func<int> _reservePort;
     private readonly TimeSpan _connectTimeout;
+    private readonly IOllamaReadyProbe? _ready;
     private readonly object _gate = new();
 
     private ISshSession? _session;
@@ -25,7 +26,8 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         ITcpProbe probe,
         string configRoot,
         Func<int>? reservePort = null,
-        TimeSpan? connectTimeout = null)
+        TimeSpan? connectTimeout = null,
+        IOllamaReadyProbe? ready = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(probe);
@@ -40,8 +42,9 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         _sessions = sessions;
         _probe = probe;
         _configRoot = configRoot;
-        _reservePort = reservePort ?? LocalPort.Reserve;
+        _reservePort = reservePort ?? (() => TunnelPort.DedicatedFor(_localBaseUrl));
         _connectTimeout = connectTimeout ?? TimeSpan.FromSeconds(20);
+        _ready = ready;
         _baseUrl = _localBaseUrl;
         _notice = ComputeNotice.OnThisPc;
     }
@@ -96,6 +99,17 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         }
 
         var localPort = _reservePort();
+        if (!TunnelPort.IsForwardPort(localPort, _localBaseUrl))
+        {
+            return ComputeConnectResult.Fail(
+                ComputeNotice.LocalForwardRefused(localPort, TunnelPort.ParseLocal(_localBaseUrl)));
+        }
+
+        if (_ready is null)
+        {
+            return ComputeConnectResult.Fail("Ollama through the tunnel was not checked. The chat stayed on this PC.");
+        }
+
         var directory = Path.Combine(_configRoot, endpoint.DirectoryKey);
         Directory.CreateDirectory(directory);
 
@@ -110,6 +124,7 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         }
 
         var deadline = DateTime.UtcNow + _connectTimeout;
+        var sawTcp = false;
         while (DateTime.UtcNow < deadline)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -122,21 +137,30 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
 
             if (await _probe.CanConnectAsync("127.0.0.1", localPort, cancellationToken).ConfigureAwait(false))
             {
-                await SwapAsync(session, localPort, endpoint).ConfigureAwait(false);
-                var message = ComputeNotice.TunnelUp(endpoint.DisplayName, endpoint.Host);
-                if (inspection.VastProxyWarning)
+                sawTcp = true;
+                var version = OllamaVersion.Clean(await _ready.VersionAsync(
+                    $"http://127.0.0.1:{localPort}",
+                    cancellationToken).ConfigureAwait(false));
+                if (version is not null)
                 {
-                    message = inspection.Warning + " " + message;
-                }
+                    await SwapAsync(session, localPort, endpoint).ConfigureAwait(false);
+                    var message = ComputeNotice.TunnelUp(endpoint.DisplayName, endpoint.Host)
+                        + " "
+                        + ComputeNotice.OllamaAnswered(version);
+                    if (inspection.VastProxyWarning)
+                    {
+                        message = inspection.Warning + " " + message;
+                    }
 
-                return ComputeConnectResult.Ok(message);
+                    return ComputeConnectResult.Ok(message);
+                }
             }
 
             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
         }
 
         await session.DisposeAsync().ConfigureAwait(false);
-        return ComputeConnectResult.Fail(ComputeNotice.TunnelTimedOut);
+        return ComputeConnectResult.Fail(sawTcp ? ComputeNotice.TunnelNotOllama : ComputeNotice.TunnelTimedOut);
     }
 
     public async Task UseThisPcAsync()

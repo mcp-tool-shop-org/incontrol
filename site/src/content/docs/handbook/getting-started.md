@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install and run InControl Desktop.
+description: Install InControl from source and run the tests.
 sidebar:
   order: 1
 ---
@@ -26,28 +26,20 @@ ollama serve
 
 ## Install InControl
 
-### From Release (recommended)
-
-1. Download the latest MSIX package from [Releases](https://github.com/mcp-tool-shop-org/InControl-Desktop/releases)
-2. Double-click to install
-3. Launch from Start Menu
-
-### From Source
+0.3.0 has no installer. Build it from source. The window project compiles its assembly, then Windows App SDK packaging fails on a plain .NET SDK, so `dotnet test` is the check this release actually runs.
 
 ```bash
-git clone https://github.com/mcp-tool-shop-org/InControl-Desktop.git
-cd InControl-Desktop
-dotnet restore
-dotnet build
-
-# Run (requires Ollama running locally)
-dotnet run --project src/InControl.App
+git clone https://github.com/mcp-tool-shop-org/incontrol.git
+cd incontrol
+dotnet test tests/InControl.Core.Tests
 ```
+
+Ollama listens on `http://127.0.0.1:11434` on this PC. A rented GPU is optional and lives in Settings, under **Where this chat runs**.
 
 ## Run tests
 
 ```bash
-dotnet test
+dotnet test tests/InControl.Core.Tests
 ```
 
 ## Verify build environment

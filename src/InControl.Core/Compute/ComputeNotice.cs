@@ -16,7 +16,7 @@ public static class ComputeNotice
         "This choice is separate from Connectivity. Allowing a tool URL does not send the chat to a rented GPU.";
 
     public const string AddressResets =
-        "This address dies when the rental restarts. Paste the new ssh command after a reset.";
+        "This address dies when the rental restarts. Look the pod up again, or paste the new ssh command.";
 
     public const string RunPodProxyBlocked =
         "RunPod's ssh.runpod.io proxy is a shell only. It cannot forward a port. Use the direct SSH line: root at the public IP and the mapped port.";
@@ -36,6 +36,26 @@ public static class ComputeNotice
     public const string TunnelClosed = "SSH exited before the tunnel was up.";
 
     public const string TunnelTimedOut = "SSH did not open the local forward in time.";
+
+    public const string TunnelNotOllama =
+        "The forward opened, but Ollama did not answer on it. The chat stayed on this PC.";
+
+    public const string RunPodKeyMissing =
+        "RunPod lookup needs RUNPOD_API_KEY in the environment. InControl does not store the key, and lookup does not start a pod.";
+
+    public const string RunPodOllamaPublished =
+        "That pod publishes port 11434. Ollama would be reachable without SSH. InControl will not use it.";
+
+    public const string RunPodLookupEmpty =
+        "No running pod has a direct SSH address yet. A stopped pod has none. Start it in RunPod and look up again, or paste a command.";
+
+    public static string LocalForwardRefused(int port, int localOllamaPort) =>
+        port == localOllamaPort
+            ? $"Refusing local port {port}. That port is Ollama on this PC. A dead tunnel must not fall through to this machine."
+            : $"Refusing local port {port}. The tunnel needs a loopback port other than {localOllamaPort}.";
+
+    public static string OllamaAnswered(string version) =>
+        $"Ollama {version} answered through the tunnel.";
 
     public const string HostKeyChanged =
         " The host key changed. A reset rental does that. Forget the saved host key only if you mean to trust this machine.";

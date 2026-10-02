@@ -140,6 +140,14 @@
                                      Header="Ollama port on that machine"
                                      Text="11434" />
 
+                            <Button x:Name="LookupRunPodButton"
+                                    Content="Look up my RunPod pods"
+                                    HorizontalAlignment="Left" />
+                            <ComboBox x:Name="ComputePodBox"
+                                      Header="Running pods"
+                                      Visibility="Collapsed"
+                                      HorizontalAlignment="Stretch" />
+
                             <TextBlock x:Name="ComputeMessageText"
                                        TextWrapping="Wrap"
                                        Style="{StaticResource CaptionTextBlockStyle}"

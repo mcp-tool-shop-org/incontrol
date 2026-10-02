@@ -16,6 +16,8 @@ namespace InControl.App.Pages;
 public sealed partial class SettingsPage : UserControl
 {
     private readonly List<StackPanel> _settingsSections = new();
+    private IReadOnlyList<RunPodPod> _runPods = [];
+    private bool _fillingPods;
 
     public SettingsPage()
     {
@@ -106,6 +108,8 @@ public sealed partial class SettingsPage : UserControl
         ConnectComputeButton.Click += OnConnectComputeClick;
         StayLocalButton.Click += OnStayLocalClick;
         ForgetHostKeyButton.Click += OnForgetHostKeyClick;
+        LookupRunPodButton.Click += OnLookupRunPodClick;
+        ComputePodBox.SelectionChanged += OnRunPodSelected;
 
         // Diagnostics section buttons
         ExportDiagnosticsButton.Click += OnExportDiagnosticsClick;
@@ -117,6 +121,60 @@ public sealed partial class SettingsPage : UserControl
     {
         ComputeMessageText.Text = ComputeNotice.AddressResets + " " + ComputeNotice.OllamaStillLocal;
         ComputeStatusText.Text = App.GetService<ComputeSession>().Notice;
+    }
+
+    private async void OnLookupRunPodClick(object sender, RoutedEventArgs e)
+    {
+        LookupRunPodButton.IsEnabled = false;
+        ComputeMessageText.Text = "Asking RunPod for pods that are already running…";
+        try
+        {
+            var lookup = await App.GetService<IRunPodPods>().ListAsync();
+            _runPods = lookup.Pods;
+            var offerable = lookup.Pods.Where(static pod => pod.CanOffer).ToList();
+            _fillingPods = true;
+            ComputePodBox.Items.Clear();
+            foreach (var pod in offerable)
+            {
+                ComputePodBox.Items.Add(pod.Label);
+            }
+
+            ComputePodBox.Visibility = offerable.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            _fillingPods = false;
+            if (offerable.Count == 1)
+            {
+                ApplyPod(offerable[0]);
+            }
+
+            ComputeMessageText.Text = lookup.Message;
+        }
+        finally
+        {
+            LookupRunPodButton.IsEnabled = true;
+        }
+    }
+
+    private void OnRunPodSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (_fillingPods)
+        {
+            return;
+        }
+
+        var offerable = _runPods.Where(static pod => pod.CanOffer).ToList();
+        var index = ComputePodBox.SelectedIndex;
+        if (index >= 0 && index < offerable.Count)
+        {
+            ApplyPod(offerable[index]);
+        }
+    }
+
+    private void ApplyPod(RunPodPod pod)
+    {
+        ComputeNameBox.Text = pod.Name;
+        ComputeConnectBox.Text = pod.SshCommand;
+        ComputeMessageText.Text =
+            $"Command filled for {pod.Label}. Connect sends the chat to that machine. Lookup does not.";
     }
 
     private async void OnConnectComputeClick(object sender, RoutedEventArgs e)

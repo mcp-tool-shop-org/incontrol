@@ -1,8 +1,10 @@
 name: Publish to NuGet
 
+# Library publish is manual. A GitHub release of the app must not push
+# InControl.Core or InControl.Inference. Those ids are already on NuGet
+# at 1.2.2 and 1.0.2, and this repo does not republish them.
+
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 concurrency:

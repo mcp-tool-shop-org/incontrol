@@ -5,7 +5,18 @@ All notable changes to InControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The app version is **0.2.0**. That number is lower on purpose. The dormant prototype had already published `InControl.Core` 1.2.2 and `InControl.Inference` 1.0.2 to NuGet, and those package versions stay where they are. This repository does not republish them. 0.2.0 is the first version of the `incontrol` repo, and it is not a 1.0 product.
+The app version is **0.3.0**. That number is lower than the old library packages on purpose. The dormant prototype had already published `InControl.Core` 1.2.2 and `InControl.Inference` 1.0.2 to NuGet, and those package versions stay where they are. This repository does not republish them. 0.3.0 is not a 1.0 product.
+
+## [0.3.0] - 2026-10-02
+
+### Added
+- The rental forward listens on `127.0.0.1:11436`. It refuses port 11434, so a dead tunnel cannot be answered by Ollama on this PC. The chat stays local until `/api/version` answers through the forward.
+- **Look up my RunPod pods** reads `RUNPOD_API_KEY` from the environment and fills the direct SSH command for a pod that is already running. The key is not stored. Lookup does not start a pod or send the chat. A pod that publishes port 11434 is refused.
+- Codecov on pull requests. The failing bar is patch coverage at 90%. The repository-wide percentage is informational.
+
+### Changed
+- There is still no MSIX. The GitHub release is the source tree. A tag runs the library tests and does not attach an installer.
+- NuGet publish no longer runs when a GitHub release is published.
 
 ## [0.2.0] - 2026-10-02
 

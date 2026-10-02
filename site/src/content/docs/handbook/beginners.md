@@ -32,21 +32,14 @@ You should see a line containing `Microsoft.NETCore.App 9.0` or later.
 
 ## Installation
 
-### Option A: MSIX installer (recommended)
+### Build from source
 
-1. Go to the [Releases page](https://github.com/mcp-tool-shop-org/InControl-Desktop/releases).
-2. Download the latest `.msix` file.
-3. Double-click the file to install.
-4. Launch InControl from the Start Menu.
-
-### Option B: Build from source
+0.3.0 does not ship an MSIX. Clone the repository and run the tests.
 
 ```bash
-git clone https://github.com/mcp-tool-shop-org/InControl-Desktop.git
-cd InControl-Desktop
-dotnet restore
-dotnet build
-dotnet run --project src/InControl.App
+git clone https://github.com/mcp-tool-shop-org/incontrol.git
+cd incontrol
+dotnet test tests/InControl.Core.Tests
 ```
 
 ## First-run walkthrough
@@ -102,7 +95,7 @@ The most important settings to know about:
 | Context Size | Ollama settings | How much conversation history the model sees (in tokens) |
 | GPU Layers | Ollama settings | How much of the model runs on GPU vs CPU (-1 = all on GPU) |
 
-See the [Configuration](/InControl-Desktop/handbook/configuration/) page for the full list.
+See the [Configuration](/incontrol/handbook/configuration/) page for the full list.
 
 ## Troubleshooting for beginners
 
@@ -140,4 +133,4 @@ If you changed the Ollama port, update the `BaseUrl` in Inference:Ollama setting
 **How do I report a bug?**
 
 1. Open InControl and use the "Copy Diagnostics" feature to create a support bundle. This includes logs and system info but never your conversation content.
-2. Open an [issue on GitHub](https://github.com/mcp-tool-shop-org/InControl-Desktop/issues) and attach the support bundle.
+2. Open an [issue on GitHub](https://github.com/mcp-tool-shop-org/incontrol/issues) and attach the support bundle.

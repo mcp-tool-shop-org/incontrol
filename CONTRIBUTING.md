@@ -86,7 +86,7 @@ dotnet run --project src/InControl.App
 
 - xUnit for unit tests
 - FluentAssertions for readable assertions
-- Aim for >80% code coverage on new code
+- Patch coverage on a pull request has to stay at or above 90%. Codecov fails the check below that. The repository-wide percentage is informational.
 - Mock external dependencies
 
 ### Documentation

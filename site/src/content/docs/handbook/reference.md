@@ -86,9 +86,9 @@ Three built-in health checks report system readiness:
 
 | Aspect | Detail |
 |--------|--------|
-| Data accessed | Local Ollama API (localhost), chat history in local storage, model configuration files |
-| Data NOT accessed | No cloud sync, no telemetry, no analytics |
-| Permissions | Localhost network (Ollama API), file system for chat history. MSIX sandboxed |
+| Data accessed | Ollama on this PC, chat history in local storage, and Ollama on a rental only after you connect one |
+| Data NOT accessed | No InControl account, no telemetry, no analytics |
+| Permissions | Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. There is no MSIX sandbox in 0.3.0 |
 | Support bundles | Never include conversation content or secrets. Sanitized configs only. |
 
-See [SECURITY.md](https://github.com/mcp-tool-shop-org/InControl-Desktop/blob/main/SECURITY.md) for vulnerability reporting.
+See [SECURITY.md](https://github.com/mcp-tool-shop-org/incontrol/blob/main/SECURITY.md) for vulnerability reporting.

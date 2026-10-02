@@ -16,7 +16,7 @@ export const config: SiteConfig = {
     primaryCta: { href: '#install', label: 'Get started' },
     secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
-      { label: 'Install', code: 'Download MSIX from Releases → double-click → launch' },
+      { label: 'Install', code: 'git clone … && dotnet test tests/InControl.Core.Tests' },
       { label: 'Build', code: 'git clone … && dotnet restore && dotnet build' },
       { label: 'Run', code: 'dotnet run --project src/InControl.App' },
     ],
@@ -43,12 +43,13 @@ export const config: SiteConfig = {
       title: 'Installation',
       cards: [
         {
-          title: 'From Release (recommended)',
-          code: `# 1. Download latest MSIX from GitHub Releases
-# 2. Double-click to install
-# 3. Launch from Start Menu
+          title: 'Build from source',
+          code: `# There is no MSIX for 0.3.0.
+git clone https://github.com/mcp-tool-shop-org/incontrol.git
+cd incontrol
+dotnet test tests/InControl.Core.Tests
 
-# Prerequisite: Ollama
+# Prerequisite: Ollama on this PC
 # https://ollama.ai/download
 ollama pull llama3.2
 ollama serve`,

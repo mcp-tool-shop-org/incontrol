@@ -36,15 +36,21 @@ An OpenSSH local forward, and nothing else:
 ssh -F <config> -N incontrol-compute
 ```
 
-The config binds `127.0.0.1` on this PC to `127.0.0.1:11434` on the rental. The chat is still normal Ollama HTTP, aimed at the local end of that forward. There is no remote command, so the prompt is not a shell argument. Agent forwarding is off. The first connection stores the host key. A changed key fails closed. Forget the saved host key only when you mean to trust the new machine.
+The config binds `127.0.0.1:11436` on this PC to `127.0.0.1:11434` on the rental. 11436 is not 11434. 11434 on this PC is your local Ollama, and a dead tunnel must not be answered by this machine. The chat stays on this PC until Ollama's `/api/version` answers on `127.0.0.1:11436`. An open TCP port is not enough.
+
+The chat is still normal Ollama HTTP, aimed at that loopback port. There is no remote command, so the prompt is not a shell argument. Agent forwarding is off. Each login keeps its own host-key file. A new IP or port is a new file, so the old key is not reused. The same address with a changed key fails closed. Forget the saved host key only when you mean to trust the new machine. InControl does not edit your SSH config.
 
 The forward uses numeric `127.0.0.1` on both sides. Windows OpenSSH can resolve the name `localhost` to IPv6 and then miss an IPv4 listener.
 
+If 11436 is already taken, the forward fails and the chat stays here. InControl does not kill the other listener.
+
 ## Rentals
 
-The dial is the same record for every provider: user, host, sshd port, identity file. InControl does not call a provider API. You paste the command the console shows, and you paste a new one after a restart. Saved host and port do not survive a reset.
+The dial is the same record for every provider: user, host, sshd port, identity file. Paste still works for every sshd. A saved host and port do not survive a reset.
 
-**RunPod.** The proxy user at `ssh.runpod.io` is an interactive shell. It cannot forward a port, so InControl refuses it. Use the direct line: `root` at the public IP and the mapped port. That line is absent while the pod is stopped, and the mapped port changes on reset. Community Cloud may also change the IP. The HTTP proxy in front of the pod closes long streams. It is not the chat path.
+**RunPod.** **Look up my RunPod pods** reads `RUNPOD_API_KEY` from the environment and asks RunPod for pods that already exist. The key is not saved in InControl. Lookup does not create, start, or stop a pod, and it does not send the chat. It fills the direct command: `root` at the public IP, and the host port mapped to container port 22. You still press Connect.
+
+The proxy user at `ssh.runpod.io` is an interactive shell. It cannot forward a port, so InControl refuses it. A pod that publishes port 11434 is refused too. Ollama on that pod would be an open API. The direct address is absent while the pod is stopped, and the mapped port changes on reset. Community Cloud may also change the IP. The HTTP proxy in front of the pod closes long streams. It is not the chat path.
 
 **Vast.ai.** The documented forward is the direct public-IP SSH, with `-L`. The `sshNNN.vast.ai` proxy is not documented for that. InControl warns and still tries. If the tunnel fails, paste the direct line. A stopped instance may not come back on the same GPU.
 
@@ -57,5 +63,8 @@ The dial is the same record for every provider: user, host, sshd port, identity 
 | RunPod proxy message | You pasted `ssh.runpod.io`. Use the direct public-IP command. |
 | Port 11434 refused as the SSH port | That number is Ollama, not sshd. Use the port from the ssh command. |
 | Host key changed | The rental was rebuilt, or this is a different machine. Forget the saved key only if you trust it. |
-| Tunnel is up, Ollama is not answering | SSH worked. Start `ollama serve` on the rental. Do not publish the port. |
-| Address stops working after a restart | Expected. Paste the new command. |
+| Refusing local port 11434 | That port is Ollama on this PC. The tunnel will not use it. |
+| The forward opened, but Ollama did not answer | SSH worked. Start `ollama serve` on the rental, on `127.0.0.1:11434`. Do not publish the port. |
+| RunPod lookup asks for `RUNPOD_API_KEY` | The key is an environment variable. InControl does not store it. Lookup does not start a pod. |
+| That pod publishes port 11434 | Ollama would be reachable without SSH. InControl will not use that pod. |
+| Address stops working after a restart | Expected. Look the pod up again, or paste the new command. |

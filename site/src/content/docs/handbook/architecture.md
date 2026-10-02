@@ -99,7 +99,7 @@ The `OnboardingViewModel` guides first-run users through four steps: Welcome, Ba
 
 ## Key design decisions
 
-- **Privacy-first**: all conversations stay local, no cloud sync
+- **This PC first**: prompts stay here until you connect a rented GPU over SSH. There is no account and no telemetry. A rental is a choice, and the chat says when prompts leave.
 - **Multi-backend**: Ollama, llama.cpp, or custom backends via the Inference abstraction
 - **Native Windows**: WinUI 3 with Fluent Design, not Electron
 - **Markdown rendering**: rich text, code blocks, and syntax highlighting in responses

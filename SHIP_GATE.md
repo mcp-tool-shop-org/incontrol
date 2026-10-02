@@ -43,7 +43,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-02-27)
-- [ ] `[all]` SKIP: no release tag. App version is 0.2.0. NuGet ids InControl.Core and InControl.Inference stay at the versions already on the feed.
+- [x] `[all]` Release tag v0.3.0 matches app version 0.3.0. NuGet ids InControl.Core 1.2.2 and InControl.Inference 1.0.2 stay at the versions already on the feed. (2026-10-02)
 - [x] `[all]` Dependency scanning runs in CI (`dotnet list package --vulnerable` in ci.yml) (2026-10-02)
 - [x] `[all]` Automated dependency update mechanism exists (Dependabot for NuGet, npm, and GitHub Actions) (2026-10-02)
 - [ ] `[npm]` SKIP: not an npm package

@@ -121,6 +121,7 @@ public class SshComputeTests
         result.Connected.Should().BeTrue();
         result.Message.Should().Contain("Prompts leave this PC");
         result.Message.Should().Contain(ComputeNotice.OllamaStillLocal);
+        result.Message.Should().Contain(ComputeNotice.OllamaAnswered("0.35.0"));
         session.PromptsLeaveThisPc.Should().BeTrue();
         session.BaseUrl.Should().Be("http://127.0.0.1:18080");
         session.Notice.Should().Be("This chat is on pod-a (203.0.113.10). Prompts leave this PC.");
@@ -188,7 +189,110 @@ public class SshComputeTests
         factory.Session.Disposed.Should().BeTrue();
     }
 
-    private static ComputeSession NewSession(FakeFactory factory, bool probeConnects)
+    [Fact]
+    public async Task Connect_RefusesTheLocalOllamaPort_AndDoesNotOpenSsh()
+    {
+        var factory = new FakeFactory();
+        var session = new ComputeSession(
+            "http://127.0.0.1:11434",
+            factory,
+            new FakeProbe(true),
+            Path.Combine(Path.GetTempPath(), "incontrol-ssh-tests", Guid.NewGuid().ToString("N")),
+            reservePort: () => 11434,
+            connectTimeout: TimeSpan.FromMilliseconds(200),
+            ready: new FakeReady("0.35.0"));
+
+        var result = await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+
+        result.Connected.Should().BeFalse();
+        result.Message.Should().Contain("11434");
+        result.Message.Should().Contain("this PC");
+        factory.OpenCount.Should().Be(0);
+        session.PromptsLeaveThisPc.Should().BeFalse();
+        session.BaseUrl.Should().Be("http://127.0.0.1:11434");
+    }
+
+    [Fact]
+    public async Task Connect_WhenTcpOpensButOllamaDoesNotAnswer_StaysLocal()
+    {
+        var factory = new FakeFactory();
+        var session = NewSession(factory, probeConnects: true, version: null);
+
+        var result = await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+
+        result.Connected.Should().BeFalse();
+        result.Message.Should().Be(ComputeNotice.TunnelNotOllama);
+        session.PromptsLeaveThisPc.Should().BeFalse();
+        session.BaseUrl.Should().Be("http://127.0.0.1:11434");
+        factory.Session.Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ForgetHostKey_DeletesOnlyTheFileForThatLogin()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "incontrol-ssh-tests", Guid.NewGuid().ToString("N"));
+        var factory = new FakeFactory();
+        var session = new ComputeSession(
+            "http://127.0.0.1:11434",
+            factory,
+            new FakeProbe(false),
+            root,
+            reservePort: () => 18080,
+            connectTimeout: TimeSpan.FromMilliseconds(50),
+            ready: new FakeReady("0.35.0"));
+        var endpoint = Endpoint(NewKeyFile(), "203.0.113.10", "pod-a");
+        var hosts = Path.Combine(root, endpoint.DirectoryKey, "known_hosts");
+        Directory.CreateDirectory(Path.GetDirectoryName(hosts)!);
+        File.WriteAllText(hosts, "203.0.113.10 ssh-ed25519 AAAA");
+
+        var forgotten = session.ForgetHostKey(endpoint);
+        var again = session.ForgetHostKey(endpoint);
+
+        forgotten.Connected.Should().BeTrue();
+        again.Connected.Should().BeTrue();
+        File.Exists(hosts).Should().BeFalse();
+        session.ForgetHostKey(new SshEndpoint
+        {
+            DisplayName = "bad\nname",
+            User = "root",
+            Host = "203.0.113.10",
+            SshPort = 22,
+            IdentityFile = ""
+        }).Connected.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Session_RequiresAConfigRoot()
+    {
+        var act = () => new ComputeSession(
+            "http://127.0.0.1:11434",
+            new FakeFactory(),
+            new FakeProbe(false),
+            "  ");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task Connect_UsesDedicatedPort11436_WhenNoPortIsReserved()
+    {
+        var factory = new FakeFactory();
+        var session = new ComputeSession(
+            "http://127.0.0.1:11434",
+            factory,
+            new FakeProbe(true),
+            Path.Combine(Path.GetTempPath(), "incontrol-ssh-tests", Guid.NewGuid().ToString("N")),
+            connectTimeout: TimeSpan.FromMilliseconds(200),
+            ready: new FakeReady("0.35.0"));
+
+        var result = await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+
+        result.Connected.Should().BeTrue();
+        factory.LocalPort.Should().Be(TunnelPort.Dedicated);
+        session.BaseUrl.Should().Be("http://127.0.0.1:11436");
+    }
+
+    private static ComputeSession NewSession(FakeFactory factory, bool probeConnects, string? version = "0.35.0")
     {
         return new ComputeSession(
             "http://127.0.0.1:11434",
@@ -196,7 +300,8 @@ public class SshComputeTests
             new FakeProbe(probeConnects),
             Path.Combine(Path.GetTempPath(), "incontrol-ssh-tests", Guid.NewGuid().ToString("N")),
             reservePort: () => 18080,
-            connectTimeout: TimeSpan.FromMilliseconds(200));
+            connectTimeout: TimeSpan.FromMilliseconds(200),
+            ready: new FakeReady(version));
     }
 
     private static SshEndpoint Endpoint(SshConnectFields fields) => new()
@@ -241,6 +346,8 @@ public class SshComputeTests
 
         public int OpenCount { get; private set; }
 
+        public int LocalPort { get; private set; }
+
         public SshEndpoint? Opened { get; private set; }
 
         public Task<ISshSession> OpenAsync(
@@ -250,9 +357,20 @@ public class SshComputeTests
             CancellationToken cancellationToken)
         {
             OpenCount++;
+            LocalPort = localPort;
             Opened = endpoint;
             return Task.FromResult<ISshSession>(Session);
         }
+    }
+
+    private sealed class FakeReady : IOllamaReadyProbe
+    {
+        private readonly string? _version;
+
+        public FakeReady(string? version) => _version = version;
+
+        public Task<string?> VersionAsync(string baseUrl, CancellationToken cancellationToken) =>
+            Task.FromResult(baseUrl.StartsWith("http://127.0.0.1:", StringComparison.Ordinal) ? _version : null);
     }
 
     private sealed class FakeSession : ISshSession

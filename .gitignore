@@ -28,6 +28,7 @@ appsettings.*.local.json
 # Test results
 TestResults/
 coverage/
+coverage-out/
 
 # OS
 Thumbs.db
@@ -35,6 +36,7 @@ Thumbs.db
 
 # Site (Astro)
 site/.astro/
+site/dist/
 site/node_modules/
 
 # Polyglot cache

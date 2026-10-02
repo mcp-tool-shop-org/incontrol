@@ -8,14 +8,13 @@
 # - SIGNING_CERTIFICATE_BASE64: Base64-encoded PFX
 # - SIGNING_CERTIFICATE_PASSWORD: PFX password
 #
-# Trigger: Push a tag matching 'v*' on main branch only
+# Not part of a source release. A tag does not start this workflow.
+# There is no signing certificate in this repository yet, and no MSIX is built.
+# Run it by hand only when a certificate is actually configured.
 
 name: Signed Release
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version:

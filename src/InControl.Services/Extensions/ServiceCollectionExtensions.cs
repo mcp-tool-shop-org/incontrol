@@ -27,6 +27,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IConversationStorage, JsonConversationStorage>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddSingleton<ITcpProbe, LoopbackTcpProbe>();
+        services.AddSingleton<IOllamaReadyProbe, HttpOllamaReadyProbe>();
+        services.AddSingleton<IRunPodPods, RunPodPodClient>();
         services.AddSingleton<ISshSessionFactory, OpenSshSessionFactory>();
         services.AddSingleton(sp =>
         {
@@ -38,7 +40,8 @@ public static class ServiceCollectionExtensions
                 local,
                 sp.GetRequiredService<ISshSessionFactory>(),
                 sp.GetRequiredService<ITcpProbe>(),
-                Path.Combine(DataPaths.AppDataRoot, "ssh"));
+                Path.Combine(DataPaths.AppDataRoot, "ssh"),
+                ready: sp.GetRequiredService<IOllamaReadyProbe>());
         });
         services.AddSingleton<IOllamaEndpoint>(sp => sp.GetRequiredService<ComputeSession>());
         return services;

@@ -5,6 +5,9 @@
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-9-purple?style=flat-square&logo=dotnet" alt=".NET 9">
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
+  <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
 
@@ -87,9 +90,11 @@ ollama serve
 
 Settings → **Where this chat runs**. Paste the direct SSH command from the rental (`ssh -p <mapped-port> root@<public-ip> -i <key>`). The button says the chat will be sent to that machine.
 
+The forward listens on `127.0.0.1:11436` on this PC, not on `11434`. The chat stays here until Ollama answers through that port.
+
 Leave Ollama on `127.0.0.1:11434` on the rental. Do not set `OLLAMA_HOST=0.0.0.0`, and do not publish port 11434. The SSH port is the mapped sshd port, not 11434.
 
-RunPod's `ssh.runpod.io` proxy is a shell only. It cannot forward a port. Use the pod's direct public-IP SSH. Vast documents the forward on the direct address. The address dies when the rental restarts. Paste the new command. The private key stays on this PC.
+RunPod's `ssh.runpod.io` proxy is a shell only. It cannot forward a port. **Look up my RunPod pods** uses `RUNPOD_API_KEY` from the environment and fills the pod's direct public-IP SSH. The key is not stored. Lookup does not start a pod and does not send the chat. Vast documents the forward on the direct address. The address dies when the rental restarts. Look the pod up again, or paste the new command. The private key stays on this PC.
 
 The full rules are in [docs/COMPUTE.md](docs/COMPUTE.md).
 
@@ -211,7 +216,7 @@ Contributions welcome! Please:
 
 ## Version
 
-Current version: **0.2.0**
+Current version: **0.3.0**
 
 See [CHANGELOG.md](./CHANGELOG.md) for release history.
 

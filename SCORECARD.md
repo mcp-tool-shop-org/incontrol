@@ -3,7 +3,7 @@
 **Repo:** incontrol
 **Date:** 2026-10-02
 
-The February 2026 card below scored the dormant prototype, including translations and a release tag this tree does not have. It is history. The 2026-10-02 ship gate is the current list: app version 0.2.0, no tag, no MSIX rebuild, translations not regenerated yet.
+The February 2026 card below scored the dormant prototype. It is history. The 2026-10-02 ship gate is the current list: app version 0.3.0, tag v0.3.0, no MSIX, NuGet library versions unchanged.
 
 **Date:** 2026-02-27
 **Type tags:** `[desktop]`
