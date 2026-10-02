@@ -197,9 +197,8 @@ Use the built-in diagnostics feature to gather system information:
    - Windows Security > Firewall
    - Allow "Ollama" through firewall
 
-4. **Verify endpoint**
-   Default: `http://localhost:11434`
-   Check Settings > Inference Backend
+4. **Address the app probes**
+   The probe calls `http://127.0.0.1:11434` unless a rental is connected. A host name is refused before any request is sent.
 
 ### Connection Timeout
 
@@ -207,8 +206,8 @@ Use the built-in diagnostics feature to gather system information:
 
 **Solutions:**
 
-1. **Increase timeout**
-   In Settings > Advanced, increase connection timeout.
+1. **The client stops a reply that runs too long**
+   Settings has no field that changes that wait.
 
 2. **Check system resources**
    - High CPU/memory usage can cause delays
@@ -220,24 +219,15 @@ Use the built-in diagnostics feature to gather system information:
 
 ### Session Data Corrupted
 
-**Symptoms:** App crashes when loading sessions, or sessions are missing.
+**Symptoms:** The window opens with no sessions, or a session file will not load.
 
-**Solutions:**
+**What is on disk:** Startup leaves session files where they are. Each chat is one JSON file in `%LOCALAPPDATA%\InControl\sessions\`.
 
-1. **Check state health**
-   The app automatically detects corrupt files on startup.
+**If a chat is missing:**
 
-2. **Quarantine corrupt files**
-   Corrupt files are moved to:
-   `%LOCALAPPDATA%\InControl\quarantine\`
-
-3. **Restore from backup**
-   If you have a backup in:
-   `%LOCALAPPDATA%\InControl\backup\`
-
-4. **Reset application**
-   Settings > Advanced > Reset Application
-   (Exports data before reset)
+1. **Look in that sessions folder.** The window does not move those files on startup.
+2. **A backup zip, when one has been created, is in** `%LOCALAPPDATA%\InControl\backup\`. The window does not restore that zip.
+3. **Settings > Diagnostics > Reset to Defaults** restores the theme. The dialog states that session data stays in place.
 
 ### Disk Full
 
@@ -262,19 +252,9 @@ Use the built-in diagnostics feature to gather system information:
 
 ### Export Fails
 
-**Symptoms:** Export button does nothing or shows error.
+**Symptoms:** Export does not leave a file where you expected one.
 
-**Solutions:**
-
-1. **Check write permissions**
-   Ensure you can write to:
-   `%USERPROFILE%\Documents\InControl\exports\`
-
-2. **Check disk space**
-   Large conversations need space for export.
-
-3. **Try different format**
-   If JSON fails, try Markdown export.
+**What Export does:** The session menu copies that session's JSON onto the clipboard and shows "Session JSON copied to clipboard." Paste that text into a file if you want a copy on disk. The session file remains in `%LOCALAPPDATA%\InControl\sessions\`.
 
 ### Import Fails
 

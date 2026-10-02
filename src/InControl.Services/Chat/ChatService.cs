@@ -165,13 +165,15 @@ public sealed class ChatService : IChatService
             throw new KeyNotFoundException($"Conversation {conversationId} not found");
         }
 
-        // Append user message to conversation
+        var model = conversation.Model
+            ?? throw new InvalidOperationException("No model selected for this conversation");
+
+        // Keep the prompt only after the model is known, and write it before the stream.
+        // A missing model must not leave an unanswered line in the open session.
         var userMessage = Message.User(message);
         conversation = conversation.WithMessage(userMessage);
         _conversations[conversationId] = conversation;
-
-        var model = conversation.Model
-            ?? throw new InvalidOperationException("No model selected for this conversation");
+        await SaveQuietly(conversation, ct);
 
         // Build the chat request from this session's transcript, plus a few recalled notes.
         var request = await WithRecallAsync(conversation, ChatRequest.FromConversation(conversation), ct);

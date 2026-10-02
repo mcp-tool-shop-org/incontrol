@@ -31,16 +31,6 @@ public sealed class ChatOptions
     public int MaxContextMessages { get; set; } = 50;
 
     /// <summary>
-    /// Whether to save conversations automatically.
-    /// </summary>
-    public bool AutoSave { get; set; } = true;
-
-    /// <summary>
-    /// Auto-save interval in seconds.
-    /// </summary>
-    public int AutoSaveIntervalSeconds { get; set; } = 30;
-
-    /// <summary>
     /// Whether to show token counts in the UI.
     /// </summary>
     public bool ShowTokenCounts { get; set; } = true;

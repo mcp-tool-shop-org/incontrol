@@ -13,7 +13,7 @@ public sealed class OllamaOptions
     /// <summary>
     /// Base URL for the Ollama API.
     /// </summary>
-    public string BaseUrl { get; set; } = "http://localhost:11434";
+    public string BaseUrl { get; set; } = "http://127.0.0.1:11434";
 
     /// <summary>
     /// Whether to keep models loaded in memory between requests.

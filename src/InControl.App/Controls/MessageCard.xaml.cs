@@ -53,24 +53,55 @@ public sealed partial class MessageCard : UserControl
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
     {
-        if (Message?.Content != null)
+        if (Message?.Content == null)
         {
-            var dataPackage = new DataPackage();
-            dataPackage.SetText(Message.Content);
-            Clipboard.SetContent(dataPackage);
+            return;
+        }
+
+        if (TryCopyText(Message.Content))
+        {
             CopyFeedback.ShowCopied();
+        }
+        else
+        {
+            CopyFeedback.ShowError("Copy failed");
         }
     }
 
     private void OnCopyAsMarkdownClick(object sender, RoutedEventArgs e)
     {
-        if (Message?.Content != null)
+        if (Message?.Content == null)
         {
-            // For now, just copy as-is (content may already be markdown)
-            var dataPackage = new DataPackage();
-            dataPackage.SetText(Message.Content);
-            Clipboard.SetContent(dataPackage);
+            return;
+        }
+
+        // Content may already be markdown. Copy the text that is on the card.
+        if (TryCopyText(Message.Content))
+        {
             CopyFeedback.ShowSuccess("Copied as Markdown");
+        }
+        else
+        {
+            CopyFeedback.ShowError("Copy failed");
+        }
+    }
+
+    /// <summary>
+    /// A busy clipboard throws out of SetContent. That exception is unhandled on the UI
+    /// thread and closes the window, so a failed copy has to stay on this click.
+    /// </summary>
+    private static bool TryCopyText(string text)
+    {
+        try
+        {
+            var dataPackage = new DataPackage();
+            dataPackage.SetText(text);
+            Clipboard.SetContent(dataPackage);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 

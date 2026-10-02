@@ -42,7 +42,7 @@ Section: `Inference:Ollama`
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `BaseUrl` | `http://localhost:11434` | Ollama API endpoint |
+| `BaseUrl` | `http://127.0.0.1:11434` | Ollama API endpoint |
 | `KeepAlive` | `true` | Keep models loaded between requests |
 | `KeepAliveMinutes` | `5` | How long to keep models loaded (0 = until unload) |
 | `NumGpuLayers` | `-1` | GPU layers to offload (-1 = all, 0 = CPU only) |

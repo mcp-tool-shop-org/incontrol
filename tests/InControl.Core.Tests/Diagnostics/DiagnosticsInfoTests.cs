@@ -128,27 +128,28 @@ public class OllamaConnectivityTests
         result.Reachable.Should().BeFalse();
         result.BaseUrl.Should().Be("http://127.0.0.1:19999");
         result.Error.Should().NotBeNullOrEmpty();
+        result.Error.Should().NotContain("Only http://127.0.0.1 is checked");
         result.VersionResponse.Should().BeNull();
     }
 
     [Fact]
-    public async Task CheckOllamaAsync_DefaultUrl_ReturnsResult()
+    public void DefaultBaseUrl_IsNumericLoopback()
     {
-        // Should not throw regardless of whether Ollama is running
-        var result = await DiagnosticsInfo.CheckOllamaAsync();
+        var url = new InControl.Core.Configuration.OllamaOptions().BaseUrl;
 
-        result.Should().NotBeNull();
+        url.Should().Be("http://127.0.0.1:11434");
+        InControl.Core.Compute.TunnelPort.IsLoopbackProbe(url).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CheckOllamaAsync_LocalhostName_IsRefusedBeforeARequest()
+    {
+        var result = await DiagnosticsInfo.CheckOllamaAsync("http://localhost:11434");
+
+        result.Reachable.Should().BeFalse();
         result.BaseUrl.Should().Be("http://localhost:11434");
-        // Either reachable or has error — both are valid
-        if (result.Reachable)
-        {
-            result.VersionResponse.Should().NotBeNullOrEmpty();
-            result.Error.Should().BeNull();
-        }
-        else
-        {
-            result.Error.Should().NotBeNullOrEmpty();
-        }
+        result.VersionResponse.Should().BeNull();
+        result.Error.Should().Be("Only http://127.0.0.1 is checked. Redirects are not followed.");
     }
 
     [Fact]

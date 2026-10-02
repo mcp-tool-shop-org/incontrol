@@ -51,7 +51,7 @@ public partial class SettingsViewModel : ViewModelBase
     /// The Ollama base URL.
     /// </summary>
     [ObservableProperty]
-    private string _ollamaBaseUrl = "http://localhost:11434";
+    private string _ollamaBaseUrl = "http://127.0.0.1:11434";
 
     /// <summary>
     /// The default model.
