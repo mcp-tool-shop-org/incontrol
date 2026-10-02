@@ -1,232 +1,37 @@
-# Installation Guide
+# Installation
 
-## System Requirements
+Version 0.3.0 is a source build. There is no MSIX, and there is no InControl-Desktop installer.
 
-| Requirement | Minimum | Recommended |
-|-------------|---------|-------------|
-| Operating System | Windows 10 (1809+) | Windows 11 |
-| Architecture | x64 | x64 |
-| RAM | 4 GB | 8 GB |
-| Disk Space | 500 MB | 1 GB |
-| GPU (for ML) | None | NVIDIA RTX (CUDA 12+) |
+The repository is [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). Tag `v0.3.0` is that source tree. A GitHub release does not attach a package.
 
-## Distribution Channels
+## What you need
 
-### Primary: GitHub Releases (Recommended)
+| | |
+|---|---|
+| OS | Windows 10 1809+ or Windows 11, x64 |
+| .NET | SDK 9 |
+| Models | [Ollama](https://ollama.com/download) on this PC, listening on `http://127.0.0.1:11434` |
 
-Official releases are published at:
-```
-https://github.com/mcp-tool-shop-org/InControl-Desktop/releases
-```
+A rented GPU is optional. It is an SSH local forward, not an installer option.
 
-**Why GitHub Releases?**
-- Cryptographically signed packages
-- Verifiable checksums
-- Full release notes and changelogs
-- Previous versions always available
-- No account required to download
+## Build
 
-### Alternative: Direct Download
-
-For environments without GitHub access:
-```
-https://incontrol.example.com/download/latest
+```bash
+git clone https://github.com/mcp-tool-shop-org/incontrol.git
+cd incontrol
+dotnet restore
+dotnet build
+dotnet run --project src/InControl.App
 ```
 
-## Installation Steps
+Pull a model with Ollama (`ollama pull llama3.2`) before you expect a reply.
 
-### Step 1: Download
+`dotnet build` of the app compiles the assembly. Windows App SDK packaging can then fail on a machine that does not have the Appx MSBuild task. That failure is the missing MSIX step. The app project still builds its DLL. There is no signed package to install, sideload, or verify.
 
-1. Go to [GitHub Releases](https://github.com/mcp-tool-shop-org/InControl-Desktop/releases)
-2. Download `InControl-Desktop-x.y.z.msix`
-3. Download `checksums-x.y.z.txt`
+## Data on this PC
 
-### Step 2: Verify (Recommended)
+Settings and logs for a local run live under `%LOCALAPPDATA%\InControl\`. Removing the clone does not delete that folder. Delete it yourself if you want the local history gone.
 
-**Verify checksum:**
-```powershell
-# Get expected checksum
-$expected = (Get-Content checksums-x.y.z.txt | Select-String 'InControl-Desktop').ToString().Split(' ')[0]
+## Updating
 
-# Calculate actual checksum
-$actual = (Get-FileHash InControl-Desktop-x.y.z.msix -Algorithm SHA256).Hash.ToLower()
-
-# Compare
-if ($expected -eq $actual) {
-    Write-Host "✅ Checksum verified" -ForegroundColor Green
-} else {
-    Write-Host "❌ DO NOT INSTALL - Checksum mismatch" -ForegroundColor Red
-}
-```
-
-**Verify signature:**
-1. Right-click the MSIX file → Properties
-2. Go to Digital Signatures tab
-3. Verify the signature shows "OK"
-4. Verify the publisher name matches
-
-### Step 3: Install
-
-1. Double-click `InControl-Desktop-x.y.z.msix`
-2. Windows will show the app installer dialog
-3. Review the permissions requested
-4. Click "Install"
-
-**What you'll see:**
-- Publisher name (should match expected)
-- Permissions requested (local file access only)
-- Install location (cannot be changed for MSIX)
-
-### Step 4: First Run
-
-1. Launch InControl from Start Menu
-2. Complete the onboarding wizard
-3. Configure your preferences
-
-## Upgrade Path
-
-### From Previous Version
-
-1. Download the new MSIX package
-2. Verify as described above
-3. Double-click to install (previous version is automatically replaced)
-4. Your settings and data are preserved
-
-**What's preserved:**
-- User settings
-- Memory items
-- Assistant preferences
-- Update mode selection
-
-**What's not preserved (by design):**
-- Temporary files
-- Cache data
-
-### From Pre-release to Stable
-
-Pre-release versions (alpha, beta, rc) can upgrade directly to stable.
-
-## Uninstallation
-
-### Standard Uninstall
-
-1. Open Windows Settings → Apps → Installed apps
-2. Find "InControl Desktop"
-3. Click the menu (⋯) → Uninstall
-4. Confirm
-
-### What Gets Removed
-
-| Item | Removed | Notes |
-|------|---------|-------|
-| Application files | ✅ Yes | Completely removed |
-| Settings | ✅ Yes | App-specific settings |
-| User data | ❌ No | Documents folder preserved |
-| Memory items | ⚠️ Optional | See Data Cleanup below |
-
-### Data Cleanup (Optional)
-
-User data is stored at:
-```
-%LOCALAPPDATA%\InControl\
-```
-
-To completely remove all data:
-```powershell
-Remove-Item -Path "$env:LOCALAPPDATA\InControl" -Recurse -Force
-```
-
-**Warning:** This permanently deletes:
-- Memory items
-- Conversation history
-- Custom configurations
-
-## Troubleshooting
-
-### "Windows protected your PC" (SmartScreen)
-
-This appears for unsigned or new applications.
-
-**For signed releases:**
-1. Click "More info"
-2. Verify the publisher name matches
-3. Click "Run anyway"
-
-**For unsigned releases (development only):**
-1. Do not install unsigned releases in production
-2. For testing, click "More info" → "Run anyway"
-
-### "App package is already installed"
-
-The same version is already installed.
-
-**Solutions:**
-1. Uninstall first, then reinstall
-2. Or download a different version
-
-### "This app package is not supported"
-
-Architecture mismatch (trying to install x64 on ARM).
-
-**Solution:**
-Download the correct architecture package.
-
-### Installation hangs
-
-**Try:**
-1. Cancel and retry
-2. Restart Windows
-3. Run as Administrator
-
-### "Publisher could not be verified"
-
-The package is unsigned or certificate is not trusted.
-
-**For official releases:**
-- This should not happen
-- Report as a security issue
-
-**For development builds:**
-- Expected behavior
-- Only install if you built it yourself
-
-## Silent Installation (Enterprise)
-
-For automated deployment:
-
-```powershell
-# Install
-Add-AppxPackage -Path "InControl-Desktop-x.y.z.msix"
-
-# Uninstall
-Get-AppxPackage -Name "InControl.Desktop" | Remove-AppxPackage
-```
-
-**Note:** MSIX packages require no admin rights for per-user install.
-
-## FAQ
-
-### Where is the application installed?
-
-MSIX packages are installed to:
-```
-C:\Program Files\WindowsApps\InControl.Desktop_x.y.z.w_x64__...
-```
-
-This location is managed by Windows and cannot be changed.
-
-### Can I install without Microsoft Store?
-
-Yes. The MSIX package can be installed directly (sideloading) without the Microsoft Store. Ensure you have sideloading enabled in Windows Settings → Developer Settings.
-
-### Do I need admin rights?
-
-No. MSIX per-user installation does not require admin rights.
-
-### How do I install on multiple machines?
-
-Download and install on each machine, or use enterprise deployment tools (SCCM, Intune, Group Policy).
-
-### Can I have multiple versions installed?
-
-No. MSIX packages replace previous versions. For testing multiple versions, use virtual machines.
+Check out a newer commit and build again. Do not look for `InControl-Desktop-x.y.z.msix`. That name belonged to a dormant prototype and it is not how this repository ships.

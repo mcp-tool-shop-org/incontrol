@@ -1,23 +1,24 @@
 # Release Notes
 
-This document contains detailed release notes for each version of InControl-Desktop.
+The published app release is **0.3.0**. It is the source tree at tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). There is no MSIX. Install by building from source, as `docs/INSTALLATION.md` describes. The notes for that release are in `CHANGELOG.md`.
+
+The 0.1.0 section below was written for a release that was not published. Do not download an InControl-Desktop package. Nothing in this file is an installer.
 
 ---
 
-## Version 0.1.0 - Initial Release
+## Version 0.1.0 - unpublished draft
 
-**Release Date:** TBD
+**Release Date:** not released
 
 ### Overview
 
-The first public release of InControl-Desktop, a local-first AI assistant for Windows.
+Draft notes for a Windows chat app. They are not the 0.3.0 release.
 
 ### Highlights
 
 - **This PC first**: The chat stays on this device until you connect a rented GPU over SSH.
-- **Offline by Default**: Internet connectivity disabled until you enable it.
-- **Transparent Operations**: Full audit trail of assistant actions.
-- **Operator Control**: You decide what the assistant can do.
+- **Offline switch**: It refuses a rented GPU, RunPod lookup, and model download. It does not block every network connection. Chat on this PC still works.
+- **Operator Control**: You decide when the chat leaves this PC.
 
 ### Features
 

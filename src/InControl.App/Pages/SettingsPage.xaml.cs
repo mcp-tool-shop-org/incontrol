@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using InControl.App.Services;
@@ -18,6 +19,8 @@ public sealed partial class SettingsPage : UserControl
     private readonly List<StackPanel> _settingsSections = new();
     private IReadOnlyList<RunPodPod> _runPods = [];
     private bool _fillingPods;
+    private ComputeSession? _compute;
+    private DispatcherQueue? _computeQueue;
 
     public SettingsPage()
     {
@@ -85,6 +88,20 @@ public sealed partial class SettingsPage : UserControl
     /// </summary>
     public event EventHandler<string>? ThemeChanged;
 
+    public event EventHandler<bool>? OfflineModeChanged;
+
+    public bool IsOffline
+    {
+        get => OfflineModeToggle.IsOn;
+        set
+        {
+            if (OfflineModeToggle.IsOn != value)
+            {
+                OfflineModeToggle.IsOn = value;
+            }
+        }
+    }
+
     private void SetupEventHandlers()
     {
         BackButton.Click += (s, e) => BackRequested?.Invoke(this, EventArgs.Empty);
@@ -110,6 +127,7 @@ public sealed partial class SettingsPage : UserControl
         ForgetHostKeyButton.Click += OnForgetHostKeyClick;
         LookupRunPodButton.Click += OnLookupRunPodClick;
         ComputePodBox.SelectionChanged += OnRunPodSelected;
+        OfflineModeToggle.Toggled += (_, _) => OfflineModeChanged?.Invoke(this, OfflineModeToggle.IsOn);
 
         // Diagnostics section buttons
         ExportDiagnosticsButton.Click += OnExportDiagnosticsClick;
@@ -120,11 +138,40 @@ public sealed partial class SettingsPage : UserControl
     private void InitializeComputeSection()
     {
         ComputeMessageText.Text = ComputeNotice.AddressResets + " " + ComputeNotice.OllamaStillLocal;
-        ComputeStatusText.Text = App.GetService<ComputeSession>().Notice;
+        _compute = App.GetService<ComputeSession>();
+        ComputeStatusText.Text = _compute.Notice;
+        _computeQueue = DispatcherQueue.GetForCurrentThread();
+        _compute.Changed += OnComputeChanged;
+        Unloaded += OnComputeUnloaded;
+    }
+
+    private void OnComputeChanged(object? sender, EventArgs e)
+    {
+        _computeQueue?.TryEnqueue(() =>
+        {
+            if (_compute is not null)
+            {
+                ComputeStatusText.Text = _compute.Notice;
+            }
+        });
+    }
+
+    private void OnComputeUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_compute is not null)
+        {
+            _compute.Changed -= OnComputeChanged;
+        }
     }
 
     private async void OnLookupRunPodClick(object sender, RoutedEventArgs e)
     {
+        if (App.GetService<ComputeSession>().IsOffline)
+        {
+            ComputeMessageText.Text = ComputeNotice.OfflineBlocksRental;
+            return;
+        }
+
         LookupRunPodButton.IsEnabled = false;
         ComputeMessageText.Text = "Asking RunPod for pods that are already running…";
         try

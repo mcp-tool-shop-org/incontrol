@@ -1,7 +1,9 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System.Collections.ObjectModel;
+using InControl.Core.Compute;
 using OllamaSharp;
 
 namespace InControl.App.Pages;
@@ -13,13 +15,16 @@ namespace InControl.App.Pages;
 public sealed partial class ModelManagerPage : UserControl
 {
     private readonly ObservableCollection<OllamaModelInfo> _models = new();
+    private readonly DispatcherQueue? _queue = DispatcherQueue.GetForCurrentThread();
     private OllamaApiClient? _ollamaClient;
+    private ComputeSession? _compute;
     private bool _isConnected;
 
     public ModelManagerPage()
     {
         this.InitializeComponent();
         SetupEventHandlers();
+        WatchSession();
         _ = InitializeOllamaAsync();
     }
 
@@ -54,13 +59,54 @@ public sealed partial class ModelManagerPage : UserControl
         OpenOllamaLibraryButton.Click += (s, e) => OpenUrl("https://ollama.com/library");
     }
 
-    private async Task InitializeOllamaAsync()
+    private void WatchSession()
     {
         try
         {
-            _ollamaClient = new OllamaApiClient("http://localhost:11434");
+            _compute = App.GetService<ComputeSession>();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
 
-            // Check connection by getting version
+        _compute.Changed += OnComputeChanged;
+        Unloaded += (_, _) =>
+        {
+            if (_compute is not null)
+            {
+                _compute.Changed -= OnComputeChanged;
+            }
+        };
+    }
+
+    private void OnComputeChanged(object? sender, EventArgs e)
+    {
+        if (_queue is null)
+        {
+            _ = InitializeOllamaAsync();
+            return;
+        }
+
+        _queue.TryEnqueue(() => { _ = InitializeOllamaAsync(); });
+    }
+
+    private string SessionBaseUrl()
+    {
+        var url = _compute?.BaseUrl;
+        return string.IsNullOrWhiteSpace(url) ? "http://127.0.0.1:11434" : url;
+    }
+
+    private async Task InitializeOllamaAsync()
+    {
+        var baseUrl = SessionBaseUrl();
+        OllamaEndpointText.Text = baseUrl;
+        OllamaStatusText.Text = "Checking…";
+        OllamaVersionText.Text = "--";
+        try
+        {
+            _ollamaClient = new OllamaApiClient(baseUrl);
+
             var version = await _ollamaClient.GetVersionAsync();
             _isConnected = true;
 
@@ -84,7 +130,9 @@ public sealed partial class ModelManagerPage : UserControl
         OllamaVersionText.Text = "--";
 
         EmptyStateTitle.Text = "Ollama Required";
-        EmptyStateDescription.Text = "InControl uses Ollama to run AI models locally on your computer. Ollama is free and runs in the background.";
+        EmptyStateDescription.Text = _compute?.PromptsLeaveThisPc == true
+            ? "Ollama did not answer through the tunnel. The bar at the top names that machine."
+            : "InControl uses Ollama on this PC. Ollama is free and runs in the background.";
 
         // Show setup instructions and Install button, hide Pull Model button
         SetupInstructionsPanel.Visibility = Visibility.Visible;
@@ -233,6 +281,12 @@ public sealed partial class ModelManagerPage : UserControl
     private async Task PullModelAsync(string modelName)
     {
         if (string.IsNullOrWhiteSpace(modelName)) return;
+
+        if (_compute?.IsOffline == true)
+        {
+            OperationFeedback.ShowError(ComputeNotice.OfflineBlocksRental);
+            return;
+        }
 
         // Check if Ollama is connected before attempting to pull
         if (!_isConnected || _ollamaClient == null)

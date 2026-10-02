@@ -295,10 +295,10 @@
                                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="6">
                                     <Ellipse x:Name="OllamaStatusIndicator"
                                              Width="8" Height="8"
-                                             Fill="{ThemeResource SystemFillColorSuccessBrush}"
+                                             Fill="{ThemeResource SystemFillColorCautionBrush}"
                                              VerticalAlignment="Center" />
                                     <TextBlock x:Name="OllamaStatusText"
-                                               Text="Connected"
+                                               Text="Checking…"
                                                Style="{StaticResource CaptionTextBlockStyle}" />
                                 </StackPanel>
 
@@ -307,7 +307,7 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Margin="0,0,16,4" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" x:Name="OllamaEndpointText"
-                                           Text="http://localhost:11434"
+                                           Text="—"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Version:"

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using InControl.Core.Compute;
 
 namespace InControl.App.Services;
 
@@ -69,23 +70,45 @@ public sealed class DiagnosticsService
             Category = "Model Engine"
         };
 
+        var baseUrl = "http://127.0.0.1:11434";
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await client.GetAsync("http://localhost:11434/api/version");
-
-            if (response.IsSuccessStatusCode)
+            var session = App.GetService<ComputeSession>();
+            if (!string.IsNullOrWhiteSpace(session.BaseUrl))
             {
-                var content = await response.Content.ReadAsStringAsync();
+                baseUrl = session.BaseUrl.TrimEnd('/');
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Diagnostics can run before the session is registered.
+        }
+
+        try
+        {
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await client.GetAsync(baseUrl + "/api/version");
+            var code = (int)response.StatusCode;
+
+            if (code is >= 300 and < 400)
+            {
+                check.Status = DiagnosticStatus.Warning;
+                check.Message = "Ollama endpoint redirected";
+                check.Details = $"InControl did not follow the redirect. Endpoint: {baseUrl}";
+            }
+            else if (response.IsSuccessStatusCode)
+            {
+                var content = await ReadCappedAsync(response);
                 check.Status = DiagnosticStatus.Pass;
-                check.Message = "Ollama is running";
-                check.Details = $"Endpoint: localhost:11434, Response: {content}";
+                check.Message = "Ollama answered";
+                check.Details = $"Endpoint: {baseUrl}, Response: {content}";
             }
             else
             {
                 check.Status = DiagnosticStatus.Warning;
                 check.Message = $"Ollama returned status {response.StatusCode}";
-                check.Details = "Ollama may not be fully operational";
+                check.Details = $"Endpoint: {baseUrl}";
             }
         }
         catch (HttpRequestException)
@@ -103,6 +126,14 @@ public sealed class DiagnosticsService
         }
 
         report.Checks.Add(check);
+    }
+
+    private static async Task<string> ReadCappedAsync(HttpResponseMessage response)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        var buffer = new byte[512];
+        var read = await stream.ReadAsync(buffer).ConfigureAwait(false);
+        return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
     private Task CheckSystemResourcesAsync(DiagnosticsReport report)

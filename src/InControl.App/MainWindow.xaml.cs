@@ -860,6 +860,8 @@ public sealed partial class MainWindow : Window
             settings.ModelManagerRequested += (s, e) => _navigation.Navigate<ModelManagerPage>();
             settings.ExtensionsRequested += (s, e) => _navigation.Navigate<ExtensionsPage>();
             settings.PolicyRequested += (s, e) => _navigation.Navigate<PolicyPage>();
+            settings.OfflineModeChanged += (_, isOffline) => SetOfflineMode(isOffline);
+            settings.IsOffline = _isOffline;
         }
         else if (page is ModelManagerPage modelManager)
         {
@@ -883,6 +885,7 @@ public sealed partial class MainWindow : Window
         {
             policy.BackRequested += (s, e) => _navigation.GoBack();
             policy.OfflineModeChanged += (s, isOffline) => SetOfflineMode(isOffline);
+            policy.IsOffline = _isOffline;
         }
         else if (page is ConnectivityPage connectivity)
         {
@@ -928,9 +931,7 @@ public sealed partial class MainWindow : Window
 
     private void ToggleOfflineMode()
     {
-        _isOffline = !_isOffline;
-        AppBar.IsOffline = _isOffline;
-        StatusStrip.SetConnectivityStatus(_isOffline);
+        SetOfflineMode(!_isOffline);
     }
 
     private void SetOfflineMode(bool isOffline)
@@ -938,6 +939,7 @@ public sealed partial class MainWindow : Window
         _isOffline = isOffline;
         AppBar.IsOffline = _isOffline;
         StatusStrip.SetConnectivityStatus(_isOffline);
+        _ = App.GetService<ComputeSession>().SetOfflineAsync(isOffline);
     }
 
     private void ShowCommandPalette()

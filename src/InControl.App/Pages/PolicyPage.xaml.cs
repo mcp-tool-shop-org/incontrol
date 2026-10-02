@@ -24,6 +24,18 @@ public sealed partial class PolicyPage : UserControl
     /// </summary>
     public event EventHandler<bool>? OfflineModeChanged;
 
+    public bool IsOffline
+    {
+        get => OfflineModeToggle.IsOn;
+        set
+        {
+            if (OfflineModeToggle.IsOn != value)
+            {
+                OfflineModeToggle.IsOn = value;
+            }
+        }
+    }
+
     private void SetupEventHandlers()
     {
         BackButton.Click += (s, e) => BackRequested?.Invoke(this, EventArgs.Empty);

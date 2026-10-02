@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FluentAssertions;
 using InControl.Core.Compute;
 using Xunit;
@@ -97,6 +98,7 @@ public class SshComputeTests
         var arguments = SshLaunch.Arguments("C:\\AppData\\InControl\\ssh\\session.config");
 
         config.Should().Contain("LocalForward 127.0.0.1:18080 127.0.0.1:11434");
+        config.Should().NotContain("ClearAllForwardings");
         config.Should().Contain("StrictHostKeyChecking accept-new");
         config.Should().Contain("ForwardAgent no");
         config.Should().Contain("BatchMode yes");
@@ -106,6 +108,64 @@ public class SshComputeTests
         arguments.Should().Equal("-F", "C:\\AppData\\InControl\\ssh\\session.config", "-N", SshSessionConfig.HostAlias);
         string.Join(" ", arguments).Should().NotContain("id_ed25519");
         string.Join(" ", arguments).Should().NotContain("203.0.113.10");
+    }
+
+    [Fact]
+    public void RenderedConfig_SshG_StillHasTheLocalForward()
+    {
+        var endpoint = new SshEndpoint
+        {
+            DisplayName = "pod",
+            User = "root",
+            Host = "203.0.113.10",
+            SshPort = 17432,
+            IdentityFile = "C:\\keys\\id_ed25519",
+            RemoteOllamaPort = 11434
+        };
+        var directory = Path.Combine(Path.GetTempPath(), "incontrol-ssh-g", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var knownHosts = Path.Combine(directory, "known_hosts");
+            var configPath = Path.Combine(directory, "session.config");
+            File.WriteAllText(configPath, SshSessionConfig.Render(endpoint, 18080, knownHosts));
+
+            var ssh = Path.Combine(Environment.SystemDirectory, "OpenSSH", "ssh.exe");
+            if (!File.Exists(ssh))
+            {
+                ssh = "ssh";
+            }
+
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = ssh,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            process.StartInfo.ArgumentList.Add("-G");
+            process.StartInfo.ArgumentList.Add("-F");
+            process.StartInfo.ArgumentList.Add(configPath);
+            process.StartInfo.ArgumentList.Add(SshSessionConfig.HostAlias);
+            process.Start().Should().BeTrue();
+            var stdout = process.StandardOutput.ReadToEnd();
+            var stderr = process.StandardError.ReadToEnd();
+            process.WaitForExit(15000).Should().BeTrue();
+            process.ExitCode.Should().Be(0, stderr);
+
+            var forward = stdout
+                .Split('\n')
+                .Select(static line => line.Trim())
+                .FirstOrDefault(static line => line.StartsWith("localforward ", StringComparison.OrdinalIgnoreCase));
+            forward.Should().Be("localforward [127.0.0.1]:18080 [127.0.0.1]:11434");
+            stdout.ToLowerInvariant().Should().NotContain("clearallforwardings yes");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
@@ -124,7 +184,8 @@ public class SshComputeTests
         result.Message.Should().Contain(ComputeNotice.OllamaAnswered("0.35.0"));
         session.PromptsLeaveThisPc.Should().BeTrue();
         session.BaseUrl.Should().Be("http://127.0.0.1:18080");
-        session.Notice.Should().Be("This chat is on pod-a (203.0.113.10). Prompts leave this PC.");
+        session.Notice.Should().Be(
+            "This chat is on pod-a (203.0.113.10). Prompts leave this PC. " + ComputeNotice.OllamaAnswered("0.35.0"));
         factory.Opened.Should().NotBeNull();
     }
 
@@ -187,6 +248,51 @@ public class SshComputeTests
         session.Notice.Should().Be(ComputeNotice.OnThisPc);
         session.BaseUrl.Should().Be("http://127.0.0.1:11434");
         factory.Session.Disposed.Should().BeTrue();
+
+        factory.Session.RaiseExited();
+        session.Notice.Should().Be(ComputeNotice.OnThisPc);
+        session.PromptsLeaveThisPc.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SshExit_AfterConnect_ReturnsHome()
+    {
+        var factory = new FakeFactory();
+        var session = NewSession(factory, probeConnects: true);
+        await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+        session.Notice.Should().Contain("0.35.0");
+
+        factory.Session.RaiseExited();
+
+        session.PromptsLeaveThisPc.Should().BeFalse();
+        session.BaseUrl.Should().Be("http://127.0.0.1:11434");
+        session.Notice.Should().Be(ComputeNotice.SshExited);
+    }
+
+    [Fact]
+    public async Task Offline_RefusesARental_AndClosesOneThatIsOpen()
+    {
+        var factory = new FakeFactory();
+        var session = NewSession(factory, probeConnects: true);
+        await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+
+        await session.SetOfflineAsync(true);
+
+        session.IsOffline.Should().BeTrue();
+        session.PromptsLeaveThisPc.Should().BeFalse();
+        session.BaseUrl.Should().Be("http://127.0.0.1:11434");
+        session.Notice.Should().Be(ComputeNotice.OfflineReturnedHome);
+        factory.Session.Disposed.Should().BeTrue();
+
+        var again = await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+        again.Connected.Should().BeFalse();
+        again.Message.Should().Be(ComputeNotice.OfflineBlocksRental);
+        factory.OpenCount.Should().Be(1);
+
+        await session.SetOfflineAsync(false);
+        var restored = await session.ConnectAsync(Endpoint(NewKeyFile(), "203.0.113.10", "pod-a"));
+        restored.Connected.Should().BeTrue();
+        factory.OpenCount.Should().Be(2);
     }
 
     [Fact]
@@ -380,6 +486,10 @@ public class SshComputeTests
         public string StandardError { get; set; } = "";
 
         public bool Disposed { get; private set; }
+
+        public event EventHandler? Exited;
+
+        public void RaiseExited() => Exited?.Invoke(this, EventArgs.Empty);
 
         public ValueTask DisposeAsync()
         {

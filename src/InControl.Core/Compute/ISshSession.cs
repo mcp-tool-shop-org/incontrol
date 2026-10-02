@@ -8,6 +8,12 @@ public interface ISshSession : IAsyncDisposable
     bool HasExited { get; }
 
     string StandardError { get; }
+
+    /// <summary>
+    /// Raised when the SSH process exits on its own. Disposing the session may also
+    /// raise it. Callers ignore the event unless this instance is still the current one.
+    /// </summary>
+    event EventHandler? Exited;
 }
 
 /// <summary>

@@ -23,6 +23,7 @@ public sealed class OpenSshSessionFactory : ISshSessionFactory
         var rendered = SshSessionConfig.Render(endpoint, localPort, knownHosts);
         await File.WriteAllTextAsync(configPath, rendered, cancellationToken).ConfigureAwait(false);
 
+        // stdout stays inherited. ssh -N has nothing to read, and an unread redirected pipe can stall the process.
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -30,7 +31,6 @@ public sealed class OpenSshSessionFactory : ISshSessionFactory
                 FileName = ResolveSsh(),
                 UseShellExecute = false,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true,
                 CreateNoWindow = true
             }
         };
@@ -59,10 +59,15 @@ public sealed class OpenSshSessionFactory : ISshSessionFactory
         private readonly Process _process;
         private readonly StringBuilder _stderr = new();
         private readonly Task _pump;
+        private int _disposed;
+
+        public event EventHandler? Exited;
 
         public OpenSshSession(Process process)
         {
             _process = process;
+            _process.EnableRaisingEvents = true;
+            _process.Exited += (_, _) => Exited?.Invoke(this, EventArgs.Empty);
             _pump = Task.Run(PumpStderr);
         }
 
@@ -94,6 +99,11 @@ public sealed class OpenSshSessionFactory : ISshSessionFactory
 
         public async ValueTask DisposeAsync()
         {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
             try
             {
                 if (!HasExited)

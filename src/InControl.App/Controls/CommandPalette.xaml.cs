@@ -37,7 +37,7 @@ public sealed partial class CommandPalette : UserControl
         _allCommands.Add(new CommandItem("new-session", "New Session", "Create a new conversation", "\uE710", "Ctrl+N"));
         _allCommands.Add(new CommandItem("open-settings", "Open Settings", "Configure InControl preferences", "\uE713", "Ctrl+,"));
         _allCommands.Add(new CommandItem("open-model-manager", "Open Model Manager", "Manage AI models", "\uE950", ""));
-        _allCommands.Add(new CommandItem("toggle-offline", "Toggle Offline Mode", "Enable or disable network connections", "\uE8CD", ""));
+        _allCommands.Add(new CommandItem("toggle-offline", "Toggle Offline Mode", "Turn a rented GPU, RunPod lookup, and model download on or off. Chat on this PC still works.", "\uE8CD", ""));
         _allCommands.Add(new CommandItem("open-extensions", "Open Extensions", "View and manage extensions", "\uEA86", ""));
         _allCommands.Add(new CommandItem("open-assistant", "Open Assistant", "Configure assistant behavior", "\uE99A", ""));
         _allCommands.Add(new CommandItem("view-policy", "View Policy", "View security policies", "\uE72E", ""));

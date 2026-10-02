@@ -1,6 +1,6 @@
-# Privacy Policy for InControl-Desktop
+# Privacy Policy for InControl
 
-**Last Updated: February 3, 2026**
+**Last Updated: October 2, 2026**
 
 ## Overview
 
@@ -8,12 +8,12 @@ InControl is an Ollama chat app for Windows. The chat runs on this PC until you 
 
 ## Data Collection
 
-**InControl-Desktop does not collect, transmit, or store any personal data on external servers.**
+**InControl does not run an account service and does not collect telemetry.** A chat on this PC stays on this PC. If you connect a GPU rental, the prompts you send are transmitted to Ollama on that machine through SSH.
 
 ### What stays on your device:
-- All conversations and chat history
+- Conversations and chat history, until you connect a rental
 - Your settings and preferences
-- AI model files
+- The private key file you choose (it is not uploaded)
 - Session data
 
 ### What we do NOT collect:
@@ -30,13 +30,14 @@ By default, inference is Ollama on this PC and the conversation stays here. If y
 
 ## Network Connections
 
-InControl-Desktop may make the following optional network connections:
+When you ask it to, InControl may also:
 
-1. **Ollama Model Downloads** - When you choose to download AI models, the app connects to Ollama's model registry. This is initiated only by your explicit action.
+1. **Pull a model** through Ollama's registry. That happens only when you start a pull, and it uses the Ollama the banner is naming.
+2. **Look up RunPod pods** that are already running, if `RUNPOD_API_KEY` is in the environment. Lookup does not start a pod and does not store the key.
 
-2. **Update Checks** - If enabled, the app may check for updates through the Microsoft Store infrastructure.
+There is no Microsoft Store update check in 0.3.0. The offline switch turns off a rental, RunPod lookup, and model download. It does not claim to block every socket. Chat on this PC still works while it is on.
 
-Those connections are not the chat. The chat is transmitted only while a rental is connected, and then only to that machine.
+The chat itself is transmitted only while a rental is connected, and then only to that machine.
 
 ## Data Storage
 
@@ -44,7 +45,7 @@ All application data is stored locally in:
 - `%LOCALAPPDATA%\InControl\` - Application settings and logs
 - Ollama's default model storage location
 
-You can delete all application data by uninstalling the app and removing the above folder.
+You can delete application data on this PC by removing that folder. See `docs/UNINSTALL.md`. There is no MSIX to uninstall.
 
 ## Third-Party Services
 
@@ -68,7 +69,7 @@ https://github.com/mcp-tool-shop-org/incontrol/issues
 
 ## Your Rights
 
-Since we don't collect any personal data, there is no personal data to access, correct, or delete. All your data remains on your device under your control.
+InControl does not keep an account. Chat history on this PC is yours to delete. Prompts you send while a rental is connected go to that machine, and InControl does not get them back from it.
 
 ---
 

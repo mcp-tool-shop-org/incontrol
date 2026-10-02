@@ -4,7 +4,7 @@
 
 ### Documentation
 
-- [Installation Guide](./docs/INSTALLATION.md) - How to install InControl-Desktop
+- [Installation Guide](./docs/INSTALLATION.md) - Build 0.3.0 from source. There is no MSIX.
 - [Release Charter](./docs/RELEASE_CHARTER.md) - Trust envelope and update policy
 - [Connectivity Guide](./docs/CONNECTIVITY.md) - Network feature documentation
 
@@ -14,7 +14,7 @@ Before opening an issue, please try:
 
 1. **Check the FAQ** below
 2. **Search existing issues** for similar problems
-3. **Review the logs** at `%LocalAppData%\InControl-Desktop\logs`
+3. **Review the logs** at `%LOCALAPPDATA%\InControl\logs`
 4. **Try a clean reinstall** if issues persist
 
 ---
@@ -58,14 +58,9 @@ A: Any Ollama-compatible model. Recommended:
 
 ### Updates
 
-**Q: How do I update InControl-Desktop?**
+**Q: How do I update InControl?**
 
-A: By default, updates are manual:
-1. Download the new version from Releases
-2. Install over the existing version
-3. Your data and settings are preserved
-
-You can enable update notifications in Settings → Updates.
+A: Check out a newer commit and build again. See [Installation](./docs/INSTALLATION.md). There is no installer to download over the old one. Settings under `%LOCALAPPDATA%\InControl\` stay where they are.
 
 **Q: Can I go back to a previous version?**
 

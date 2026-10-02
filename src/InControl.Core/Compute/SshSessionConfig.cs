@@ -6,6 +6,9 @@ namespace InControl.Core.Compute;
 /// OpenSSH client config for one forward. The chat never becomes a remote command.
 /// Both sides of the forward are numeric loopback, because Windows OpenSSH resolves
 /// the name "localhost" to IPv6 and then misses an IPv4-only listener.
+/// <c>ssh -F</c> replaces the user and system config, so this file is the whole client
+/// config. <c>ClearAllForwardings</c> is omitted on purpose: OpenSSH applies it after
+/// parse and drops <c>LocalForward</c>, and then <c>ssh -N</c> can sit with nothing forwarded.
 /// </summary>
 public static class SshSessionConfig
 {
@@ -38,7 +41,6 @@ public static class SshSessionConfig
         builder.AppendLine($"  IdentityFile \"{ToSshPath(endpoint.IdentityFile)}\"");
         builder.AppendLine("  IdentitiesOnly yes");
         builder.AppendLine("  ForwardAgent no");
-        builder.AppendLine("  ClearAllForwardings yes");
         builder.AppendLine("  ExitOnForwardFailure yes");
         builder.AppendLine("  BatchMode yes");
         builder.AppendLine("  StrictHostKeyChecking accept-new");

@@ -35,6 +35,15 @@ public static class ComputeNotice
 
     public const string TunnelClosed = "SSH exited before the tunnel was up.";
 
+    public const string SshExited =
+        "SSH exited. This chat is back on this PC. Prompts stay here.";
+
+    public const string OfflineBlocksRental =
+        "Offline is on. InControl will not open a rented GPU, look up RunPod, or download a model. Chat on this PC still works.";
+
+    public const string OfflineReturnedHome =
+        "Offline is on. SSH was closed. This chat is back on this PC. Prompts stay here.";
+
     public const string TunnelTimedOut = "SSH did not open the local forward in time.";
 
     public const string TunnelNotOllama =

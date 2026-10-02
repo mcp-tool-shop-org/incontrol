@@ -63,45 +63,24 @@ public sealed partial class ConnectivityPage : UserControl
         {
             // Offline state
             OfflineModeIcon.Glyph = "\uE8CD"; // Airplane
-            OfflineModeDescription.Text = "All network connections are blocked";
+            OfflineModeDescription.Text = "A rented GPU, RunPod lookup, and model download are off. Chat on this PC still works.";
             ConnectionIndicator.Fill = new SolidColorBrush(Colors.Orange);
             ConnectionStatusText.Text = "Offline";
             DetailStatusText.Text = "Offline (by choice)";
 
-            // Update feature statuses
-            WebSearchStatus.Text = "Blocked";
-            WebSearchStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorCriticalBrush"];
-
-            ModelDownloadStatus.Text = "Blocked";
+            ModelDownloadStatus.Text = "Off";
             ModelDownloadStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorCriticalBrush"];
-
-            UpdatesStatus.Text = "Blocked";
-            UpdatesStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorCriticalBrush"];
-
-            ExtensionNetworkStatus.Text = "Blocked";
-            ExtensionNetworkStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorCriticalBrush"];
         }
         else
         {
-            // Online state
             OfflineModeIcon.Glyph = "\uE701"; // Globe
-            OfflineModeDescription.Text = "All network connections are allowed";
+            OfflineModeDescription.Text = "A rented GPU, RunPod lookup, and model download are available. Chat on this PC works either way.";
             ConnectionIndicator.Fill = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
             ConnectionStatusText.Text = "Online";
             DetailStatusText.Text = "Connected";
 
-            // Update feature statuses
-            WebSearchStatus.Text = "Available";
-            WebSearchStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
-
             ModelDownloadStatus.Text = "Available";
             ModelDownloadStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
-
-            UpdatesStatus.Text = "Available";
-            UpdatesStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
-
-            ExtensionNetworkStatus.Text = "Available";
-            ExtensionNetworkStatus.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
         }
     }
 

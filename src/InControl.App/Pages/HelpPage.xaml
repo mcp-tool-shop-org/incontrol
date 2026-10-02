@@ -164,7 +164,7 @@
                                                Style="{StaticResource SubtitleTextBlockStyle}"
                                                VerticalAlignment="Center" />
                                 </StackPanel>
-                                <TextBlock Text="InControl needs an AI model to generate responses. Open the Model Manager to import a model file (.gguf) or download one from Hugging Face."
+                                <TextBlock Text="InControl needs an Ollama model to generate responses. Open the Model Manager to pull one from the Ollama library onto the machine the banner is naming."
                                            Style="{StaticResource BodyTextBlockStyle}"
                                            TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -519,14 +519,11 @@
                                     <TextBlock Text="Offline mode"
                                                Style="{StaticResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
-                                <TextBlock Text="InControl works entirely offline. Internet is only needed to:"
+                                <TextBlock Text="Offline turns off a rented GPU, RunPod lookup, and model download. Chat with Ollama on this PC still works. The switch does not block every network call."
                                            TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="• Download new models from Ollama library" />
-                                    <TextBlock Text="• Check for app updates (optional)" />
-                                </StackPanel>
-                                <TextBlock Text="All inference happens locally on your machine."
+                                <TextBlock Text="A connected rental sends prompts to that machine. The bar at the top says so until you come back, or until SSH exits."
+                                           TextWrapping="Wrap"
                                            FontWeight="SemiBold" />
                             </StackPanel>
                         </Border>

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The app version is **0.3.0**. That number is lower than the old library packages on purpose. The dormant prototype had already published `InControl.Core` 1.2.2 and `InControl.Inference` 1.0.2 to NuGet, and those package versions stay where they are. This repository does not republish them. 0.3.0 is not a 1.0 product.
 
+## [Unreleased]
+
+### Fixed
+- The SSH client config no longer sets `ClearAllForwardings`. That keyword was erasing `LocalForward` after OpenSSH parsed the file, so `ssh -N` could sit with nothing forwarded.
+- When that SSH process exits, the chat comes back to this PC and the banner says so. While the tunnel is up, the banner includes the Ollama version the probe already read.
+- Model Manager and diagnostics talk to the endpoint the banner is naming, not always `localhost:11434`.
+- Offline mode refuses a rented GPU, RunPod lookup, and a model download, and it closes a rental that is already open. The switch no longer says every network connection is blocked. Chat on this PC still works.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

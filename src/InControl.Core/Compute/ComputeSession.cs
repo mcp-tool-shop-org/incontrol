@@ -18,6 +18,7 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
     private ISshSession? _session;
     private string _baseUrl;
     private bool _leaves;
+    private bool _offline;
     private string _notice;
 
     public ComputeSession(
@@ -82,11 +83,45 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         }
     }
 
+    public bool IsOffline
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _offline;
+            }
+        }
+    }
+
     public event EventHandler? Changed;
+
+    public async Task SetOfflineAsync(bool offline)
+    {
+        bool goHome;
+        lock (_gate)
+        {
+            _offline = offline;
+            goHome = offline && _leaves;
+        }
+
+        if (goHome)
+        {
+            await UseThisPcAsync(ComputeNotice.OfflineReturnedHome).ConfigureAwait(false);
+            return;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public async Task<ComputeConnectResult> ConnectAsync(SshEndpoint endpoint, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
+        if (IsOffline)
+        {
+            return ComputeConnectResult.Fail(ComputeNotice.OfflineBlocksRental);
+        }
+
         var inspection = SshEndpointInspector.Inspect(endpoint);
         if (!inspection.CanDial)
         {
@@ -143,7 +178,12 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
                     cancellationToken).ConfigureAwait(false));
                 if (version is not null)
                 {
-                    await SwapAsync(session, localPort, endpoint).ConfigureAwait(false);
+                    if (!await SwapAsync(session, localPort, endpoint, version).ConfigureAwait(false))
+                    {
+                        return ComputeConnectResult.Fail(
+                            IsOffline ? ComputeNotice.OfflineBlocksRental : ComputeNotice.SshExited);
+                    }
+
                     var message = ComputeNotice.TunnelUp(endpoint.DisplayName, endpoint.Host)
                         + " "
                         + ComputeNotice.OllamaAnswered(version);
@@ -163,7 +203,9 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         return ComputeConnectResult.Fail(sawTcp ? ComputeNotice.TunnelNotOllama : ComputeNotice.TunnelTimedOut);
     }
 
-    public async Task UseThisPcAsync()
+    public Task UseThisPcAsync() => UseThisPcAsync(ComputeNotice.OnThisPc);
+
+    private async Task UseThisPcAsync(string notice)
     {
         ISshSession? previous;
         lock (_gate)
@@ -172,11 +214,12 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
             _session = null;
             _baseUrl = _localBaseUrl;
             _leaves = false;
-            _notice = ComputeNotice.OnThisPc;
+            _notice = notice;
         }
 
         if (previous is not null)
         {
+            previous.Exited -= OnSessionExited;
             await previous.DisposeAsync().ConfigureAwait(false);
         }
 
@@ -251,23 +294,87 @@ public sealed class ComputeSession : IOllamaEndpoint, IAsyncDisposable
         return message;
     }
 
-    private async Task SwapAsync(ISshSession session, int localPort, SshEndpoint endpoint)
+    private async Task<bool> SwapAsync(ISshSession session, int localPort, SshEndpoint endpoint, string version)
     {
         ISshSession? previous;
+        var adopted = false;
         lock (_gate)
         {
-            previous = _session;
-            _session = session;
-            _baseUrl = $"http://127.0.0.1:{localPort}";
-            _leaves = true;
-            _notice = ComputeNotice.OnRemote(endpoint.DisplayName, endpoint.Host);
+            if (_offline)
+            {
+                previous = null;
+            }
+            else
+            {
+                previous = _session;
+                session.Exited += OnSessionExited;
+                _session = session;
+                _baseUrl = $"http://127.0.0.1:{localPort}";
+                _leaves = true;
+                _notice = ComputeNotice.OnRemote(endpoint.DisplayName, endpoint.Host)
+                    + " "
+                    + ComputeNotice.OllamaAnswered(version);
+                adopted = true;
+            }
+        }
+
+        if (!adopted)
+        {
+            await session.DisposeAsync().ConfigureAwait(false);
+            return false;
+        }
+
+        if (session.HasExited)
+        {
+            OnSessionExited(session, EventArgs.Empty);
+            if (previous is not null)
+            {
+                previous.Exited -= OnSessionExited;
+                await previous.DisposeAsync().ConfigureAwait(false);
+            }
+
+            return false;
         }
 
         if (previous is not null)
         {
+            previous.Exited -= OnSessionExited;
             await previous.DisposeAsync().ConfigureAwait(false);
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private void OnSessionExited(object? sender, EventArgs e)
+    {
+        if (sender is not ISshSession session)
+        {
+            return;
+        }
+
+        var owned = false;
+        lock (_gate)
+        {
+            if (!ReferenceEquals(_session, session))
+            {
+                return;
+            }
+
+            _session = null;
+            _baseUrl = _localBaseUrl;
+            _leaves = false;
+            _notice = ComputeNotice.SshExited;
+            owned = true;
+        }
+
+        if (!owned)
+        {
+            return;
+        }
+
+        session.Exited -= OnSessionExited;
+        Changed?.Invoke(this, EventArgs.Empty);
+        _ = session.DisposeAsync();
     }
 }

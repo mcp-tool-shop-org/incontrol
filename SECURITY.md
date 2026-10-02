@@ -24,11 +24,11 @@
 
 ## Scope
 
-InControl Desktop is a **local-first** WinUI 3 desktop application for private LLM chat.
+InControl is a WinUI 3 chat app. Ollama on this PC is the default. A GPU rental is an SSH local forward you start yourself.
 
-- **Data accessed:** Local Ollama API (localhost), chat history in local storage, model configuration files, optional extensions/plugins
-- **Data NOT accessed:** No cloud sync. No telemetry. No analytics. All inference runs locally via Ollama
-- **Permissions:** Localhost network (Ollama API), file system for chat history and configuration. MSIX sandboxed. No elevated permissions required
+- **Data accessed:** Ollama on this PC, or Ollama on a machine you connect over SSH. Chat history and settings in local storage.
+- **Data NOT accessed:** No InControl account, no cloud sync, and no telemetry. Inference stays on this PC until you connect a rental. Then the prompts you send go to that machine.
+- **Permissions:** Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. Version 0.3.0 is not an MSIX and is not sandboxed by AppContainer. It does not ask for elevation.
 - **No telemetry** is collected or sent
 
 ### Out of Scope

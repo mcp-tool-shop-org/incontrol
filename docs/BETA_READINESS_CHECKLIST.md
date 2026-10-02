@@ -1,8 +1,14 @@
 # Public Beta Readiness Checklist
 
-> **Version**: 0.9.0-rc.1
+**This checklist is not the current release.** It was written for a 0.9.0-rc.1 cut of InControl-Desktop, including a signed MSIX. That cut was not published.
+
+The published app is **0.3.0** in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). Tag `v0.3.0` is the source tree. There is no MSIX. Install from `docs/INSTALLATION.md`. Do not download `InControl-Desktop-0.9.0-rc.1.msix`.
+
+The tables below are the old checklist. Their "Done" and "Pass" marks are not a claim about 0.3.0.
+
+> **Version**: 0.9.0-rc.1 (not shipped)
 > **Target Date**: 2026-02-03
-> **Status**: Ready for RC1 Cut
+> **Status**: Historical. Not the 0.3.0 release.
 
 ## Pre-Release Verification
 
@@ -82,7 +88,9 @@
 
 ## Release Artifacts
 
-### Required for RC1
+These files were the old RC1 plan. They were not published, and 0.3.0 does not add them.
+
+### Listed for the unpublished RC1
 
 - [ ] MSIX package (signed)
 - [ ] Checksums file (SHA256)
@@ -123,16 +131,9 @@ proof-pack-0.9.0-rc.1.zip
    git push origin v0.9.0-rc.1
    ```
 
-5. **Monitor CI**
-   - Signed release workflow triggers
-   - MSIX is created and signed
-   - Artifacts uploaded to release
+5. **Do not follow this step for 0.3.0.** There is no signed MSIX workflow to monitor.
 
-6. **Verify release**
-   - Download MSIX
-   - Verify checksum
-   - Install on clean machine
-   - Run basic smoke test
+6. **Verify the source tag** instead of an installer. See `docs/INSTALLATION.md` and `docs/SIGNATURE_VERIFICATION.md`.
 
 7. **Publish release**
    - Edit draft release on GitHub

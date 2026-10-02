@@ -80,7 +80,7 @@
                                           VerticalAlignment="Center" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Offline mode" />
-                                    <TextBlock Text="Block all network connections"
+                                    <TextBlock Text="Turn off a rented GPU, RunPod lookup, and model download. Chat on this PC still works."
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>

@@ -1,5 +1,15 @@
 # Release Process
 
+## What 0.3.0 actually shipped
+
+Tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol) is the source tree. The GitHub release does not attach an MSIX. A tag runs the library tests. It does not sign a package, and it does not publish `InControl-Desktop`.
+
+To install that release, build from source. See `docs/INSTALLATION.md`.
+
+Issues: https://github.com/mcp-tool-shop-org/incontrol/issues
+
+The sections below still describe an older release-candidate plan (0.9.0-rc.1, a signed MSIX, the InControl-Desktop repository name). That plan is not the current release path. Do not cut a release by following it.
+
 ## Version Scheme
 
 InControl follows [Semantic Versioning](https://semver.org/) with Release Candidate (RC) designations:
@@ -66,10 +76,10 @@ Each release produces:
 
 | Artifact | Description |
 |----------|-------------|
-| `InControl.App_X.Y.Z_x64.msix` | Signed Windows package |
-| `InControl.App_X.Y.Z_x64.msix.sha256` | Checksum file |
+| Git tag `v*` | The source tree. This is the 0.3.0 release artifact. |
 | `CHANGELOG.md` | Release notes |
-| `support-bundle-sample.zip` | Sanitized support bundle example |
+
+A signed MSIX is not produced. Do not publish `InControl-Desktop-x.y.z.msix` or `InControl.App_X.Y.Z_x64.msix` as the release.
 
 ### 4. Release Notes Template
 
@@ -94,12 +104,10 @@ Each release produces:
 - Current limitations
 
 ## Installation
-1. Download the MSIX package
-2. Verify checksum: `certutil -hashfile InControl.App_0.9.0-rc.1_x64.msix SHA256`
-3. Double-click to install or use PowerShell: `Add-AppPackage -Path "..."`
+Build from source. There is no MSIX. See docs/INSTALLATION.md.
 
 ## Feedback
-Report issues: https://github.com/mcp-tool-shop-org/InControl-Desktop/issues
+Report issues: https://github.com/mcp-tool-shop-org/incontrol/issues
 ```
 
 ## CI/CD Integration
@@ -107,22 +115,11 @@ Report issues: https://github.com/mcp-tool-shop-org/InControl-Desktop/issues
 ### GitHub Actions Workflow
 
 On tag push (`v*`):
-1. Build Release configuration
-2. Sign MSIX package
-3. Generate checksums
-4. Extract changelog section for release notes
-5. Create GitHub Release with artifacts
+1. Test the libraries
+2. The workflow does not build or sign an MSIX
+3. Release notes live in CHANGELOG.md
 
-### Artifact Naming Convention
-
-```
-InControl.App_{version}_{arch}[_Test].msix
-```
-
-Examples:
-- `InControl.App_0.9.0-rc.1_x64.msix` - Release candidate
-- `InControl.App_1.0.0_x64.msix` - Stable release
-- `InControl.App_0.9.0-rc.1_x64_Test.msix` - Unsigned test build
+There is no `InControl.App_{version}_{arch}.msix` artifact. The 0.3.0 release is the git tag.
 
 ## Hotfix Process
 

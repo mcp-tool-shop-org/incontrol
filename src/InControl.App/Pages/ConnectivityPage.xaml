@@ -90,7 +90,7 @@
                             <TextBlock Text="Offline Mode"
                                        Style="{StaticResource SubtitleTextBlockStyle}" />
                             <TextBlock x:Name="OfflineModeDescription"
-                                       Text="All network connections are allowed"
+                                       Text="A rented GPU, RunPod lookup, and model download are available. Chat on this PC works either way."
                                        Style="{StaticResource BodyTextBlockStyle}"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        TextWrapping="Wrap" />
@@ -144,7 +144,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="Inference backend"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Grid.Column="1" x:Name="BackendText" Text="Local (llama.cpp)" />
+                                <TextBlock Grid.Column="1" x:Name="BackendText" Text="Ollama" />
                             </Grid>
 
                             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -224,7 +224,7 @@
                                 </StackPanel>
                                 <TextBlock Grid.Column="2"
                                            x:Name="WebSearchStatus"
-                                           Text="Available"
+                                           Text="Not controlled by this switch"
                                            Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource SystemFillColorSuccessBrush}"
                                            VerticalAlignment="Center" />
@@ -244,7 +244,7 @@
                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Model downloads" />
-                                    <TextBlock Text="Download new models from Hugging Face"
+                                    <TextBlock Text="Pull a model through Ollama"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
@@ -276,7 +276,7 @@
                                 </StackPanel>
                                 <TextBlock Grid.Column="2"
                                            x:Name="UpdatesStatus"
-                                           Text="Available"
+                                           Text="Not controlled by this switch"
                                            Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource SystemFillColorSuccessBrush}"
                                            VerticalAlignment="Center" />
@@ -302,7 +302,7 @@
                                 </StackPanel>
                                 <TextBlock Grid.Column="2"
                                            x:Name="ExtensionNetworkStatus"
-                                           Text="Available"
+                                           Text="Not controlled by this switch"
                                            Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource SystemFillColorSuccessBrush}"
                                            VerticalAlignment="Center" />

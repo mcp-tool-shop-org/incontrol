@@ -1,6 +1,8 @@
 # Packaging
 
-This directory contains resources for packaging InControl-Desktop as an MSIX.
+Version 0.3.0 does not ship an MSIX. Install from source: `docs/INSTALLATION.md`. Nothing in this directory is a release artifact, and there is no `InControl-Desktop.msix` to install.
+
+The notes below are leftover packaging sketches. They are not the current install path.
 
 ## Structure
 
