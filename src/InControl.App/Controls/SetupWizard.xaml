@@ -50,14 +50,16 @@
                     <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
                         <FontIcon Glyph="&#xE72E;" FontSize="16"
                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Everything runs locally on your machine"
+                        <TextBlock Text="Chat stays on this PC until a rented GPU is connected"
+                                   TextWrapping="Wrap"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
                         <FontIcon Glyph="&#xE785;" FontSize="16"
                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Your data stays on your device"
+                        <TextBlock Text="A rental sends your prompts to the machine the banner names"
+                                   TextWrapping="Wrap"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
 
