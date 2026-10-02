@@ -5,12 +5,12 @@ All notable changes to InControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The app version is **2.0.0**. Partner Center already has packages for this product through 1.4.0, and the newest upload is `InControl.App_1.4.0_x64`. Microsoft rejects an upload unless the package identity name is still `InControl.App` and the package version is higher, so the MSIX version is **2.0.0.0**. The repo and the name in the window stay InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. The certificate publisher on the 1.4.0 upload is not in this repository. A different publisher is rejected even when the name and version are right. No MSIX file is in this repository yet.
+The app version is **2.0.0**. Partner Center already has packages for this product through 1.4.0, and the newest upload is `InControl.App_1.4.0_x64`. Microsoft rejects an upload unless the package identity name is still `InControl.App` and the package version is higher, so the MSIX version is **2.0.0.0**. The repo and the name in the window stay InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. The package publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A different publisher is rejected even when the name and version are right. No MSIX file is committed in this repository.
 
 ## [Unreleased]
 
 ### Changed
-- The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. Partner Center already lists `InControl.App` through 1.4.0. A lower number, or a package named `InControl.Desktop`, is rejected. The product name stays InControl. NuGet library versions are unchanged. The 1.4.0 certificate publisher is still unknown, so the manifest leaves that field unset.
+- The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. Partner Center already lists `InControl.App` through 1.4.0. A lower number, or a package named `InControl.Desktop`, is rejected. The product name stays InControl. NuGet library versions are unchanged. The manifest publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`.
 
 ### Fixed
 - The SSH client config no longer sets `ClearAllForwardings`. That keyword was erasing `LocalForward` after OpenSSH parsed the file, so `ssh -N` could sit with nothing forwarded.

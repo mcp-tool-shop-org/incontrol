@@ -9,7 +9,7 @@ Partner Center already has this product through package 1.4.0. The newest upload
 
 The name on the repo, and the display name in the manifest, stay InControl. Display name is not the package identity.
 
-`Publisher` is the certificate subject on the 1.4.0 upload. That subject is not in this repository. Leave `${PUBLISHER}` until it is known. A local test certificate is not that publisher, and a package signed with a different subject is rejected even when the name and version are right.
+`Publisher` is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A package signed with a different subject is rejected even when the name and version are right. A local test certificate is not that publisher.
 
 ## Structure
 
@@ -40,32 +40,21 @@ The manifest template uses these placeholders:
 | Placeholder | Replaced With |
 |-------------|---------------|
 | `${VERSION}` | Four-part package version. The prepared value is `2.0.0.0`. |
-| `${PUBLISHER}` | Certificate subject from the 1.4.0 upload. Do not guess it. |
+| Publisher | `CN=5305D976-6952-4F00-9C21-3A5DB090359F` |
 
 ## Building Locally
 
-To test packaging locally:
+`dotnet publish` on the .NET 9 SDK stops at MSB4062. That SDK does not ship `Microsoft.Build.AppxPackage.dll`, so `RemovePayloadDuplicates` cannot load. The package is produced by MSBuild from a Visual Studio install that includes the Windows App SDK packaging targets. Signing stays off for a local build. The Store re-signs the upload.
 
 ```powershell
-# Publish the app
-dotnet publish src/InControl.App/InControl.App.csproj `
-  --configuration Release `
-  --runtime win-x64 `
-  --self-contained true `
-  --output ./publish
-
-# Copy manifest (replace placeholders manually or use script)
-Copy-Item packaging/AppxManifest.template.xml ./publish/AppxManifest.xml
-# Edit AppxManifest.xml to replace ${VERSION} and ${PUBLISHER}
-
-# Package (requires Windows SDK)
-# Identity inside the manifest must already say Name="InControl.App" and Version="2.0.0.0".
-makeappx pack /d ./publish /p InControl.App_2.0.0.0_x64.msix /nv
+msbuild src\InControl.App\InControl.App.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=true
 ```
+
+The unsigned package lands under `AppPackages\`, which is gitignored. Pack `InControl.App_2.0.0.0_x64.msix` and its `.msixsym` at the root of a zip named `InControl.App_2.0.0.0_x64.msixupload`. Identity inside the manifest must already say `Name="InControl.App"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, and `Version="2.0.0.0"`.
 
 ## Signing
 
-A tag does not build or sign an MSIX. `.github/workflows/release.yml` runs the library tests. `.github/workflows/release-signed.yml` is `workflow_dispatch` only, and it refuses to run until a signing certificate is configured. That certificate's subject has to be the publisher already on the 1.4.0 package. Do not create a stand-in subject and upload the result.
+A tag does not build or sign an MSIX. `.github/workflows/release.yml` runs the library tests. `.github/workflows/release-signed.yml` is `workflow_dispatch` only, and it refuses to run until a signing certificate is configured. That certificate's subject has to be `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. Do not create a stand-in subject and upload the result.
 
 The signed workflow writes `InControl.App_<version>_x64.msix`. It rejects a package version below `2.0.0.0`, and it rejects a manifest whose identity name is not `InControl.App`.
 

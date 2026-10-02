@@ -1,6 +1,6 @@
 # Installation
 
-Version 2.0.0 is a source build of the current tree. There is no MSIX in this repository, and there is no installer to run from the repo. A later package identity `InControl.App` `2.0.0.0` is being prepared. The publisher is still unknown.
+Version 2.0.0 is a source build of the current tree. There is no MSIX in this repository, and there is no installer to run from the repo. A later package identity `InControl.App` `2.0.0.0` is being prepared. Its publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`.
 
 The repository is [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). A fresh clone of current main is app 2.0.0, not tag `v0.3.0`. Tag `v0.3.0` is an older source-only release. That tag has no MSIX. A GitHub release does not attach a package.
 

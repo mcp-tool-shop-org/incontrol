@@ -2,8 +2,8 @@
 <!--
   Same identity as packaging/AppxManifest.template.xml.
   Name InControl.App and Version 2.0.0.0 are what Partner Center will accept
-  after the 1.4.0 upload. Publisher is still the 1.4.0 certificate subject.
-  Leave ${PUBLISHER} until that subject is known. Do not invent one.
+  after the 1.4.0 upload. Publisher is the account publisher
+  CN=5305D976-6952-4F00-9C21-3A5DB090359F.
   Application Id is not the package identity. It cannot contain a dot.
 -->
 <Package
@@ -14,7 +14,7 @@
 
   <Identity
     Name="InControl.App"
-    Publisher="${PUBLISHER}"
+    Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"
     Version="2.0.0.0"
     ProcessorArchitecture="x64" />
 

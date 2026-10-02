@@ -245,7 +245,9 @@ jobs:
             exit 1
           }
 
-          # Publisher comes from the certificate. It must match the 1.4.0 upload.
+          # The manifest publisher is the Partner Center account publisher.
+          # A certificate with any other subject is not uploadable.
+          $expectedPublisher = 'CN=5305D976-6952-4F00-9C21-3A5DB090359F'
           $certPath = $env:CERT_PATH
           $certPassword = '${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}'
           $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certPath, $certPassword)
@@ -254,15 +256,23 @@ jobs:
           Write-Host "Publisher: $publisher"
           Write-Host "MSIX Version: $msixVersion"
 
+          if ($publisher -ne $expectedPublisher) {
+            Write-Error "Signing certificate subject is '$publisher'. Partner Center requires $expectedPublisher."
+            exit 1
+          }
+
           $manifest = Get-Content -Path packaging/AppxManifest.template.xml -Raw
           if ($manifest -notmatch 'Name="InControl\.App"') {
             Write-Error "MSIX identity Name must stay InControl.App. Partner Center rejects a different package name."
             exit 1
           }
+          if ($manifest -notmatch [regex]::Escape("Publisher=`"$expectedPublisher`"")) {
+            Write-Error "MSIX identity Publisher must stay $expectedPublisher."
+            exit 1
+          }
           $manifest = $manifest -replace '\$\{VERSION\}', $msixVersion
-          $manifest = $manifest -replace '\$\{PUBLISHER\}', $publisher
           if ($manifest -match '\$\{PUBLISHER\}' -or $manifest -notmatch "Version=`"$msixVersion`"") {
-            Write-Error "Manifest identity was not filled. Name InControl.App, version $msixVersion, and the 1.4.0 publisher are all required."
+            Write-Error "Manifest identity was not filled. Name InControl.App, version $msixVersion, and publisher $expectedPublisher are all required."
             exit 1
           }
           $manifest | Out-File -FilePath ./publish/AppxManifest.xml -Encoding utf8

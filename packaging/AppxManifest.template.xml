@@ -4,7 +4,7 @@
   through package 1.4.0. A different name is rejected.
   ${VERSION} is four numbers, each 0-65535, and must be higher than 1.4.0.0.
   The prepared value is 2.0.0.0.
-  ${PUBLISHER} is the certificate subject on the 1.4.0 upload. Do not guess it.
+  Publisher is CN=5305D976-6952-4F00-9C21-3A5DB090359F, the Partner Center account publisher.
   The product people see stays InControl. That is DisplayName, not Identity Name.
 -->
 <Package
@@ -15,7 +15,7 @@
 
   <Identity
     Name="InControl.App"
-    Publisher="${PUBLISHER}"
+    Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"
     Version="${VERSION}"
     ProcessorArchitecture="x64" />
 

@@ -14,13 +14,13 @@ public class PackageIdentityTests
         var manifest = File.ReadAllText(Path.Combine(root, "src", "InControl.App", "Package.appxmanifest"));
         manifest.Should().Contain("Name=\"InControl.App\"");
         manifest.Should().Contain("Version=\"2.0.0.0\"");
-        IdentityPublisher(manifest).Should().Be("${PUBLISHER}");
+        IdentityPublisher(manifest).Should().Be("CN=5305D976-6952-4F00-9C21-3A5DB090359F");
         manifest.Should().NotContain("InControl.Desktop");
 
         var template = File.ReadAllText(Path.Combine(root, "packaging", "AppxManifest.template.xml"));
         template.Should().Contain("Name=\"InControl.App\"");
         template.Should().Contain("${VERSION}");
-        IdentityPublisher(template).Should().Be("${PUBLISHER}");
+        IdentityPublisher(template).Should().Be("CN=5305D976-6952-4F00-9C21-3A5DB090359F");
         template.Should().NotContain("InControl.Desktop");
 
         File.ReadAllText(Path.Combine(root, "src", "InControl.Core", "InControl.Core.csproj"))

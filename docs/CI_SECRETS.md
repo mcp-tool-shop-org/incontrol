@@ -13,15 +13,15 @@ This document describes how secrets are managed in the CI/CD pipeline for InCont
 
 ## Setting Up Secrets
 
-A Partner Center upload cannot proceed until the certificate subject from the existing InControl.App 1.4.0 upload is known. That subject is not in this repository. Do not invent one. A newly purchased certificate with a different subject is not that publisher, and Partner Center rejects it. Leave `${PUBLISHER}` unset until the 1.4.0 subject is known. See `packaging/README.md`.
+The package publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A certificate with any other subject is rejected. The Store re-signs an upload, so a local test certificate is still not uploadable. See `packaging/README.md`.
 
-`SIGNING_CERTIFICATE_BASE64` is an upload credential only when the certificate subject is the publisher already on the 1.4.0 package. The publisher is still unknown.
+`SIGNING_CERTIFICATE_BASE64` is an upload credential only when the certificate subject is that publisher.
 
 A local test certificate is not the publisher and is not uploadable. Do not store one as the signing secret for a Partner Center upload, and do not mint a stand-in subject for that upload.
 
 ### Encode a known certificate for GitHub
 
-Only after the 1.4.0 subject is known, and only for a certificate with that subject:
+Only for a certificate whose subject is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`:
 
 ```powershell
 # Convert PFX to base64
@@ -117,7 +117,7 @@ The password doesn't match:
 The certificate lacks code signing EKU:
 1. Check certificate properties
 2. Ensure it has "Code Signing" in Enhanced Key Usage
-3. A replacement still has to be the publisher on the InControl.App 1.4.0 upload. A different subject is not uploadable.
+3. A replacement still has to be `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A different subject is not uploadable.
 
 ## Environment-Specific Certificates
 
@@ -126,7 +126,7 @@ Do not use a different subject for a Partner Center upload. A local test certifi
 | Environment | Certificate | Purpose |
 |-------------|-------------|---------|
 | Local test | A test certificate | Not the publisher. Not uploadable. |
-| Partner Center | The subject on the InControl.App 1.4.0 upload | Upload only after that subject is known |
+| Partner Center | `CN=5305D976-6952-4F00-9C21-3A5DB090359F` | The only uploadable subject |
 
 Configure using GitHub environments:
 1. Create environments (staging, production)
