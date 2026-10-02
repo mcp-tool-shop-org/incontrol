@@ -543,6 +543,42 @@ public class PolicyEngineTests
     }
 
     [Fact]
+    public void EvaluateDomain_BlocksHostWithTrailingDnsRootDot()
+    {
+        var engine = new PolicyEngine();
+        engine.SetPolicy(PolicySource.Organization, new PolicyDocument
+        {
+            Version = "1.0",
+            Connectivity = new ConnectivityPolicyRules
+            {
+                BlockedDomains = ["blocked.example"]
+            }
+        });
+
+        Assert.Equal(PolicyDecision.Deny, engine.EvaluateDomain("blocked.example.").Decision);
+        Assert.Equal(PolicyDecision.Deny, engine.EvaluateDomain("a.blocked.example.").Decision);
+        Assert.Equal(PolicyDecision.Allow, engine.EvaluateDomain("blocked.example.com").Decision);
+    }
+
+    [Fact]
+    public void EvaluateDomain_AllowListMatchesTrailingDnsRootDot()
+    {
+        var engine = new PolicyEngine();
+        engine.SetPolicy(PolicySource.Organization, new PolicyDocument
+        {
+            Version = "1.0",
+            Connectivity = new ConnectivityPolicyRules
+            {
+                AllowedDomains = ["internal.corp.com."]
+            }
+        });
+
+        Assert.Equal(PolicyDecision.Allow, engine.EvaluateDomain("internal.corp.com").Decision);
+        Assert.Equal(PolicyDecision.Allow, engine.EvaluateDomain("api.internal.corp.com.").Decision);
+        Assert.Equal(PolicyDecision.Deny, engine.EvaluateDomain("external.com.").Decision);
+    }
+
+    [Fact]
     public void EvaluateDomain_AllowedDomainsRestrictsAccess()
     {
         var engine = new PolicyEngine();

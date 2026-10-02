@@ -1,4 +1,5 @@
 using InControl.Core.Errors;
+using InControl.Core.Models;
 using InControl.Core.State;
 using InControl.Core.Storage;
 
@@ -83,8 +84,8 @@ public sealed class StateRecovery
                 );
             }
 
-            // Try to deserialize
-            var result = await StateSerializer.DeserializeAsync<AppState>(stream, ct).ConfigureAwait(false);
+            // Session files are Conversation records, not AppState.
+            var result = await StateSerializer.DeserializeAsync<Conversation>(stream, ct).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
                 return new StateIssue(
@@ -92,18 +93,6 @@ public sealed class StateRecovery
                     IssueType: StateIssueType.InvalidJson,
                     Description: $"Session file '{fileName}' contains invalid JSON: {result.Error.Message}",
                     RecoveryOptions: [RecoveryAction.Quarantine, RecoveryAction.Delete, RecoveryAction.RestoreBackup]
-                );
-            }
-
-            // Validate state integrity
-            var state = result.Value;
-            if (state.Version < 1)
-            {
-                return new StateIssue(
-                    FilePath: filePath,
-                    IssueType: StateIssueType.InvalidVersion,
-                    Description: $"Session file '{fileName}' has invalid version: {state.Version}",
-                    RecoveryOptions: [RecoveryAction.Quarantine, RecoveryAction.Delete]
                 );
             }
 

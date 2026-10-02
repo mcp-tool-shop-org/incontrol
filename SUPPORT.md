@@ -4,7 +4,7 @@
 
 ### Documentation
 
-- [Installation Guide](./docs/INSTALLATION.md) - Build 0.3.0 from source. There is no MSIX.
+- [Installation Guide](./docs/INSTALLATION.md) - Build 2.0.0 from source. There is no MSIX in this repository. A later package identity InControl.App 2.0.0.0 is being prepared. Tag v0.3.0 is an older source-only release.
 - [Release Charter](./docs/RELEASE_CHARTER.md) - Older plan, not the current ship. See [Connectivity](./docs/CONNECTIVITY.md).
 - [Connectivity Guide](./docs/CONNECTIVITY.md) - Network feature documentation
 

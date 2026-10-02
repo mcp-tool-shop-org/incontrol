@@ -1,8 +1,8 @@
 # Installation
 
-Version 0.3.0 is a source build. There is no MSIX, and there is no InControl-Desktop installer.
+Version 2.0.0 is a source build of the current tree. There is no MSIX in this repository, and there is no installer to run from the repo. A later package identity `InControl.App` `2.0.0.0` is being prepared. The publisher is still unknown.
 
-The repository is [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). Tag `v0.3.0` is that source tree. A GitHub release does not attach a package.
+The repository is [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). A fresh clone of current main is app 2.0.0, not tag `v0.3.0`. Tag `v0.3.0` is an older source-only release. That tag has no MSIX. A GitHub release does not attach a package.
 
 ## What you need
 

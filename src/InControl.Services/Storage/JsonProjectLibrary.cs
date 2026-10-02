@@ -151,31 +151,22 @@ public sealed class JsonProjectLibrary : IProjectLibrary, IDisposable
         if (read.IsFailure)
         {
             _logger.LogWarning("Could not read projects: {Error}", read.Error.Message);
-            ResetToGeneral();
-            await SaveUnlockedAsync(ct);
-            return;
+            throw new InvalidOperationException($"Failed to read projects: {read.Error.Message}");
         }
 
         var parsed = StateSerializer.Deserialize<List<ChatProject>>(read.Value);
         var list = parsed.Value;
         if (parsed.IsFailure || list is null)
         {
-            _logger.LogWarning("Could not read projects: {Error}", parsed.IsFailure ? parsed.Error.Message : "empty");
-            ResetToGeneral();
-            await SaveUnlockedAsync(ct);
-            return;
+            var detail = parsed.IsFailure ? parsed.Error.Message : "empty";
+            _logger.LogWarning("Could not read projects: {Error}", detail);
+            throw new InvalidOperationException($"Failed to read projects: {detail}");
         }
 
         _projects.Clear();
         _projects.AddRange(list.Where(project => !string.IsNullOrWhiteSpace(project.Name)));
         if (_projects.All(project => project.Id != ChatProject.GeneralId))
             _projects.Insert(0, ChatProject.General());
-    }
-
-    private void ResetToGeneral()
-    {
-        _projects.Clear();
-        _projects.Add(ChatProject.General());
     }
 
     private async Task SaveUnlockedAsync(CancellationToken ct)

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Xunit;
 
@@ -13,13 +14,13 @@ public class PackageIdentityTests
         var manifest = File.ReadAllText(Path.Combine(root, "src", "InControl.App", "Package.appxmanifest"));
         manifest.Should().Contain("Name=\"InControl.App\"");
         manifest.Should().Contain("Version=\"2.0.0.0\"");
-        manifest.Should().Contain("${PUBLISHER}");
+        IdentityPublisher(manifest).Should().Be("${PUBLISHER}");
         manifest.Should().NotContain("InControl.Desktop");
 
         var template = File.ReadAllText(Path.Combine(root, "packaging", "AppxManifest.template.xml"));
         template.Should().Contain("Name=\"InControl.App\"");
         template.Should().Contain("${VERSION}");
-        template.Should().Contain("${PUBLISHER}");
+        IdentityPublisher(template).Should().Be("${PUBLISHER}");
         template.Should().NotContain("InControl.Desktop");
 
         File.ReadAllText(Path.Combine(root, "src", "InControl.Core", "InControl.Core.csproj"))
@@ -39,6 +40,16 @@ public class PackageIdentityTests
         workflow.Should().Contain("1.4.0.0");
         workflow.Should().Contain("Name=\"InControl\\.App\"");
         workflow.Should().NotContain("InControl-Desktop");
+    }
+
+    private static string IdentityPublisher(string xml)
+    {
+        var match = Regex.Match(
+            xml,
+            @"<Identity\b(?:(?!>).)*?\bPublisher\s*=\s*""([^""]*)""",
+            RegexOptions.Singleline);
+        match.Success.Should().BeTrue();
+        return match.Groups[1].Value;
     }
 
     private static string RepoRoot()

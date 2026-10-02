@@ -1,6 +1,6 @@
 # Uninstallation
 
-Version 0.3.0 is a source build. It is not an installed MSIX, so it will not appear as an InControl-Desktop package in Windows Settings, and `Get-AppxPackage` will not remove it.
+Version 2.0.0 is a source build. This repository has no MSIX to install, so the app will not appear as an installed package in Windows Settings, and `Get-AppxPackage` will not remove it. A later package identity `InControl.App` `2.0.0.0` is being prepared. Tag `v0.3.0` is an older source-only release and has no MSIX.
 
 ## Remove the app
 

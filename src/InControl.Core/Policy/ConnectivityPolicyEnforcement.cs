@@ -326,14 +326,20 @@ public sealed class PolicyGovernedConnectivityManager
         {
             if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
             {
-                return uri.Host;
+                return NormalizeHost(uri.Host);
             }
         }
         catch { }
 
         // Fallback: treat as domain
-        return endpoint.Split('/')[0].Split(':')[0];
+        return NormalizeHost(endpoint.Split('/')[0].Split(':')[0]);
     }
+
+    /// <summary>
+    /// Strips one trailing DNS root dot so a rooted host matches an unrooted rule.
+    /// </summary>
+    private static string NormalizeHost(string host) =>
+        host.Length > 0 && host[^1] == '.' ? host[..^1] : host;
 
     private static bool IsTelemetryRequest(NetworkRequest request)
     {

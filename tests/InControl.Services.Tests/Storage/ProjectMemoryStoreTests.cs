@@ -44,6 +44,32 @@ public class ProjectMemoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task CorruptProjectsFile_IsNotReplacedWithGeneral()
+    {
+        var path = Path.Combine(_root, "projects.json");
+        await File.WriteAllTextAsync(path, "{");
+        var library = new JsonProjectLibrary(_files, new Mock<ILogger<JsonProjectLibrary>>().Object);
+
+        var act = async () => await library.AllAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await File.ReadAllTextAsync(path)).Should().Be("{");
+    }
+
+    [Fact]
+    public async Task CorruptNotesFile_IsNotReplaced()
+    {
+        var path = Path.Combine(_root, "memories.json");
+        await File.WriteAllTextAsync(path, "{");
+        var memory = new JsonSessionMemory(_files, new Mock<ILogger<JsonSessionMemory>>().Object);
+        var act = async () => await memory.RememberAsync(
+            Note("kept", "Still on disk", ChatProject.GeneralId, sessionId: null));
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await File.ReadAllTextAsync(path)).Should().Be("{");
+    }
+
+    [Fact]
     public async Task Notes_RoundTrip_ForgetSessionLeavesProjectNotes()
     {
         var projectId = ChatProject.GeneralId;

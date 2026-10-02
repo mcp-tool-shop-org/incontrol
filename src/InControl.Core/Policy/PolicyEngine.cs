@@ -643,11 +643,15 @@ public sealed class PolicyEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(domain);
 
         var connectivity = EvaluateConnectivityPolicy();
+        var host = NormalizeHost(domain);
 
         // Check blocked domains first
         if (connectivity.BlockedDomains.Any(blocked =>
-            domain.Equals(blocked, StringComparison.OrdinalIgnoreCase) ||
-            domain.EndsWith("." + blocked, StringComparison.OrdinalIgnoreCase)))
+        {
+            var rule = NormalizeHost(blocked);
+            return host.Equals(rule, StringComparison.OrdinalIgnoreCase) ||
+                   host.EndsWith("." + rule, StringComparison.OrdinalIgnoreCase);
+        }))
         {
             var result = PolicyEvaluationResult.Deny(
                 $"Domain '{domain}' is blocked by policy",
@@ -661,8 +665,11 @@ public sealed class PolicyEngine
         if (connectivity.AllowedDomains != null && connectivity.AllowedDomains.Count > 0)
         {
             var isAllowed = connectivity.AllowedDomains.Any(allowed =>
-                domain.Equals(allowed, StringComparison.OrdinalIgnoreCase) ||
-                domain.EndsWith("." + allowed, StringComparison.OrdinalIgnoreCase));
+            {
+                var rule = NormalizeHost(allowed);
+                return host.Equals(rule, StringComparison.OrdinalIgnoreCase) ||
+                       host.EndsWith("." + rule, StringComparison.OrdinalIgnoreCase);
+            });
 
             if (!isAllowed)
             {
@@ -729,6 +736,12 @@ public sealed class PolicyEngine
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    /// Strips one trailing DNS root dot so a rooted host matches an unrooted rule.
+    /// </summary>
+    private static string NormalizeHost(string host) =>
+        host.Length > 0 && host[^1] == '.' ? host[..^1] : host;
 
     private static bool MatchesPattern(string value, string pattern)
     {

@@ -143,8 +143,9 @@ jobs:
         run: |
           dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore `
             -p:Version=${{ steps.version.outputs.version }} `
-            -p:AssemblyVersion=${{ steps.version.outputs.base }}.0 `
-            -p:FileVersion=${{ steps.version.outputs.base }}.${{ github.run_number }}
+            -p:InformationalVersion=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.msix_version }} `
+            -p:FileVersion=${{ steps.version.outputs.msix_version }}
 
       - name: Test
         run: dotnet test --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
@@ -157,6 +158,9 @@ jobs:
             --self-contained true `
             -p:PublishSingleFile=false `
             -p:Version=${{ steps.version.outputs.version }} `
+            -p:InformationalVersion=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.msix_version }} `
+            -p:FileVersion=${{ steps.version.outputs.msix_version }} `
             --output ./publish
 
       - name: Generate Build Provenance

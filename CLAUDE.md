@@ -1,23 +1,21 @@
-# InControl-Desktop
+# InControl
 
-## What This Does (Prototype)
+## What this is
 
-⚠️ **Prototype Status** — Desktop application for system control and monitoring.
+InControl is a WinUI 3 chat app for Ollama on Windows. The app version is 2.0.0.
 
-WinUI/MAUI-based desktop app providing system resource monitoring,
-process management, and user control interfaces.
+Prompts stay on this PC until a rented GPU is connected over SSH. There is no llama.cpp backend.
+
+The package identity being prepared is `InControl.App` at `2.0.0.0`. There is no MSIX file in the repo. The product name stays InControl. The publisher is still unknown.
 
 ## Architecture
 
-- WinUI 3 / MAUI desktop UI
-- System resource monitoring
-- Process management APIs
-- Real-time data display
+- WinUI 3 desktop UI
+- Ollama HTTP API on this PC, or through an SSH local forward you start
+- Chat history on this PC
 
-## Key Notes
+## Key notes
 
-- Windows-primary focus
-- MAUI for cross-platform potential
-- Desktop app architecture
-- Real-time monitoring
-- See MEMORY.md for build notes
+- Windows only
+- Build from source. See `docs/INSTALLATION.md`
+- Tag `v0.3.0` is an older source-only release, not the app version in this tree

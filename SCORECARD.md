@@ -3,7 +3,7 @@
 **Repo:** incontrol
 **Date:** 2026-10-02
 
-The February 2026 card below scored the dormant prototype. It is history. The 2026-10-02 ship gate is the current list: app version 0.3.0, tag v0.3.0, no MSIX, NuGet library versions unchanged.
+The February 2026 card below scored the dormant prototype. It is history. The 2026-10-02 ship gate is the current list: app version 2.0.0, prepared MSIX identity InControl.App 2.0.0.0, no MSIX file in the repo. Tag v0.3.0 is an older source-only release. NuGet library versions stay InControl.Core 1.2.2 and InControl.Inference 1.0.2.
 
 **Date:** 2026-02-27
 **Type tags:** `[desktop]`

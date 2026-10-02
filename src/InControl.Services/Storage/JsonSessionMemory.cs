@@ -184,17 +184,16 @@ public sealed class JsonSessionMemory : ISessionMemory, IDisposable
         if (read.IsFailure)
         {
             _logger.LogWarning("Could not read notes: {Error}", read.Error.Message);
-            _items.Clear();
-            return;
+            throw new InvalidOperationException($"Failed to read notes: {read.Error.Message}");
         }
 
         var parsed = StateSerializer.Deserialize<List<AssistantMemoryItem>>(read.Value);
         var list = parsed.Value;
         if (parsed.IsFailure || list is null)
         {
-            _logger.LogWarning("Could not read notes: {Error}", parsed.IsFailure ? parsed.Error.Message : "empty");
-            _items.Clear();
-            return;
+            var detail = parsed.IsFailure ? parsed.Error.Message : "empty";
+            _logger.LogWarning("Could not read notes: {Error}", detail);
+            throw new InvalidOperationException($"Failed to read notes: {detail}");
         }
 
         _items.Clear();

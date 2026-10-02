@@ -44,8 +44,9 @@ dotnet add package InControl.Inference
 
 ```csharp
 // Example: use InControl.Inference in your own app
-var client = inferenceClientFactory.Create("ollama");
-await foreach (var token in client.StreamChatAsync(messages))
+var client = inferenceClientFactory.GetClient();
+var request = ChatRequest.Simple("llama3.2", "Hello");
+await foreach (var token in client.StreamChatAsync(request))
 {
     Console.Write(token);
 }
@@ -216,11 +217,11 @@ Los problemas comunes y sus soluciones se documentan en [TROUBLESHOOTING.md](./d
 | Configuración | Microsoft.Extensions.Configuration |
 | Registro | Microsoft.Extensions.Logging + Serilog |
 
-## Versión
+## Version
 
-Versión actual: **0.3.0**
+Current version: **2.0.0**. The package identity is `InControl.App` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
 
-Consulte [CHANGELOG.md](./CHANGELOG.md) para ver el historial de versiones.
+See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
 
 ## Seguridad y ámbito de los datos
 

@@ -7,7 +7,7 @@ Privacy-first, GPU-accelerated local AI chat assistant for Windows.
 - **This PC first** — The chat stays here until you connect a rented GPU over SSH
 - **RTX-Optimized** — CUDA acceleration for fast local inference
 - **Native Windows** — WinUI 3 with Fluent Design
-- **Multiple Backends** — Ollama, llama.cpp, or custom inference engines
+- **Ollama only** — The app speaks the Ollama HTTP API. There is no llama.cpp backend and no custom inference engine.
 - **Markdown Rendering** — Syntax highlighting and rich output
 
 ## NuGet Packages

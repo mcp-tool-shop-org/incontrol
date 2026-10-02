@@ -44,8 +44,9 @@ dotnet add package InControl.Inference
 
 ```csharp
 // Example: use InControl.Inference in your own app
-var client = inferenceClientFactory.Create("ollama");
-await foreach (var token in client.StreamChatAsync(messages))
+var client = inferenceClientFactory.GetClient();
+var request = ChatRequest.Simple("llama3.2", "Hello");
+await foreach (var token in client.StreamChatAsync(request))
 {
     Console.Write(token);
 }

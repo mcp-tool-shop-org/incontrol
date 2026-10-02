@@ -20,7 +20,7 @@ Section: `App`
 | `MinimizeToTray` | `true` | Minimize to tray instead of closing |
 | `StartMinimized` | `false` | Start the app minimized |
 | `CheckForUpdates` | `true` | Check for updates on startup |
-| `DataPath` | `%LOCALAPPDATA%/InControl/data` | Where conversations and user data are stored |
+| `DataPath` | `%LOCALAPPDATA%/InControl/data` | Unused unless a caller is added. Conversations are `%LOCALAPPDATA%\InControl\sessions` |
 
 ### Inference options
 
@@ -28,7 +28,7 @@ Section: `Inference`
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `Backend` | `"Ollama"` | Backend to use: Ollama or LlamaCpp |
+| `Backend` | `"Ollama"` | Backend to use: Ollama only |
 | `DefaultModel` | `"llama3.2"` | Model to use when none is specified |
 | `DefaultTemperature` | `0.7` | Generation temperature |
 | `DefaultMaxTokens` | `2048` | Maximum tokens to generate |

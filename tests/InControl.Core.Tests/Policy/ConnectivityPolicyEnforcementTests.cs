@@ -220,6 +220,31 @@ public class ConnectivityPolicyEnforcementTests
     }
 
     [Fact]
+    public void CheckRequestAllowed_BlocksEndpointWithTrailingDnsRootDot()
+    {
+        var engine = new PolicyEngine();
+        engine.SetPolicy(PolicySource.Organization, new PolicyDocument
+        {
+            Version = "1.0",
+            Connectivity = new ConnectivityPolicyRules
+            {
+                BlockedDomains = ["blocked.example"]
+            }
+        });
+        var governed = CreateGovernedConnectivity(engine);
+
+        var check = governed.CheckRequestAllowed(new NetworkRequest(
+            "https://blocked.example./secret",
+            "GET",
+            "fetch",
+            null,
+            DateTimeOffset.UtcNow));
+
+        Assert.False(check.Allowed);
+        Assert.Contains("blocked", check.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CheckDomain_RespectsAllowedDomains()
     {
         var engine = new PolicyEngine();

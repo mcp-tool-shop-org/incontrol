@@ -26,7 +26,7 @@ ollama serve
 
 ## Install InControl
 
-0.3.0 has no installer. Build it from source. The window project compiles its assembly, then Windows App SDK packaging fails on a plain .NET SDK, so `dotnet test` is the check this release actually runs.
+App version 2.0.0 has no MSIX file in this repo. Package identity InControl.App 2.0.0.0 is being prepared. Build the current tree from source. A fresh clone of current main is app 2.0.0, not tag v0.3.0. Tag v0.3.0 is an older source-only release. The window project compiles its assembly, then Windows App SDK packaging fails on a plain .NET SDK, so `dotnet test` is the check this release actually runs.
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git

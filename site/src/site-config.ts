@@ -44,7 +44,9 @@ export const config: SiteConfig = {
       cards: [
         {
           title: 'Build from source',
-          code: `# There is no MSIX for 0.3.0.
+          code: `# App 2.0.0. No MSIX file in the repo.
+# Package identity InControl.App 2.0.0.0 is being prepared.
+# Tag v0.3.0 is an older source-only release.
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
 cd incontrol
 dotnet test tests/InControl.Core.Tests
@@ -79,8 +81,9 @@ dotnet add package InControl.Inference`,
         {
           title: 'Use in your app',
           code: `// Stream chat with a local LLM
-var client = inferenceClientFactory.Create("ollama");
-await foreach (var token in client.StreamChatAsync(messages))
+var client = inferenceClientFactory.GetClient();
+var request = ChatRequest.Simple("llama3.2", "Hello");
+await foreach (var token in client.StreamChatAsync(request))
 {
     Console.Write(token);
 }`,

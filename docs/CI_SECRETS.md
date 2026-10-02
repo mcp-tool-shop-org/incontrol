@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes how secrets are managed in the CI/CD pipeline for InControl-Desktop.
+This document describes how secrets are managed in the CI/CD pipeline for InControl.
 
 ## Required Secrets
 
@@ -13,35 +13,15 @@ This document describes how secrets are managed in the CI/CD pipeline for InCont
 
 ## Setting Up Secrets
 
-### 1. Generate Code Signing Certificate
+A Partner Center upload cannot proceed until the certificate subject from the existing InControl.App 1.4.0 upload is known. That subject is not in this repository. Do not invent one. A newly purchased certificate with a different subject is not that publisher, and Partner Center rejects it. Leave `${PUBLISHER}` unset until the 1.4.0 subject is known. See `packaging/README.md`.
 
-#### Option A: Purchase from a CA (Recommended for Production)
+`SIGNING_CERTIFICATE_BASE64` is an upload credential only when the certificate subject is the publisher already on the 1.4.0 package. The publisher is still unknown.
 
-1. Purchase a code signing certificate from a trusted CA:
-   - DigiCert
-   - Sectigo
-   - GlobalSign
+A local test certificate is not the publisher and is not uploadable. Do not store one as the signing secret for a Partner Center upload, and do not mint a stand-in subject for that upload.
 
-2. Export as PFX with private key
+### Encode a known certificate for GitHub
 
-#### Option B: Self-Signed (Development Only)
-
-```powershell
-# Create self-signed certificate for development
-$cert = New-SelfSignedCertificate `
-    -Type Custom `
-    -Subject "CN=InControl-Desktop-Dev" `
-    -KeyUsage DigitalSignature `
-    -FriendlyName "InControl Development Certificate" `
-    -CertStoreLocation "Cert:\CurrentUser\My" `
-    -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
-
-# Export to PFX
-$password = ConvertTo-SecureString -String "your-password-here" -Force -AsPlainText
-Export-PfxCertificate -Cert $cert -FilePath "dev-signing-cert.pfx" -Password $password
-```
-
-### 2. Encode Certificate for GitHub
+Only after the 1.4.0 subject is known, and only for a certificate with that subject:
 
 ```powershell
 # Convert PFX to base64
@@ -56,7 +36,7 @@ Write-Host "Base64 certificate copied to clipboard"
 $base64 | Out-File -FilePath "cert-base64.txt" -Encoding utf8
 ```
 
-### 3. Add to GitHub Secrets
+### Add to GitHub Secrets
 
 1. Go to repository → Settings → Secrets and variables → Actions
 2. Click "New repository secret"
@@ -137,17 +117,16 @@ The password doesn't match:
 The certificate lacks code signing EKU:
 1. Check certificate properties
 2. Ensure it has "Code Signing" in Enhanced Key Usage
-3. Request a new certificate with proper usage
+3. A replacement still has to be the publisher on the InControl.App 1.4.0 upload. A different subject is not uploadable.
 
 ## Environment-Specific Certificates
 
-For different environments, use different certificates:
+Do not use a different subject for a Partner Center upload. A local test certificate is not that publisher and is not uploadable.
 
 | Environment | Certificate | Purpose |
 |-------------|-------------|---------|
-| Development | Self-signed | Local testing |
-| Staging | Standard code signing | Pre-release testing |
-| Production | EV code signing | Public releases |
+| Local test | A test certificate | Not the publisher. Not uploadable. |
+| Partner Center | The subject on the InControl.App 1.4.0 upload | Upload only after that subject is known |
 
 Configure using GitHub environments:
 1. Create environments (staging, production)
