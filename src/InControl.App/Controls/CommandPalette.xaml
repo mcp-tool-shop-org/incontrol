@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.CommandPalette"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Search Input -->
+        <TextBox x:Name="SearchInput"
+                 Grid.Row="0"
+                 PlaceholderText="Type a command..."
+                 FontSize="16"
+                 Padding="12"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 AutomationProperties.Name="Command search"
+                 AutomationProperties.HelpText="Type to filter commands. Use arrow keys to navigate, Enter to execute."
+                 TabIndex="0" />
+
+        <!-- Commands List -->
+        <ListView x:Name="CommandsList"
+                  Grid.Row="1"
+                  Margin="0,8,0,0"
+                  MaxHeight="400"
+                  SelectionMode="Single"
+                  IsItemClickEnabled="True"
+                  AutomationProperties.Name="Available commands"
+                  TabIndex="1">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Padding" Value="12,10" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <FontIcon Grid.Column="0"
+                                  Glyph="{Binding Icon}"
+                                  FontSize="16"
+                                  Margin="0,0,12,0"
+                                  VerticalAlignment="Center"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" />
+                            <TextBlock Text="{Binding Description}"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Visibility="{Binding HasDescription}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Shortcut}"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   FontFamily="Consolas"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</UserControl>

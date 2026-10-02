@@ -1,0 +1,559 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Pages.HelpPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="24,16" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="BackButton"
+                    Grid.Column="0"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Back"
+                    VerticalAlignment="Center"
+                    Margin="0,0,12,0">
+                <FontIcon Glyph="&#xE72B;" FontSize="16" />
+            </Button>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="Help"
+                           Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock Text="Learn how to use InControl"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <AutoSuggestBox Grid.Column="2"
+                            x:Name="HelpSearch"
+                            PlaceholderText="Search help..."
+                            QueryIcon="Find"
+                            Width="250"
+                            VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Navigation -->
+            <Border Grid.Column="0"
+                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0">
+                <ScrollViewer Padding="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Topics"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="12,8,0,8" />
+
+                        <RadioButton x:Name="GettingStartedNav"
+                                     Content="Getting Started"
+                                     GroupName="HelpNav"
+                                     IsChecked="True"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="ModelsNav"
+                                     Content="Models &amp; GPU"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="AssistantNav"
+                                     Content="Assistant Basics"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="ExtensionsNav"
+                                     Content="Extensions"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="PoliciesNav"
+                                     Content="Policies"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="ConnectivityNav"
+                                     Content="Connectivity"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="TroubleshootingNav"
+                                     Content="Troubleshooting"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <RadioButton x:Name="ShortcutsNav"
+                                     Content="Keyboard Shortcuts"
+                                     GroupName="HelpNav"
+                                     Padding="12,10" />
+
+                        <Border Height="1"
+                                Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                Margin="12,12" />
+
+                        <Button x:Name="CopyDiagnosticsButton"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Margin="4,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                <TextBlock Text="Copy Diagnostics" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="ExportSupportBundleButton"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Margin="4,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE7B8;" FontSize="14" />
+                                <TextBlock Text="Export Support Bundle" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Help Content -->
+            <ScrollViewer Grid.Column="1" Padding="32">
+                <StackPanel Spacing="24" MaxWidth="700">
+
+                    <!-- Getting Started Section -->
+                    <StackPanel x:Name="GettingStartedSection" Spacing="16">
+                        <TextBlock Text="Getting Started"
+                                   Style="{StaticResource TitleTextBlockStyle}" />
+
+                        <TextBlock Text="Welcome to InControl! This guide will help you get up and running with local AI inference."
+                                   Style="{StaticResource BodyTextBlockStyle}"
+                                   TextWrapping="Wrap" />
+
+                        <!-- Step 1 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="32" Height="32"
+                                            CornerRadius="16"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                        <TextBlock Text="1"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="Add a Model"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="InControl needs an AI model to generate responses. Open the Model Manager to import a model file (.gguf) or download one from Hugging Face."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Button x:Name="OpenModelManagerHelpButton">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE950;" FontSize="14" />
+                                        <TextBlock Text="Open Model Manager" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 2 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="32" Height="32"
+                                            CornerRadius="16"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                        <TextBlock Text="2"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="Create a Session"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="Sessions organize your conversations. Click 'New Session' in the sidebar or press Ctrl+N to start a new conversation."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 3 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="32" Height="32"
+                                            CornerRadius="16"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                        <TextBlock Text="3"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="Start Chatting"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="Type your message in the input area at the bottom and press Ctrl+Enter or click Run. The AI will process your request locally on your machine."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Tips"
+                                   Style="{StaticResource SubtitleTextBlockStyle}"
+                                   Margin="0,8,0,0" />
+
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE73E;" FontSize="12"
+                                          Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                <TextBlock Text="Use Ctrl+K to open the command palette for quick actions"
+                                           Style="{StaticResource BodyTextBlockStyle}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE73E;" FontSize="12"
+                                          Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                <TextBlock Text="Attach files with the paperclip button for context"
+                                           Style="{StaticResource BodyTextBlockStyle}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE73E;" FontSize="12"
+                                          Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                <TextBlock Text="Press Escape to cancel a running generation"
+                                           Style="{StaticResource BodyTextBlockStyle}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Models Section (hidden by default) -->
+                    <StackPanel x:Name="ModelsSection" Visibility="Collapsed" Spacing="16">
+                        <TextBlock Text="Models &amp; GPU"
+                                   Style="{StaticResource TitleTextBlockStyle}" />
+
+                        <TextBlock Text="Understanding models and GPU requirements"
+                                   Style="{StaticResource BodyTextBlockStyle}"
+                                   TextWrapping="Wrap" />
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="What are models?"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="AI models are the 'brains' that power InControl. They're files containing trained neural networks that can understand and generate text. Common formats include GGUF (recommended) and safetensors."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="GPU vs CPU"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Models run much faster on GPU (graphics card) than CPU. InControl automatically uses your GPU if available. NVIDIA GPUs with CUDA support provide the best performance."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="VRAM Requirements"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Your GPU's VRAM (video memory) determines which models you can run. Here's a rough guide:"
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="7B parameters (Q4)" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="~4 GB VRAM" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="1" Text="13B parameters (Q4)" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="~8 GB VRAM" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="2" Text="34B parameters (Q4)" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="~20 GB VRAM" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="3" Text="70B parameters (Q4)" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="~40 GB VRAM" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Keyboard Shortcuts Section (hidden by default) -->
+                    <StackPanel x:Name="ShortcutsSection" Visibility="Collapsed" Spacing="16">
+                        <TextBlock Text="Keyboard Shortcuts"
+                                   Style="{StaticResource TitleTextBlockStyle}" />
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="General"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="Open command palette" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Ctrl+K" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="1" Text="New session" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Ctrl+N" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="2" Text="Open settings" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl+," FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="3" Text="Search sessions" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Ctrl+F" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="4" Text="Open help" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="F1" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Chat"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="Send message / Run" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Ctrl+Enter" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="1" Text="Cancel generation" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Escape" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                                    <TextBlock Grid.Row="2" Text="Attach file" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl+Shift+O" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Troubleshooting Section (hidden by default) -->
+                    <StackPanel x:Name="TroubleshootingSection" Visibility="Collapsed" Spacing="16">
+                        <TextBlock Text="Troubleshooting Assistant"
+                                   Style="{StaticResource TitleTextBlockStyle}" />
+
+                        <!-- Run Diagnostics Card -->
+                        <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Quick Diagnosis"
+                                               Style="{StaticResource SubtitleTextBlockStyle}"
+                                               Foreground="White" />
+                                    <TextBlock Text="Check Ollama connection, system resources, and storage."
+                                               Foreground="White"
+                                               Opacity="0.9"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        x:Name="RunDiagnosticsButton"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE9D9;" FontSize="16" />
+                                        <TextBlock Text="Run Diagnostics" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Common Issues -->
+                        <TextBlock Text="Common Issues"
+                                   Style="{StaticResource SubtitleTextBlockStyle}"
+                                   Margin="0,8,0,0" />
+
+                        <!-- Ollama Not Running -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE7BA;" FontSize="16"
+                                              Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                    <TextBlock Text="Ollama not running"
+                                               Style="{StaticResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="InControl requires Ollama to be running for model inference."
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="1. Open a terminal and run: ollama serve" FontFamily="Consolas" />
+                                    <TextBlock Text="2. Or start Ollama from the system tray" />
+                                    <TextBlock Text="3. Click Refresh in Model Manager" />
+                                </StackPanel>
+                                <HyperlinkButton Content="Download Ollama" NavigateUri="https://ollama.com" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- No Models -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE7BA;" FontSize="16"
+                                              Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                    <TextBlock Text="No models found"
+                                               Style="{StaticResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="No models showing in Model Manager?"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="1. Ensure Ollama is running" />
+                                    <TextBlock Text="2. Pull a model: ollama pull llama3.2" FontFamily="Consolas" />
+                                    <TextBlock Text="3. Click Refresh in Model Manager" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Slow Performance -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE7BA;" FontSize="16"
+                                              Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                    <TextBlock Text="Slow performance"
+                                               Style="{StaticResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="Models run faster on NVIDIA GPUs with CUDA support."
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="• Update your NVIDIA drivers" />
+                                    <TextBlock Text="• Ensure CUDA is installed with Ollama" />
+                                    <TextBlock Text="• Try a smaller model (7B instead of 13B+)" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Offline Mode -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xEB5E;" FontSize="16" />
+                                    <TextBlock Text="Offline mode"
+                                               Style="{StaticResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="InControl works entirely offline. Internet is only needed to:"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="• Download new models from Ollama library" />
+                                    <TextBlock Text="• Check for app updates (optional)" />
+                                </StackPanel>
+                                <TextBlock Text="All inference happens locally on your machine."
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Need More Help -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8"
+                                Padding="20">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Need more help?"
+                                           Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Export a support bundle to share diagnostic information when reporting issues."
+                                           Style="{StaticResource BodyTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Button x:Name="ExportSupportBundleHelpButton" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE7B8;" FontSize="14" />
+                                        <TextBlock Text="Export Support Bundle" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="InControl.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:InControl.App.Controls"
+    xmlns:pages="using:InControl.App.Pages"
+    Title="InControl">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- App Bar (Top) -->
+        <controls:AppBar x:Name="AppBar" Grid.Row="0" />
+
+        <!-- Main Content Area with Page Navigation -->
+        <Grid Grid.Row="1">
+            <!-- Home View (Chat) -->
+            <Grid x:Name="HomeView">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="SidebarColumn" Width="0" MinWidth="0" MaxWidth="0" />
+                    <ColumnDefinition Width="*" MinWidth="400" />
+                </Grid.ColumnDefinitions>
+
+                <controls:SessionSidebar x:Name="SessionSidebar" Grid.Column="0" Visibility="Collapsed" />
+
+                <Grid Grid.Column="1" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                    <controls:ConversationView x:Name="ConversationView" />
+
+                    <!-- Sidebar toggle button (after ConversationView so it renders on top) -->
+                    <Button x:Name="SidebarToggleButton"
+                            Click="OnSidebarToggleClick"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Left"
+                            Width="36" Height="36"
+                            Padding="0"
+                            Margin="6,6,0,0"
+                            Canvas.ZIndex="10"
+                            ToolTipService.ToolTip="Expand sidebar (Ctrl+B)"
+                            Background="Transparent"
+                            BorderThickness="0">
+                        <FontIcon x:Name="SidebarToggleIcon" Glyph="&#xE76C;" FontSize="16" />
+                    </Button>
+                </Grid>
+            </Grid>
+
+            <!-- Page Host (for Settings, Model Manager, etc.) -->
+            <Grid x:Name="PageHost" Visibility="Collapsed">
+                <!-- Pages are added dynamically -->
+            </Grid>
+        </Grid>
+
+        <!-- Status Strip (Bottom) -->
+        <controls:StatusStrip x:Name="StatusStrip" Grid.Row="2" />
+
+        <!-- Command Palette Overlay -->
+        <Grid x:Name="CommandPaletteOverlay"
+              Grid.RowSpan="3"
+              Visibility="Collapsed"
+              Background="{ThemeResource SmokeFillColorDefaultBrush}">
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,100,0,0"
+                    Width="600"
+                    Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <controls:CommandPalette x:Name="CommandPalette" />
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

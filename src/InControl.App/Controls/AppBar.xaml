@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.AppBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InControl.App.Controls">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0"
+              Background="{ThemeResource LayerFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+              BorderThickness="0,0,0,1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- App Name (clickable — navigates home) -->
+        <Button Grid.Column="0"
+                x:Name="HomeButton"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="16,0,24,0"
+                VerticalAlignment="Stretch"
+                ToolTipService.ToolTip="Go home"
+                AutomationProperties.Name="InControl Home">
+            <TextBlock Text="InControl"
+                       Style="{StaticResource TitleTextBlockStyle}"
+                       VerticalAlignment="Center"
+                       AutomationProperties.HeadingLevel="Level1" />
+        </Button>
+
+        <!-- Model Selector (now opens Model Manager) -->
+        <Button Grid.Column="1"
+                x:Name="ModelManagerButton"
+                VerticalAlignment="Center"
+                MinWidth="200"
+                HorizontalContentAlignment="Left"
+                ToolTipService.ToolTip="Open Model Manager"
+                AutomationProperties.Name="Open Model Manager"
+                AccessKey="M">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon Glyph="&#xE950;" FontSize="14" />
+                <TextBlock x:Name="ModelDisplayText"
+                           Text="Open Model Manager..."
+                           VerticalAlignment="Center" />
+                <FontIcon Glyph="&#xE70D;" FontSize="10"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Button>
+
+        <!-- Status Capsule (center) -->
+        <Border Grid.Column="2"
+                x:Name="StatusCapsule"
+                CornerRadius="4"
+                Padding="12,4"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Left"
+                Margin="16,0"
+                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Idle/Complete State -->
+                <StackPanel Grid.Column="0"
+                            x:Name="IdleState"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <Ellipse Width="8" Height="8"
+                             x:Name="StatusIndicator"
+                             Fill="{ThemeResource SystemFillColorSuccessBrush}"
+                             VerticalAlignment="Center" />
+                    <TextBlock x:Name="StatusText"
+                               Text="Idle"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Executing State -->
+                <StackPanel Grid.Column="0"
+                            x:Name="ExecutingState"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="Collapsed">
+                    <ProgressRing x:Name="ExecutingProgress"
+                                  IsActive="False"
+                                  Width="14"
+                                  Height="14"
+                                  VerticalAlignment="Center" />
+                    <TextBlock x:Name="ExecutingText"
+                               Text="Running..."
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Elapsed Time (shown during execution) -->
+                <TextBlock Grid.Column="1"
+                           x:Name="ElapsedTimeText"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           Visibility="Collapsed" />
+
+                <!-- Cancel Button (shown during execution) -->
+                <Button Grid.Column="2"
+                        x:Name="CancelButton"
+                        Content="Cancel"
+                        Padding="6,2"
+                        Margin="8,0,0,0"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed">
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Escape" />
+                    </Button.KeyboardAccelerators>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Global Search (Ctrl+K) -->
+        <Button Grid.Column="3"
+                x:Name="SearchButton"
+                VerticalAlignment="Center"
+                Margin="0,0,8,0"
+                ToolTipService.ToolTip="Command Palette (Ctrl+K)"
+                AutomationProperties.Name="Search and Command Palette"
+                AccessKey="K">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon Glyph="&#xE721;" FontSize="14" />
+                <TextBlock Text="Search"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                        CornerRadius="2"
+                        Padding="4,2">
+                    <TextBlock Text="Ctrl+K"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </Border>
+            </StackPanel>
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="K" Modifiers="Control" />
+            </Button.KeyboardAccelerators>
+        </Button>
+
+        <!-- Global Control Bar (Right Side) -->
+        <StackPanel Grid.Column="4"
+                    Orientation="Horizontal"
+                    Spacing="2"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center">
+
+            <!-- Theme Toggle Button -->
+            <Button x:Name="ThemeToggleButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Toggle theme"
+                    AutomationProperties.Name="Toggle theme"
+                    AccessKey="T">
+                <FontIcon x:Name="ThemeIcon" Glyph="&#xE706;" FontSize="16" />
+            </Button>
+
+            <!-- Settings Button -->
+            <Button x:Name="SettingsButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Settings (Ctrl+,)"
+                    AutomationProperties.Name="Settings"
+                    AccessKey="S">
+                <FontIcon Glyph="&#xE713;" FontSize="16" />
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="Number9" Modifiers="Control" />
+                </Button.KeyboardAccelerators>
+            </Button>
+
+            <!-- Assistant Button -->
+            <Button x:Name="AssistantButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Assistant"
+                    AutomationProperties.Name="Assistant">
+                <FontIcon Glyph="&#xE99A;" FontSize="16" />
+            </Button>
+
+            <!-- Extensions Button -->
+            <Button x:Name="ExtensionsButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Extensions"
+                    AutomationProperties.Name="Extensions"
+                    AccessKey="X">
+                <FontIcon Glyph="&#xEA86;" FontSize="16" />
+            </Button>
+
+            <!-- Policy Button -->
+            <Button x:Name="PolicyButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Policy and Governance"
+                    AutomationProperties.Name="Policy and Governance"
+                    AccessKey="P">
+                <FontIcon Glyph="&#xE72E;" FontSize="16" />
+            </Button>
+
+            <!-- Connectivity Button -->
+            <Button x:Name="ConnectivityButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Connectivity"
+                    AutomationProperties.Name="Connectivity"
+                    AccessKey="C">
+                <FontIcon x:Name="ConnectivityIcon" Glyph="&#xE701;" FontSize="16" />
+            </Button>
+
+            <!-- Help Button -->
+            <Button x:Name="HelpButton"
+                    Padding="8"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="Help (F1)"
+                    AutomationProperties.Name="Help"
+                    AccessKey="H">
+                <FontIcon Glyph="&#xE897;" FontSize="16" />
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F1" />
+                </Button.KeyboardAccelerators>
+            </Button>
+        </StackPanel>
+        </Grid>
+
+        <Border x:Name="RemoteBanner"
+                Grid.Row="1"
+                Visibility="Collapsed"
+                Padding="16,8"
+                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+            <TextBlock x:Name="RemoteBannerText"
+                       TextWrapping="WrapWholeWords"
+                       Style="{StaticResource CaptionTextBlockStyle}" />
+        </Border>
+    </Grid>
+</UserControl>

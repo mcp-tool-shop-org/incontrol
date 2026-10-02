@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.RecoveryBanner"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    RecoveryBanner: Shown after unexpected app termination.
+    Uses calm, non-blame language. Provides clear next steps.
+    -->
+    <Border x:Name="BannerBorder"
+            Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+            BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,12"
+            Visibility="Collapsed">
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Icon -->
+            <FontIcon Grid.Column="0"
+                      Glyph="&#xE946;"
+                      FontSize="20"
+                      Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,12,0" />
+
+            <!-- Message -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="TitleText"
+                           Text="Restored from unexpected stop"
+                           Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock x:Name="DetailsText"
+                           Text="Your sessions and settings are safe."
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Support Bundle Button -->
+            <Button x:Name="SupportBundleButton"
+                    Grid.Column="2"
+                    Margin="8,0"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Create support bundle">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="14" />
+                    <TextBlock Text="Support Bundle" />
+                </StackPanel>
+            </Button>
+
+            <!-- Dismiss Button -->
+            <Button x:Name="DismissButton"
+                    Grid.Column="3"
+                    Style="{StaticResource SubtleButtonStyle}"
+                    Padding="8"
+                    VerticalAlignment="Center"
+                    ToolTipService.ToolTip="Dismiss"
+                    AutomationProperties.Name="Dismiss recovery message">
+                <FontIcon Glyph="&#xE711;" FontSize="12" />
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

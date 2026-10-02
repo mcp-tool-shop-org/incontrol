@@ -1,0 +1,41 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# NuGet
+packages/
+*.nupkg
+
+# Windows App SDK
+AppPackages/
+BundleArtifacts/
+
+# Logs
+*.log
+logs/
+
+# User settings
+appsettings.*.local.json
+
+# Test results
+TestResults/
+coverage/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Site (Astro)
+site/.astro/
+site/node_modules/
+
+# Polyglot cache
+.polyglot-cache.json

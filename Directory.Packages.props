@@ -1,0 +1,59 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Windows App SDK">
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.3233" />
+  </ItemGroup>
+
+  <ItemGroup Label="MVVM">
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.1.240916" />
+  </ItemGroup>
+
+  <ItemGroup Label="Microsoft Extensions">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="AI/LLM">
+    <PackageVersion Include="OllamaSharp" Version="5.4.8" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="9.1.0-preview.1.25064.3" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="9.1.0-preview.1.25064.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Voice">
+    <PackageVersion Include="KokoroSharp" Version="0.6.2" />
+    <PackageVersion Include="System.Speech" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Logging">
+    <PackageVersion Include="Serilog" Version="4.2.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Serialization">
+    <PackageVersion Include="System.Text.Json" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="FluentAssertions" Version="7.0.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.3" />
+    <PackageVersion Include="ReportGenerator" Version="5.4.3" />
+  </ItemGroup>
+</Project>

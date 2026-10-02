@@ -1,0 +1,74 @@
+# InControl Desktop
+
+> Privacy-first local LLM chat for Windows — WinUI 3, RTX-accelerated, multi-backend
+
+## Overview
+
+InControl Desktop is a native Windows chat application that runs large language models entirely on-device. No cloud, no API keys for core functionality. Built with WinUI 3 and Fluent Design, targeting NVIDIA RTX workstations.
+
+## Quick Start
+
+```
+# Prerequisites: Ollama running locally
+ollama pull llama3.2
+ollama serve
+
+# From source
+git clone https://github.com/mcp-tool-shop-org/InControl-Desktop.git
+cd InControl-Desktop
+dotnet restore
+dotnet build
+dotnet run --project src/InControl.App
+```
+
+## NuGet Packages
+
+- `InControl.Core` — Domain models, conversation types, shared abstractions
+- `InControl.Inference` — LLM backend abstraction with streaming chat and model management (includes Ollama implementation)
+
+## API Entry Points
+
+```csharp
+// Streaming chat via InControl.Inference
+var client = inferenceClientFactory.Create("ollama");
+await foreach (var token in client.StreamChatAsync(messages))
+{
+    Console.Write(token);
+}
+```
+
+## Architecture
+
+```
+InControl.App (WinUI 3)       → UI layer
+InControl.ViewModels           → Presentation (MVVM, CommunityToolkit.Mvvm)
+InControl.Services             → Business logic
+InControl.Inference            → LLM backends (Ollama, llama.cpp)
+InControl.Core                 → Shared types
+```
+
+## Constraints
+
+- Windows only (WinUI 3 / Windows App SDK 1.6)
+- Requires .NET 9.0
+- GPU: minimum RTX 3060 (8GB), recommended RTX 4080/5080 (16GB)
+- Build via Visual Studio (CLI `dotnet build` hits MSB4062 PRI error)
+- App project must target x64; class libraries use AnyCPU
+
+## Data Storage
+
+All data is local:
+- Sessions: `%LOCALAPPDATA%\InControl\sessions\`
+- Logs: `%LOCALAPPDATA%\InControl\logs\`
+- Cache: `%LOCALAPPDATA%\InControl\cache\`
+- Exports: `%USERPROFILE%\Documents\InControl\exports\`
+
+## Links
+
+- Repository: https://github.com/mcp-tool-shop-org/InControl-Desktop
+- Issues: https://github.com/mcp-tool-shop-org/InControl-Desktop/issues
+- Discussions: https://github.com/mcp-tool-shop-org/InControl-Desktop/discussions
+
+## License
+
+MIT

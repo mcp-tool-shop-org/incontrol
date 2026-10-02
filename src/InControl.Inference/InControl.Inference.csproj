@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>CS1591</NoWarn>
+
+    <!-- NuGet package metadata -->
+    <PackageId>InControl.Inference</PackageId>
+    <Version>1.0.2</Version>
+    <Description>LLM backend abstraction layer for local inference. Provides IInferenceClient and IModelManager interfaces with streaming chat, model management, and health checks. Includes Ollama implementation out of the box.</Description>
+    <Authors>mcp-tool-shop</Authors>
+    <Company>MCP Tool Shop</Company>
+    <Copyright>Copyright (c) 2025-2026 MCP Tool Shop</Copyright>
+    <PackageProjectUrl>https://github.com/mcp-tool-shop-org/incontrol</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcp-tool-shop-org/incontrol</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>llm;inference;ollama;ai;chat;streaming;local-ai</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InControl.Core\InControl.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="OllamaSharp" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,402 @@
+# InControl-Desktop Signed Release Pipeline
+#
+# This workflow builds, signs, and publishes production releases.
+# Unsigned builds are impossible from this workflow.
+#
+# Prerequisites:
+# - Code signing certificate in Azure Key Vault or GitHub Secrets
+# - SIGNING_CERTIFICATE_BASE64: Base64-encoded PFX
+# - SIGNING_CERTIFICATE_PASSWORD: PFX password
+#
+# Trigger: Push a tag matching 'v*' on main branch only
+
+name: Signed Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (without v prefix)'
+        required: true
+        type: string
+      sign:
+        description: 'Sign the package'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  CONFIGURATION: Release
+  RUNTIME: win-x64
+
+jobs:
+  # Verify we're on a release branch
+  verify:
+    name: Verify Release Conditions
+    runs-on: ubuntu-latest
+    outputs:
+      should_sign: ${{ steps.check.outputs.should_sign }}
+
+    steps:
+      - name: Check Signing Conditions
+        id: check
+        run: |
+          # Sign if: triggered by tag on main, or manual with sign=true
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "should_sign=true" >> $GITHUB_OUTPUT
+            echo "Signing enabled: tag push"
+          elif [[ "${{ github.event.inputs.sign }}" == "true" ]]; then
+            echo "should_sign=true" >> $GITHUB_OUTPUT
+            echo "Signing enabled: manual trigger"
+          else
+            echo "should_sign=false" >> $GITHUB_OUTPUT
+            echo "Signing disabled"
+          fi
+
+  build:
+    name: Build & Test
+    runs-on: windows-latest
+    needs: verify
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_suffix: ${{ steps.version.outputs.suffix }}
+      commit_short: ${{ steps.metadata.outputs.commit_short }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Extract Version
+        id: version
+        shell: pwsh
+        run: |
+          if ('${{ github.event.inputs.version }}') {
+            $version = '${{ github.event.inputs.version }}'
+          } else {
+            $tag = '${{ github.ref_name }}'
+            $version = $tag -replace '^v', ''
+          }
+
+          if ($version -match '^(\d+\.\d+\.\d+)(-(.+))?$') {
+            $baseVersion = $matches[1]
+            $suffix = if ($matches[3]) { $matches[3] } else { '' }
+          } else {
+            Write-Error "Invalid version format: $version"
+            exit 1
+          }
+
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "base=$baseVersion" >> $env:GITHUB_OUTPUT
+          echo "suffix=$suffix" >> $env:GITHUB_OUTPUT
+
+      - name: Generate Metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          $commitShort = '${{ github.sha }}'.Substring(0, 8)
+          echo "commit_short=$commitShort" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: |
+          dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.base }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.base }}.${{ github.run_number }}
+
+      - name: Test
+        run: dotnet test --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal
+
+      - name: Publish
+        run: |
+          dotnet publish src/InControl.App/InControl.App.csproj `
+            --configuration ${{ env.CONFIGURATION }} `
+            --runtime ${{ env.RUNTIME }} `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:Version=${{ steps.version.outputs.version }} `
+            --output ./publish
+
+      - name: Generate Build Provenance
+        shell: pwsh
+        run: |
+          $provenance = @{
+            format = 'incontrol-provenance-v1'
+            version = '${{ steps.version.outputs.version }}'
+            build = @{
+              number = ${{ github.run_number }}
+              id = '${{ github.run_id }}'
+              timestamp = (Get-Date -Format 'o')
+            }
+            source = @{
+              repository = '${{ github.repository }}'
+              commit = '${{ github.sha }}'
+              commitShort = '${{ steps.metadata.outputs.commit_short }}'
+              ref = '${{ github.ref }}'
+              refName = '${{ github.ref_name }}'
+            }
+            runner = @{
+              os = '${{ runner.os }}'
+              arch = '${{ runner.arch }}'
+            }
+            workflow = @{
+              name = '${{ github.workflow }}'
+              file = '${{ github.workflow_ref }}'
+            }
+          }
+
+          $provenance | ConvertTo-Json -Depth 10 | Out-File -FilePath ./publish/provenance.json -Encoding utf8
+
+          Write-Host "Build provenance:"
+          $provenance | ConvertTo-Json -Depth 10
+
+      - name: Upload Build Output
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-output
+          path: ./publish
+          retention-days: 7
+
+  sign-and-package:
+    name: Sign & Package
+    runs-on: windows-latest
+    needs: [verify, build]
+    if: needs.verify.outputs.should_sign == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download Build Output
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: build-output
+          path: ./publish
+
+      - name: Setup Signing Certificate
+        shell: pwsh
+        env:
+          SIGNING_CERTIFICATE_BASE64: ${{ secrets.SIGNING_CERTIFICATE_BASE64 }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if (-not $env:SIGNING_CERTIFICATE_BASE64) {
+            Write-Error "Signing certificate not configured"
+            exit 1
+          }
+
+          $certBytes = [Convert]::FromBase64String($env:SIGNING_CERTIFICATE_BASE64)
+          $certPath = "$env:RUNNER_TEMP\signing-cert.pfx"
+          [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+          echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+
+      - name: Create MSIX Manifest
+        shell: pwsh
+        run: |
+          $version = '${{ needs.build.outputs.version }}'
+          $msixVersion = $version -replace '-.*', ''
+          if ($msixVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            $msixVersion = "$msixVersion.0"
+          }
+
+          # Get publisher from certificate
+          $certPath = $env:CERT_PATH
+          $certPassword = '${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}'
+          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certPath, $certPassword)
+          $publisher = $cert.Subject
+
+          Write-Host "Publisher: $publisher"
+          Write-Host "MSIX Version: $msixVersion"
+
+          $manifest = Get-Content -Path packaging/AppxManifest.template.xml -Raw
+          $manifest = $manifest -replace '\$\{VERSION\}', $msixVersion
+          $manifest = $manifest -replace '\$\{PUBLISHER\}', $publisher
+          $manifest | Out-File -FilePath ./publish/AppxManifest.xml -Encoding utf8
+
+      - name: Create MSIX Package
+        shell: pwsh
+        run: |
+          $version = '${{ needs.build.outputs.version }}'
+          $makeappx = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+
+          New-Item -ItemType Directory -Force -Path ./artifacts | Out-Null
+          $outputPath = "./artifacts/InControl-Desktop-$version.msix"
+
+          & $makeappx.FullName pack /d ./publish /p $outputPath /nv
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "makeappx failed"
+            exit 1
+          }
+
+          echo "MSIX_PATH=$outputPath" >> $env:GITHUB_ENV
+
+      - name: Sign MSIX Package
+        shell: pwsh
+        env:
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+
+          Write-Host "Signing with: $($signtool.FullName)"
+
+          & $signtool.FullName sign `
+            /fd SHA256 `
+            /f $env:CERT_PATH `
+            /p $env:SIGNING_CERTIFICATE_PASSWORD `
+            /tr http://timestamp.digicert.com `
+            /td SHA256 `
+            $env:MSIX_PATH
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Signing failed"
+            exit 1
+          }
+
+          Write-Host "✅ Package signed successfully"
+
+      - name: Verify Signature
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+
+          & $signtool.FullName verify /pa /v $env:MSIX_PATH
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Signature verification failed"
+            exit 1
+          }
+
+          Write-Host "✅ Signature verified"
+
+      - name: Generate Checksums
+        shell: pwsh
+        run: |
+          $version = '${{ needs.build.outputs.version }}'
+          $checksumFile = "./artifacts/checksums-$version.txt"
+
+          Get-ChildItem -Path ./artifacts -Filter *.msix | ForEach-Object {
+            $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -FilePath $checksumFile -Append -Encoding utf8
+          }
+
+          Write-Host "Checksums:"
+          Get-Content $checksumFile
+
+      - name: Generate Signature Info
+        shell: pwsh
+        run: |
+          $version = '${{ needs.build.outputs.version }}'
+
+          $sigInfo = @{
+            signed = $true
+            signedAt = (Get-Date -Format 'o')
+            algorithm = 'SHA256'
+            timestampServer = 'http://timestamp.digicert.com'
+            packageFile = "InControl-Desktop-$version.msix"
+          }
+
+          $sigInfo | ConvertTo-Json | Out-File -FilePath "./artifacts/signature-info-$version.json" -Encoding utf8
+
+      - name: Cleanup Certificate
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path $env:CERT_PATH) {
+            Remove-Item -Path $env:CERT_PATH -Force
+          }
+
+      - name: Upload Signed Package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-package-signed
+          path: |
+            artifacts/*.msix
+            artifacts/checksums-*.txt
+            artifacts/signature-info-*.json
+          retention-days: 90
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build, sign-and-package]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Signed Package
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-package-signed
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: InControl-Desktop v${{ needs.build.outputs.version }}
+          draft: true
+          prerelease: ${{ needs.build.outputs.version_suffix != '' }}
+          generate_release_notes: true
+          files: |
+            artifacts/*.msix
+            artifacts/checksums-*.txt
+            artifacts/signature-info-*.json
+          body: |
+            ## InControl-Desktop v${{ needs.build.outputs.version }}
+
+            ### Installation
+
+            1. Download `InControl-Desktop-${{ needs.build.outputs.version }}.msix`
+            2. Verify the SHA256 checksum (see `checksums-${{ needs.build.outputs.version }}.txt`)
+            3. Double-click to install
+
+            ### Verification
+
+            #### Verify Checksum
+            ```powershell
+            $expected = (Get-Content checksums-${{ needs.build.outputs.version }}.txt | Select-String 'InControl-Desktop').ToString().Split(' ')[0]
+            $actual = (Get-FileHash InControl-Desktop-${{ needs.build.outputs.version }}.msix -Algorithm SHA256).Hash.ToLower()
+            if ($expected -eq $actual) { Write-Host "✅ Checksum verified" } else { Write-Host "❌ Checksum mismatch" }
+            ```
+
+            #### Verify Signature
+            ```powershell
+            # Right-click the MSIX → Properties → Digital Signatures
+            # Or use signtool:
+            signtool verify /pa InControl-Desktop-${{ needs.build.outputs.version }}.msix
+            ```
+
+            ### Build Information
+
+            | Property | Value |
+            |----------|-------|
+            | Commit | `${{ needs.build.outputs.commit_short }}` |
+            | Full SHA | `${{ github.sha }}` |
+            | Build | #${{ github.run_number }} |
+            | Signed | ✅ Yes |

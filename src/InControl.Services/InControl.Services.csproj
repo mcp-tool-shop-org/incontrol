@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <Description>InControl services layer - business logic and orchestration</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InControl.Core\InControl.Core.csproj" />
+    <ProjectReference Include="..\InControl.Inference\InControl.Inference.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="KokoroSharp" />
+    <PackageReference Include="System.Speech" />
+  </ItemGroup>
+
+</Project>

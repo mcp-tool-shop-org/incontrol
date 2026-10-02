@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.InspectorPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InControl.App.Controls">
+
+    <UserControl.Resources>
+        <!-- Context Item Template -->
+        <DataTemplate x:Key="ContextItemTemplate">
+            <Grid Padding="8,6" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Type Icon -->
+                <FontIcon Grid.Column="0"
+                          Glyph="{Binding TypeIcon}"
+                          FontSize="14"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          VerticalAlignment="Center" />
+
+                <!-- Name -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" />
+
+                <!-- Size -->
+                <TextBlock Grid.Column="2"
+                           Text="{Binding SizeText}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           VerticalAlignment="Center" />
+
+                <!-- Remove Button -->
+                <Button Grid.Column="3"
+                        Padding="4"
+                        ToolTipService.ToolTip="Remove">
+                    <FontIcon Glyph="&#xE711;" FontSize="10" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="1,0,0,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Tab Header -->
+            <Grid Grid.Row="0"
+                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                  BorderThickness="0,0,0,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Tab Buttons -->
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Padding="8,0">
+                    <RadioButton x:Name="RunTab"
+                                 Content="Run"
+                                 GroupName="InspectorTabs"
+                                 IsChecked="True"
+                                  />
+                    <RadioButton x:Name="ContextTab"
+                                 Content="Context"
+                                 GroupName="InspectorTabs"
+                                  />
+                </StackPanel>
+
+                <!-- Close Button -->
+                <Button Grid.Column="1"
+                        x:Name="CloseButton"
+                        ToolTipService.ToolTip="Close inspector"
+                        Margin="0,0,8,0">
+                    <FontIcon Glyph="&#xE711;" FontSize="12" />
+                </Button>
+            </Grid>
+
+            <!-- Tab Content -->
+            <Grid Grid.Row="1" Padding="16">
+                <!-- Run Tab Content (shown by default) -->
+                <StackPanel x:Name="RunContent"
+                            Visibility="Visible"
+                            Spacing="16">
+                    <TextBlock Text="Run"
+                               Style="{StaticResource BodyStrongTextBlockStyle}" />
+
+                    <!-- Device Info -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Device"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="DeviceInfo"
+                                   Text="—" />
+                    </StackPanel>
+
+                    <!-- Model Info -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Model"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="ModelInfo"
+                                   Text="—" />
+                    </StackPanel>
+
+                    <!-- Latency -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Latency"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="LatencyInfo"
+                                   Text="—" />
+                    </StackPanel>
+
+                    <!-- Tokens -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Tokens in"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="TokensInInfo"
+                                       Text="—" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Tokens out"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="TokensOutInfo"
+                                       Text="—" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Memory -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Memory"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="MemoryInfo"
+                                   Text="—" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Context Tab Content (hidden by default) -->
+                <StackPanel x:Name="ContextContent"
+                            Visibility="Collapsed"
+                            Spacing="16">
+                    <TextBlock Text="Context"
+                               Style="{StaticResource BodyStrongTextBlockStyle}" />
+
+                    <!-- Empty State -->
+                    <StackPanel x:Name="ContextEmptyState"
+                                Spacing="8"
+                                Padding="0,24">
+                        <FontIcon Glyph="&#xE8F1;"
+                                  FontSize="24"
+                                  Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                  HorizontalAlignment="Center" />
+                        <TextBlock Text="No context items attached"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <TextBlock Text="Add files or previous outputs."
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Context Items List (placeholder) -->
+                    <ListView x:Name="ContextItemsList"
+                              Visibility="Collapsed">
+                        <!-- Context items will be populated dynamically -->
+                    </ListView>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

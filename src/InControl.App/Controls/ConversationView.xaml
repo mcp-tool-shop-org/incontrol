@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.ConversationView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InControl.App.Controls">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Message List / Welcome State -->
+        <Grid Grid.Row="0">
+            <!-- Welcome State (shown when no session active) -->
+            <StackPanel x:Name="WelcomeState"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16"
+                        Visibility="Visible">
+                <FontIcon Glyph="&#xE8BD;"
+                          FontSize="48"
+                          Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                          HorizontalAlignment="Center" />
+
+                <TextBlock Text="Welcome to InControl"
+                           Style="{StaticResource SubtitleTextBlockStyle}"
+                           HorizontalAlignment="Center" />
+
+                <TextBlock Text="Ollama on this PC, unless you connect a GPU over SSH."
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+
+                <TextBlock Text="Prompts stay here until you send them to a machine you rented."
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0" />
+            </StackPanel>
+
+            <!-- Empty Session State -->
+            <StackPanel x:Name="EmptySessionState"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12"
+                        Visibility="Collapsed">
+                <FontIcon Glyph="&#xE90A;"
+                          FontSize="32"
+                          Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                          HorizontalAlignment="Center" />
+
+                <TextBlock Text="This session is empty"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"
+                           HorizontalAlignment="Center" />
+
+                <TextBlock Text="Enter a prompt to begin."
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Message List (shown when session has messages) -->
+            <ScrollViewer x:Name="MessageScrollViewer"
+                          Visibility="Collapsed">
+                <Grid>
+                    <!-- Execution Status Bar (shown during runs) -->
+                    <Border x:Name="ExecutionStatusBar"
+                            VerticalAlignment="Top"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="16,8"
+                            Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ProgressRing Grid.Column="0"
+                                          IsActive="True"
+                                          Width="16"
+                                          Height="16" />
+
+                            <TextBlock Grid.Column="1"
+                                       x:Name="ExecutionStatusText"
+                                       Text="Running inference..."
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Column="2"
+                                       x:Name="ElapsedTimeText"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Message Items -->
+                    <ItemsControl x:Name="MessageList"
+                                  Padding="24"
+                                  MaxWidth="{StaticResource MessageMaxWidth}"
+                                  HorizontalAlignment="Center">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <local:MessageCard Message="{Binding}" Loaded="OnMessageCardLoaded" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Context menu hint -->
+                    <TextBlock x:Name="ContextMenuHint"
+                               Text="Right-click messages for more options"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16"
+                               Opacity="0.6" />
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Input Composer Control Panel -->
+        <local:InputComposer Grid.Row="1" x:Name="InputComposer" />
+    </Grid>
+</UserControl>

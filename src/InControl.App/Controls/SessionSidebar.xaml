@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.SessionSidebar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InControl.App.Controls">
+
+    <UserControl.Resources>
+        <!-- Session Item Template -->
+        <DataTemplate x:Key="SessionItemTemplate">
+            <Grid Padding="8,10" ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Status Indicator -->
+                <Ellipse Grid.Column="0"
+                         Grid.RowSpan="2"
+                         Width="8"
+                         Height="8"
+                         VerticalAlignment="Center"
+                         Fill="{ThemeResource SystemFillColorSuccessBrush}" />
+
+                <!-- Title -->
+                <TextBlock Grid.Column="1"
+                           Grid.Row="0"
+                           Text="{Binding Title}"
+                           Style="{StaticResource BodyTextBlockStyle}"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1" />
+
+                <!-- Message Count Badge -->
+                <TextBlock Grid.Column="2"
+                           Grid.Row="0"
+                           Grid.RowSpan="2"
+                           Text="{Binding MessageCount}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           VerticalAlignment="Center" />
+
+                <!-- Timestamp + Message count -->
+                <TextBlock Grid.Column="1"
+                           Grid.Row="1"
+                           Text="{Binding Subtitle}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="0,0,1,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- New Session Button -->
+            <Button Grid.Row="0"
+                    x:Name="NewSessionButton"
+                    HorizontalAlignment="Stretch"
+                    Margin="12,12,12,8"
+                    Padding="12,10">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                    <TextBlock Text="New session" />
+                </StackPanel>
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="N" Modifiers="Control" />
+                </Button.KeyboardAccelerators>
+            </Button>
+
+            <!-- Session Search -->
+            <AutoSuggestBox Grid.Row="1"
+                            x:Name="SessionSearch"
+                            PlaceholderText="Search sessions..."
+                            QueryIcon="Find"
+                            Margin="12,0,12,12">
+                <AutoSuggestBox.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F" Modifiers="Control" />
+                </AutoSuggestBox.KeyboardAccelerators>
+            </AutoSuggestBox>
+
+            <!-- Pinned Sessions Section -->
+            <StackPanel Grid.Row="2"
+                        x:Name="PinnedSection"
+                        Visibility="Collapsed"
+                        Margin="0,0,0,8">
+                <TextBlock Text="Pinned"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Margin="16,0,0,8" />
+                <ListView x:Name="PinnedList"
+                          SelectionMode="Single"
+                          ItemTemplate="{StaticResource SessionItemTemplate}"
+                          Padding="4,0"
+                          MaxHeight="200"
+                          IsItemClickEnabled="True">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" >
+                            <Setter Property="Padding" Value="4,2" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+                <Border Height="1"
+                        Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                        Margin="12,8,12,0" />
+            </StackPanel>
+
+            <!-- Session List -->
+            <Grid Grid.Row="3">
+                <!-- Empty State -->
+                <StackPanel x:Name="EmptyState"
+                            Visibility="Visible"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Padding="16,24"
+                            Spacing="4">
+                    <FontIcon Glyph="&#xE7C5;"
+                              FontSize="32"
+                              Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                              HorizontalAlignment="Center"
+                              Margin="0,0,0,12" />
+                    <TextBlock Text="No sessions yet"
+                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                    <TextBlock Text="Create one to start working."
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </StackPanel>
+
+                <!-- Session ListView -->
+                <ListView x:Name="SessionList"
+                          Visibility="Collapsed"
+                          SelectionMode="Single"
+                          ItemTemplate="{StaticResource SessionItemTemplate}"
+                          Padding="4,0"
+                          IsItemClickEnabled="True"
+                          SingleSelectionFollowsFocus="True">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" >
+                            <Setter Property="Padding" Value="4,2" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.Header>
+                        <TextBlock Text="Recent"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="12,0,0,8" />
+                    </ListView.Header>
+                </ListView>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

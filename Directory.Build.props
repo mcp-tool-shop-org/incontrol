@@ -1,0 +1,34 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <WindowsSdkPackageVersion>10.0.22621.48</WindowsSdkPackageVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Version: SemVer 2.0 -->
+  <PropertyGroup>
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''"></VersionSuffix>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <InformationalVersion>0.2.0</InformationalVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>mcp-tool-shop</Authors>
+    <Company>mcp-tool-shop-org</Company>
+    <Product>InControl</Product>
+    <Copyright>Copyright (c) 2025 mcp-tool-shop-org</Copyright>
+    <RepositoryUrl>https://github.com/mcp-tool-shop-org/incontrol</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

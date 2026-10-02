@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="InControl.App.Controls.MessageCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:InControl.App.Controls">
+
+    <UserControl.Resources>
+        <!-- Context Menu for User Messages -->
+        <MenuFlyout x:Key="MessageContextMenu">
+            <MenuFlyoutItem x:Name="CopyMenuItem"
+                            Text="Copy"
+                            Icon="Copy"
+                            AutomationProperties.Name="Copy message content">
+                <MenuFlyoutItem.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="C" Modifiers="Control" />
+                </MenuFlyoutItem.KeyboardAccelerators>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="CopyAsMarkdownMenuItem"
+                            Text="Copy as Markdown"
+                            AutomationProperties.Name="Copy as Markdown format" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="AddToContextMenuItem"
+                            Text="Add to context"
+                            Icon="Attach"
+                            AutomationProperties.Name="Add message to context" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="DeleteMenuItem"
+                            Text="Delete message"
+                            Icon="Delete"
+                            AutomationProperties.Name="Delete this message" />
+        </MenuFlyout>
+
+        <!-- Context Menu for AI-Generated Messages (includes report option) -->
+        <MenuFlyout x:Key="AssistantContextMenu">
+            <MenuFlyoutItem x:Name="AssistantCopyMenuItem"
+                            Text="Copy"
+                            Icon="Copy"
+                            AutomationProperties.Name="Copy message content">
+                <MenuFlyoutItem.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="C" Modifiers="Control" />
+                </MenuFlyoutItem.KeyboardAccelerators>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="AssistantCopyAsMarkdownMenuItem"
+                            Text="Copy as Markdown"
+                            AutomationProperties.Name="Copy as Markdown format" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="AssistantAddToContextMenuItem"
+                            Text="Add to context"
+                            Icon="Attach"
+                            AutomationProperties.Name="Add message to context" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="ReportInappropriateMenuItem"
+                            Text="Report inappropriate content"
+                            AutomationProperties.Name="Report inappropriate AI-generated content">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE730;" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="AssistantDeleteMenuItem"
+                            Text="Delete message"
+                            Icon="Delete"
+                            AutomationProperties.Name="Delete this message" />
+        </MenuFlyout>
+    </UserControl.Resources>
+
+    <Grid Padding="0,8">
+        <!-- User Intent Card -->
+        <Border x:Name="UserIntentCard"
+                Background="{ThemeResource UserIntentBackgroundBrush}"
+                CornerRadius="8"
+                Padding="16,12"
+                HorizontalAlignment="Right"
+                MaxWidth="600"
+                ContextFlyout="{StaticResource MessageContextMenu}"
+                Visibility="Collapsed"
+                AutomationProperties.Name="Your message">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="You"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <TextBlock Grid.Column="1"
+                               x:Name="UserTimestamp"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </Grid>
+
+                <!-- Content -->
+                <TextBlock Grid.Row="1"
+                           x:Name="UserContent"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" />
+            </Grid>
+        </Border>
+
+        <!-- Model Output Card -->
+        <Border x:Name="ModelOutputCard"
+                Background="{ThemeResource ModelOutputBackgroundBrush}"
+                CornerRadius="8"
+                Padding="16,12"
+                HorizontalAlignment="Left"
+                MaxWidth="700"
+                ContextFlyout="{StaticResource AssistantContextMenu}"
+                Visibility="Collapsed"
+                AutomationProperties.Name="Assistant response">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Model Icon -->
+                    <FontIcon Grid.Column="0"
+                              Glyph="&#xE950;"
+                              FontSize="12"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                              Margin="0,0,6,0" />
+
+                    <!-- Model Name -->
+                    <TextBlock Grid.Column="1"
+                               x:Name="ModelName"
+                               Text="Model output"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <!-- Timestamp -->
+                    <TextBlock Grid.Column="2"
+                               x:Name="ModelTimestamp"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </Grid>
+
+                <!-- Content -->
+                <TextBlock Grid.Row="1"
+                           x:Name="ModelContent"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" />
+
+                <!-- Footer (Token count, speak button) -->
+                <StackPanel Grid.Row="2"
+                            x:Name="ModelFooter"
+                            Orientation="Horizontal"
+                            Spacing="12"
+                            Visibility="Collapsed">
+                    <TextBlock x:Name="TokenCountText"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <Button x:Name="SpeakButton"
+                            Padding="4,2"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTipService.ToolTip="Read aloud"
+                            AutomationProperties.Name="Read this response aloud"
+                            Visibility="Collapsed"
+                            Click="OnSpeakClicked">
+                        <FontIcon x:Name="SpeakIcon"
+                                  Glyph="&#xE767;"
+                                  FontSize="12" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Streaming Indicator -->
+                <StackPanel Grid.Row="2"
+                            x:Name="StreamingIndicator"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="Collapsed">
+                    <ProgressRing IsActive="True"
+                                  Width="12"
+                                  Height="12" />
+                    <TextBlock Text="Receiving output..."
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- System Message Card -->
+        <Border x:Name="SystemMessageCard"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="12,8"
+                HorizontalAlignment="Center"
+                Visibility="Collapsed"
+                AutomationProperties.Name="System message">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon Glyph="&#xE946;"
+                          FontSize="12"
+                          Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock x:Name="SystemContent"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!-- Copy Feedback Overlay -->
+        <local:OperationFeedback x:Name="CopyFeedback"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Bottom"
+                                  Margin="0,0,0,8" />
+    </Grid>
+</UserControl>
