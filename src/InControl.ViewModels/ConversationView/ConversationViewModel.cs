@@ -160,6 +160,7 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     public void LoadConversation(Core.Models.Conversation conversation)
     {
         _conversation = conversation;
+        _streamingMessage = null;
         Messages.Clear();
 
         foreach (var message in conversation.Messages)
@@ -178,6 +179,7 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     public void ClearConversation()
     {
         _conversation = null;
+        _streamingMessage = null;
         Messages.Clear();
         ViewState = ConversationViewState.Welcome;
         ExecutionState = ExecutionState.Idle;

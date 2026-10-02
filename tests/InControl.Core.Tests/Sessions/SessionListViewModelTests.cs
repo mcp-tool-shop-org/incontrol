@@ -223,4 +223,61 @@ public class SessionListViewModelTests
 
         vm.HasSelectedSession.Should().BeTrue();
     }
+
+    [Fact]
+    public void ApplyFilter_ShowsOnlyTheSelectedProject()
+    {
+        var vm = new SessionListViewModel();
+        var other = Guid.NewGuid();
+        vm.AddProject(new ChatProject
+        {
+            Id = other,
+            Name = "Harbour",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        vm.AddSession(Conversation.Create("Home"));
+        vm.AddSession(Conversation.Create("Away", projectId: other));
+        vm.AddSession(Conversation.Create("Pinned away", projectId: other), isPinned: true);
+
+        vm.FilteredSessions.Select(session => session.Title).Should().Equal("Home");
+        vm.VisiblePinned.Should().BeEmpty();
+        vm.HasPinnedSessions.Should().BeTrue();
+
+        vm.SelectProject(other);
+
+        vm.FilteredSessions.Select(session => session.Title).Should().Equal("Away");
+        vm.VisiblePinned.Should().ContainSingle(session => session.Title == "Pinned away");
+    }
+
+    [Fact]
+    public void CreateSession_FilesIntoTheSelectedProject()
+    {
+        var vm = new SessionListViewModel();
+        var other = Guid.NewGuid();
+        vm.AddProject(new ChatProject
+        {
+            Id = other,
+            Name = "Harbour",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        vm.SelectProject(other);
+
+        var session = vm.CreateSession();
+
+        session.ProjectId.Should().Be(other);
+        vm.FilteredSessions.Should().Contain(session);
+    }
+
+    [Fact]
+    public void DuplicateSession_KeepsTheProject()
+    {
+        var vm = new SessionListViewModel();
+        var other = Guid.NewGuid();
+        vm.AddSession(Conversation.Create("Away", projectId: other));
+
+        var duplicate = vm.DuplicateSession(vm.Sessions[0]);
+
+        duplicate.ProjectId.Should().Be(other);
+        duplicate.Title.Should().Contain("copy");
+    }
 }

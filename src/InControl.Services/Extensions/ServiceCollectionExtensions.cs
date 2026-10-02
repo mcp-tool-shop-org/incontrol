@@ -25,6 +25,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IFileStore, FileStore>();
         services.AddSingleton<IConversationStorage, JsonConversationStorage>();
+        services.AddSingleton<IProjectLibrary, JsonProjectLibrary>();
+        services.AddSingleton<ISessionMemory, JsonSessionMemory>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddSingleton<ITcpProbe, LoopbackTcpProbe>();
         services.AddSingleton<IOllamaReadyProbe, HttpOllamaReadyProbe>();

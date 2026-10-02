@@ -6,12 +6,15 @@ using InControl.ViewModels.Sessions;
 namespace InControl.App.Controls;
 
 /// <summary>
-/// Left sidebar containing session list with new session button, search, and pinned items.
-/// Supports keyboard navigation and context menu actions.
+/// Left sidebar: projects, the sessions in the selected project, and notes for that project.
 /// </summary>
 public sealed partial class SessionSidebar : UserControl
 {
     private SessionListViewModel? _viewModel;
+    private bool _suppressProjectEvent;
+    private bool _settingInstructions;
+    private bool _instructionsDirty;
+    private Guid _instructionsProjectId;
 
     public SessionSidebar()
     {
@@ -26,6 +29,16 @@ public sealed partial class SessionSidebar : UserControl
     /// Event raised when a new session is requested.
     /// </summary>
     public event EventHandler? NewSessionRequested;
+
+    /// <summary>
+    /// Event raised when a new project name has been entered.
+    /// </summary>
+    public event EventHandler<string>? NewProjectRequested;
+
+    /// <summary>
+    /// Event raised when a project is selected.
+    /// </summary>
+    public event EventHandler<Guid>? ProjectSelected;
 
     /// <summary>
     /// Event raised when a session is selected by ID.
@@ -52,6 +65,26 @@ public sealed partial class SessionSidebar : UserControl
     /// </summary>
     public event EventHandler<Guid>? SessionExportRequested;
 
+    /// <summary>
+    /// Event raised when the user asks to remember text for the whole project.
+    /// </summary>
+    public event EventHandler<string>? RememberForProjectRequested;
+
+    /// <summary>
+    /// Event raised when the user asks to remember text for the open session only.
+    /// </summary>
+    public event EventHandler<string>? RememberForSessionRequested;
+
+    /// <summary>
+    /// Event raised when the user asks to forget one note.
+    /// </summary>
+    public event EventHandler<Guid>? ForgetMemoryRequested;
+
+    /// <summary>
+    /// Event raised when project instructions lose focus after an edit.
+    /// </summary>
+    public event EventHandler<string>? InstructionsChanged;
+
     #endregion
 
     /// <summary>
@@ -61,15 +94,15 @@ public sealed partial class SessionSidebar : UserControl
     {
         _viewModel = viewModel;
 
-        // Bind the filtered sessions to the list
         SessionList.ItemsSource = viewModel.FilteredSessions;
-        PinnedList.ItemsSource = viewModel.PinnedSessions;
+        PinnedList.ItemsSource = viewModel.VisiblePinned;
+        ProjectList.ItemsSource = viewModel.Projects;
 
-        // Listen for collection changes to update empty state
         viewModel.FilteredSessions.CollectionChanged += (s, e) => RefreshVisualState();
-        viewModel.PinnedSessions.CollectionChanged += (s, e) => RefreshVisualState();
+        viewModel.VisiblePinned.CollectionChanged += (s, e) => RefreshVisualState();
 
         RefreshVisualState();
+        SelectProject(viewModel.SelectedProjectId);
     }
 
     /// <summary>
@@ -79,10 +112,11 @@ public sealed partial class SessionSidebar : UserControl
     {
         if (_viewModel is null) return;
 
-        var hasSessions = _viewModel.HasSessions;
+        var hasSessions = _viewModel.HasVisibleSessions;
         EmptyState.Visibility = hasSessions ? Visibility.Collapsed : Visibility.Visible;
         SessionList.Visibility = hasSessions ? Visibility.Visible : Visibility.Collapsed;
-        PinnedSection.Visibility = _viewModel.HasPinnedSessions ? Visibility.Visible : Visibility.Collapsed;
+        PinnedSection.Visibility = _viewModel.HasVisiblePinned ? Visibility.Visible : Visibility.Collapsed;
+        RememberSessionButton.IsEnabled = _viewModel.HasSelectedSession;
     }
 
     /// <summary>
@@ -98,37 +132,229 @@ public sealed partial class SessionSidebar : UserControl
             {
                 SessionList.SelectedItem = session;
                 _viewModel.SelectedSession = session;
+                RememberSessionButton.IsEnabled = true;
                 return;
             }
         }
 
-        foreach (var session in _viewModel.PinnedSessions)
+        foreach (var session in _viewModel.VisiblePinned)
         {
             if (session.Id == id)
             {
                 PinnedList.SelectedItem = session;
                 _viewModel.SelectedSession = session;
+                RememberSessionButton.IsEnabled = true;
                 return;
             }
         }
     }
 
+    /// <summary>
+    /// Clears the highlighted session. The project stays selected.
+    /// </summary>
+    public void ClearSessionSelection()
+    {
+        SessionList.SelectedItem = null;
+        PinnedList.SelectedItem = null;
+        if (_viewModel is not null)
+            _viewModel.SelectedSession = null;
+        RememberSessionButton.IsEnabled = false;
+    }
+
+    /// <summary>
+    /// Highlights a project and filters the session list to it.
+    /// </summary>
+    public void SelectProject(Guid id)
+    {
+        if (_viewModel is null) return;
+
+        _suppressProjectEvent = true;
+        _viewModel.SelectProject(id);
+        foreach (var project in _viewModel.Projects)
+        {
+            if (project.Id == id)
+            {
+                ProjectList.SelectedItem = project;
+                break;
+            }
+        }
+
+        _suppressProjectEvent = false;
+        RefreshVisualState();
+    }
+
+    /// <summary>
+    /// Shows standing instructions. Does not overwrite text the user is still editing.
+    /// </summary>
+    public void ShowInstructions(Guid projectId, string? text)
+    {
+        if (projectId == _instructionsProjectId && _instructionsDirty)
+            return;
+
+        _instructionsProjectId = projectId;
+        _instructionsDirty = false;
+        _settingInstructions = true;
+        InstructionsBox.Text = text ?? string.Empty;
+        _settingInstructions = false;
+    }
+
+    /// <summary>
+    /// Shows the notes for the selected project and session.
+    /// </summary>
+    public void ShowMemory(IReadOnlyList<MemoryNoteItem> notes)
+    {
+        MemoryList.ItemsSource = notes;
+        ForgetMemoryButton.IsEnabled = false;
+    }
+
+    /// <summary>
+    /// Enables the session-note button only when a session is open.
+    /// </summary>
+    public void SetRememberSessionEnabled(bool enabled)
+    {
+        RememberSessionButton.IsEnabled = enabled;
+    }
+
     private void SetupEventHandlers()
     {
-        // New Session button
         NewSessionButton.Click += OnNewSessionClick;
+        NewProjectButton.Click += OnNewProjectClick;
 
-        // Session search
         SessionSearch.TextChanged += OnSearchTextChanged;
         SessionSearch.QuerySubmitted += OnSearchQuerySubmitted;
 
-        // Session list item click
         SessionList.ItemClick += OnSessionItemClick;
         PinnedList.ItemClick += OnSessionItemClick;
+        ProjectList.ItemClick += OnProjectItemClick;
 
-        // Right-click context menu (built in code since MenuFlyout in resources can't have x:Name)
         SessionList.RightTapped += OnSessionRightTapped;
         PinnedList.RightTapped += OnSessionRightTapped;
+
+        InstructionsBox.TextChanged += OnInstructionsTextChanged;
+        InstructionsBox.LostFocus += OnInstructionsLostFocus;
+        RememberProjectButton.Click += OnRememberProjectClick;
+        RememberSessionButton.Click += OnRememberSessionClick;
+        ForgetMemoryButton.Click += OnForgetMemoryClick;
+        MemoryList.SelectionChanged += OnMemorySelectionChanged;
+    }
+
+    private void OnProjectItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (_suppressProjectEvent || _viewModel is null)
+            return;
+
+        if (e.ClickedItem is not ProjectItemViewModel project)
+            return;
+
+        _viewModel.SelectProject(project.Id);
+        ProjectSelected?.Invoke(this, project.Id);
+        RefreshVisualState();
+    }
+
+    private async void OnNewProjectClick(object sender, RoutedEventArgs e)
+    {
+        var inputBox = new TextBox
+        {
+            PlaceholderText = "Project name"
+        };
+
+        var dialog = new ContentDialog
+        {
+            Title = "New project",
+            Content = inputBox,
+            PrimaryButtonText = "Create",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(inputBox.Text))
+            NewProjectRequested?.Invoke(this, inputBox.Text.Trim());
+    }
+
+    private void OnInstructionsTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_settingInstructions)
+            return;
+
+        _instructionsDirty = true;
+    }
+
+    private void OnInstructionsLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_instructionsDirty)
+            return;
+
+        _instructionsDirty = false;
+        InstructionsChanged?.Invoke(this, InstructionsBox.Text);
+    }
+
+    private async void OnRememberProjectClick(object sender, RoutedEventArgs e)
+    {
+        var text = await AskNoteAsync("Remember for this project", "Saved for every session in this project.");
+        if (text is not null)
+            RememberForProjectRequested?.Invoke(this, text);
+    }
+
+    private async void OnRememberSessionClick(object sender, RoutedEventArgs e)
+    {
+        var text = await AskNoteAsync("Remember for this session", "Only this session will see it.");
+        if (text is not null)
+            RememberForSessionRequested?.Invoke(this, text);
+    }
+
+    private async Task<string?> AskNoteAsync(string title, string hint)
+    {
+        var inputBox = new TextBox
+        {
+            PlaceholderText = hint,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            MinHeight = 72
+        };
+
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = inputBox,
+            PrimaryButtonText = "Remember",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+            return null;
+
+        var text = inputBox.Text.Trim();
+        return text.Length == 0 ? null : text;
+    }
+
+    private void OnMemorySelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ForgetMemoryButton.IsEnabled = MemoryList.SelectedItem is MemoryNoteItem;
+    }
+
+    private async void OnForgetMemoryClick(object sender, RoutedEventArgs e)
+    {
+        if (MemoryList.SelectedItem is not MemoryNoteItem note)
+            return;
+
+        var dialog = new ContentDialog
+        {
+            Title = "Forget this note",
+            Content = $"Forget \"{note.Title}\"?",
+            PrimaryButtonText = "Forget",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+            ForgetMemoryRequested?.Invoke(this, note.Id);
     }
 
     private MenuFlyout CreateContextMenu(SessionItemViewModel session)
@@ -173,9 +399,8 @@ public sealed partial class SessionSidebar : UserControl
 
     private void OnSessionRightTapped(object sender, RightTappedRoutedEventArgs e)
     {
-        if (sender is not ListView listView) return;
+        if (sender is not ListView) return;
 
-        // Find the item under the pointer
         var element = e.OriginalSource as FrameworkElement;
         while (element != null && element.DataContext is not SessionItemViewModel)
         {
@@ -220,20 +445,19 @@ public sealed partial class SessionSidebar : UserControl
         {
             if (_viewModel is not null)
                 _viewModel.SelectedSession = session;
+            RememberSessionButton.IsEnabled = true;
             SessionSelected?.Invoke(this, session.Id);
         }
     }
 
     private SessionItemViewModel? GetContextSession(object sender)
     {
-        // Walk up from the MenuFlyoutItem to find the DataContext
         if (sender is MenuFlyoutItem menuItem &&
             menuItem.DataContext is SessionItemViewModel session)
         {
             return session;
         }
 
-        // Fallback to selected item
         return _viewModel?.SelectedSession;
     }
 

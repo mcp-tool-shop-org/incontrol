@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using InControl.App.Controls;
 using InControl.App.Pages;
 using InControl.App.Services;
+using InControl.Core.Assistant;
 using InControl.Core.Configuration;
 using InControl.Core.Models;
 using InControl.Core.Storage;
@@ -32,6 +33,7 @@ public sealed partial class MainWindow : Window
     private readonly ConversationViewModel _conversationVm = new();
     private readonly SessionListViewModel _sessionListVm = new();
     private CancellationTokenSource? _runCts;
+    private Guid? _answeringId;
 
     /// <summary>
     /// Model families that are embedding-only and cannot be used for chat.
@@ -112,18 +114,29 @@ public sealed partial class MainWindow : Window
         try
         {
             var chatService = App.GetService<IChatService>();
+            var projects = App.GetService<IProjectLibrary>();
+            var memory = App.GetService<ISessionMemory>();
+            await projects.EnsureAsync();
+            await memory.EnsureAsync();
 
-            // GetConversationsAsync triggers EnsureLoadedAsync inside ChatService
+            var projectList = await projects.AllAsync();
             var conversations = await chatService.GetConversationsAsync();
+            var notes = await memory.ListAsync(ChatProject.GeneralId, null);
+            var instructions = (await projects.FindAsync(ChatProject.GeneralId))?.Instructions;
+            var noteItems = ToNoteItems(notes);
 
             DispatcherQueue.TryEnqueue(() =>
             {
+                _sessionListVm.SetProjects(projectList);
                 foreach (var conversation in conversations)
-                {
                     _sessionListVm.AddSession(conversation);
-                }
+
                 _sessionListVm.ApplyFilter();
                 SessionSidebar.RefreshVisualState();
+                SessionSidebar.SelectProject(ChatProject.GeneralId);
+                SessionSidebar.ShowInstructions(ChatProject.GeneralId, instructions);
+                SessionSidebar.ShowMemory(noteItems);
+                SessionSidebar.SetRememberSessionEnabled(false);
             });
         }
         catch (Exception ex)
@@ -169,10 +182,16 @@ public sealed partial class MainWindow : Window
 
         // SessionSidebar events
         SessionSidebar.NewSessionRequested += OnNewSessionRequested;
+        SessionSidebar.NewProjectRequested += OnNewProjectRequested;
+        SessionSidebar.ProjectSelected += OnProjectSelected;
         SessionSidebar.SessionSelected += OnSessionSelected;
         SessionSidebar.SessionRenamed += OnSessionRenamed;
         SessionSidebar.SessionDeleteRequested += OnSessionDeleteRequested;
         SessionSidebar.SessionExportRequested += OnSessionExportRequested;
+        SessionSidebar.RememberForProjectRequested += OnRememberForProject;
+        SessionSidebar.RememberForSessionRequested += OnRememberForSession;
+        SessionSidebar.ForgetMemoryRequested += OnForgetMemory;
+        SessionSidebar.InstructionsChanged += OnInstructionsChanged;
 
         // ConversationView InputComposer events
         ConversationView.Composer.ModelManagerRequested += (s, e) => _navigation.Navigate<ModelManagerPage>();
@@ -318,130 +337,177 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(e.Intent) || string.IsNullOrWhiteSpace(e.Model))
             return;
 
+        // One reply at a time in this window. The text they typed stays put.
+        if (_runCts != null && !_runCts.IsCancellationRequested)
+        {
+            StatusStrip.SetAssistantStatus(true, "Another session is still answering");
+            return;
+        }
+
+        var runCts = new CancellationTokenSource();
+        _runCts = runCts;
+
         var chatService = App.GetService<IChatService>();
         var model = e.Model;
-
-        // Bind the ViewModel to the view on first run
-        if (ConversationView.ViewModel is null)
-        {
-            ConversationView.ViewModel = _conversationVm;
-        }
-
-        // Create conversation if we don't have one (include system prompt from config)
-        var conversation = _conversationVm.GetConversation();
-        if (conversation is null)
-        {
-            var chatOptions = App.GetService<IOptions<ChatOptions>>();
-            var systemPrompt = chatOptions?.Value.DefaultSystemPrompt;
-
-            conversation = await chatService.CreateConversationAsync(
-                title: e.Intent.Length > 50 ? e.Intent[..50] + "..." : e.Intent,
-                model: model,
-                systemPrompt: systemPrompt);
-            _conversationVm.LoadConversation(conversation);
-
-            // Add to sidebar
-            _sessionListVm.AddSession(conversation);
-            SessionSidebar.RefreshVisualState();
-            SessionSidebar.SelectSession(conversation.Id);
-        }
-
-        // Add user message to UI
-        _conversationVm.AddUserIntent(e.Intent);
-
-        // Update UI state — show Cancel button immediately
-        _conversationVm.ExecutionState = ExecutionState.Running;
-        _conversationVm.CurrentModel = model;
-        ConversationView.Composer.ExecutionState = ExecutionState.Running;
-        ConversationView.Composer.IntentText = string.Empty;
-        StatusStrip.SetModelStatus(model, true);
-
-        // Yield so the Cancel button renders before any async work begins
-        await Task.Yield();
-
-        // Start elapsed time tracking
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromMilliseconds(500);
-        timer.Tick += (t, a) => _conversationVm.ElapsedTime = stopwatch.Elapsed;
-        timer.Start();
-
-        _runCts = new CancellationTokenSource();
-
-        // Begin streaming output
-        _conversationVm.BeginModelOutput(model);
-        ConversationView.ShowMessages();
-
+        Microsoft.UI.Dispatching.DispatcherQueueTimer? timer = null;
         string? completedContent = null;
+
+        bool Viewing() => _answeringId is Guid answering
+            && _conversationVm.GetConversation()?.Id == answering;
 
         try
         {
-            _conversationVm.ExecutionState = ExecutionState.Streaming;
-            ConversationView.Composer.ExecutionState = ExecutionState.Streaming;
+            if (ConversationView.ViewModel is null)
+                ConversationView.ViewModel = _conversationVm;
 
-            // Yield so the message pump processes the Cancel button visibility change
+            var conversation = _conversationVm.GetConversation();
+            if (conversation is null)
+            {
+                var chatOptions = App.GetService<IOptions<ChatOptions>>();
+                var systemPrompt = chatOptions?.Value.DefaultSystemPrompt;
+
+                conversation = await chatService.CreateConversationAsync(
+                    title: e.Intent.Length > 50 ? e.Intent[..50] + "..." : e.Intent,
+                    model: model,
+                    systemPrompt: systemPrompt,
+                    projectId: _sessionListVm.SelectedProjectId,
+                    ct: runCts.Token);
+
+                _answeringId = conversation.Id;
+                SetAnswering(conversation.Id);
+                _sessionListVm.AddSession(conversation);
+                SessionSidebar.RefreshVisualState();
+
+                if (_conversationVm.GetConversation() is null)
+                {
+                    _conversationVm.LoadConversation(conversation);
+                    SessionSidebar.SelectSession(conversation.Id);
+                    _ = RefreshProjectMemoryAsync();
+                }
+            }
+            else
+            {
+                _answeringId = conversation.Id;
+                SetAnswering(conversation.Id);
+            }
+
+            if (Viewing())
+            {
+                _conversationVm.AddUserIntent(e.Intent);
+                _conversationVm.ExecutionState = ExecutionState.Running;
+                _conversationVm.CurrentModel = model;
+                ConversationView.Composer.ExecutionState = ExecutionState.Running;
+                ConversationView.Composer.IntentText = string.Empty;
+                StatusStrip.SetModelStatus(model, true);
+                await Task.Yield();
+                _conversationVm.BeginModelOutput(model);
+                ConversationView.ShowMessages();
+                _conversationVm.ExecutionState = ExecutionState.Streaming;
+                ConversationView.Composer.ExecutionState = ExecutionState.Streaming;
+            }
+
+            timer = DispatcherQueue.CreateTimer();
+            timer.Interval = TimeSpan.FromMilliseconds(500);
+            timer.Tick += (_, _) =>
+            {
+                if (Viewing())
+                    _conversationVm.ElapsedTime = stopwatch.Elapsed;
+            };
+            timer.Start();
+
             await Task.Yield();
 
             var contentBuilder = new System.Text.StringBuilder();
-            int yieldCounter = 0;
+            var yieldCounter = 0;
 
             await foreach (var token in chatService.SendMessageAsync(
-                conversation.Id, e.Intent, _runCts.Token))
+                conversation.Id, e.Intent, runCts.Token))
             {
                 contentBuilder.Append(token);
-                _conversationVm.AppendToModelOutput(token);
+                if (!Viewing())
+                    continue;
 
-                // Yield periodically to keep UI responsive (Cancel button, scroll, etc.)
+                _conversationVm.AppendToModelOutput(token);
                 if (++yieldCounter % 3 == 0)
                 {
                     ConversationView.ScrollToBottom();
                     await Task.Yield();
                 }
             }
-            ConversationView.ScrollToBottom();
 
             completedContent = contentBuilder.ToString();
 
-            // Finalize the streaming message — stops the spinner
-            _conversationVm.FinalizeModelOutput();
+            if (Viewing())
+            {
+                var updated = await chatService.GetConversationAsync(conversation.Id);
+                if (updated is not null && Viewing())
+                {
+                    _conversationVm.LoadConversation(updated);
+                    ConversationView.ShowMessages();
+                    ConversationView.ScrollToBottom();
+                }
 
-            _conversationVm.ExecutionState = ExecutionState.Complete;
-            ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+                _conversationVm.ExecutionState = ExecutionState.Complete;
+                ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            }
 
-            // Update sidebar item with latest conversation data
             UpdateSidebarSession(conversation.Id);
         }
         catch (OperationCanceledException)
         {
-            _conversationVm.FinalizeModelOutput();
-            _conversationVm.ExecutionState = ExecutionState.Cancelled;
-            ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            if (Viewing())
+            {
+                _conversationVm.FinalizeModelOutput();
+                _conversationVm.ExecutionState = ExecutionState.Cancelled;
+                ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            }
         }
         catch (Exception ex)
         {
-            _conversationVm.FinalizeModelOutput();
-            _conversationVm.ExecutionState = ExecutionState.Issue;
-            ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            if (Viewing())
+            {
+                _conversationVm.FinalizeModelOutput();
+                _conversationVm.ExecutionState = ExecutionState.Issue;
+                ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            }
+
             System.Diagnostics.Debug.WriteLine($"Chat error: {ex.Message}");
         }
         finally
         {
-            timer.Stop();
+            timer?.Stop();
             stopwatch.Stop();
-            _conversationVm.ElapsedTime = stopwatch.Elapsed;
-            _runCts?.Dispose();
-            _runCts = null;
+            var stillHere = Viewing();
+            var finishedId = _answeringId;
+            if (stillHere)
+                _conversationVm.ElapsedTime = stopwatch.Elapsed;
 
-            // Auto-speak if enabled and voice is connected
+            if (ReferenceEquals(_runCts, runCts))
+            {
+                _runCts.Dispose();
+                _runCts = null;
+            }
+            else
+            {
+                runCts.Dispose();
+            }
+
+            _answeringId = null;
+            SetAnswering(null);
+            StatusStrip.SetAssistantStatus(true, "Assistant");
             AutoSpeakIfEnabled(completedContent);
 
-            // Reset execution state after a brief pause
-            await Task.Delay(1500);
-            if (_conversationVm.ExecutionState is ExecutionState.Complete
-                or ExecutionState.Cancelled
-                or ExecutionState.Issue)
+            if (stillHere && finishedId is Guid id)
             {
-                _conversationVm.ExecutionState = ExecutionState.Idle;
+                await Task.Delay(1500);
+                if (_conversationVm.GetConversation()?.Id == id
+                    && _conversationVm.ExecutionState is ExecutionState.Complete
+                        or ExecutionState.Cancelled
+                        or ExecutionState.Issue)
+                {
+                    _conversationVm.ExecutionState = ExecutionState.Idle;
+                }
             }
         }
     }
@@ -457,24 +523,7 @@ public sealed partial class MainWindow : Window
             var updated = await chatService.GetConversationAsync(conversationId);
             if (updated is null) return;
 
-            // Find the matching session item and update it
-            foreach (var session in _sessionListVm.FilteredSessions)
-            {
-                if (session.Id == conversationId)
-                {
-                    session.UpdateConversation(updated);
-                    return;
-                }
-            }
-
-            foreach (var session in _sessionListVm.PinnedSessions)
-            {
-                if (session.Id == conversationId)
-                {
-                    session.UpdateConversation(updated);
-                    return;
-                }
-            }
+            _sessionListVm.FindSession(conversationId)?.UpdateConversation(updated);
         }
         catch
         {
@@ -547,11 +596,10 @@ public sealed partial class MainWindow : Window
     {
         _runCts?.Cancel();
 
-        var conversation = _conversationVm.GetConversation();
-        if (conversation is not null)
+        if (_answeringId is Guid answeringId)
         {
             var chatService = App.GetService<IChatService>();
-            chatService.StopGeneration(conversation.Id);
+            chatService.StopGeneration(answeringId);
         }
     }
 
@@ -578,11 +626,19 @@ public sealed partial class MainWindow : Window
             }
 
             _conversationVm.LoadConversation(conversation);
+            ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+            if (_answeringId != conversation.Id)
+                _conversationVm.ExecutionState = ExecutionState.Idle;
 
             if (conversation.Messages.Count > 0)
-            {
                 ConversationView.ShowMessages();
-            }
+
+            if (_answeringId == conversation.Id)
+                StatusStrip.SetAssistantStatus(true, "This session is still answering");
+            else if (_runCts != null && !_runCts.IsCancellationRequested)
+                StatusStrip.SetAssistantStatus(true, "Another session is still answering");
+
+            _ = RefreshProjectMemoryAsync();
         }
         catch (Exception ex)
         {
@@ -623,6 +679,9 @@ public sealed partial class MainWindow : Window
     {
         try
         {
+            if (_answeringId == conversationId)
+                OnCancelRequested(this, EventArgs.Empty);
+
             var chatService = App.GetService<IChatService>();
             await chatService.DeleteConversationAsync(conversationId);
 
@@ -652,6 +711,8 @@ public sealed partial class MainWindow : Window
                 _conversationVm.ClearConversation();
                 ConversationView.Composer.Clear();
             }
+
+            _ = RefreshProjectMemoryAsync();
         }
         catch (Exception ex)
         {
@@ -962,10 +1023,172 @@ public sealed partial class MainWindow : Window
 
     private void OnNewSessionRequested(object? sender, EventArgs e)
     {
-        // Clear current conversation and navigate home
+        // Clear the view only. The next send files a session into the selected project.
         _conversationVm.ClearConversation();
         ConversationView.Composer.Clear();
+        SessionSidebar.ClearSessionSelection();
         _navigation.GoHome();
+        _ = RefreshProjectMemoryAsync();
+    }
+
+    private async void OnNewProjectRequested(object? sender, string name)
+    {
+        try
+        {
+            var library = App.GetService<IProjectLibrary>();
+            var project = await library.CreateAsync(name);
+            _sessionListVm.AddProject(project);
+            SessionSidebar.SelectProject(project.Id);
+            await RefreshProjectMemoryAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"New project failed: {ex.Message}");
+        }
+    }
+
+    private void OnProjectSelected(object? sender, Guid id)
+    {
+        _ = RefreshProjectMemoryAsync();
+    }
+
+    private async void OnRememberForProject(object? sender, string text)
+    {
+        try
+        {
+            var memory = App.GetService<ISessionMemory>();
+            var item = AssistantMemoryItem.Create(
+                MemoryType.Fact,
+                MemoryScope.User,
+                MemorySource.ExplicitUser,
+                NoteKey(text),
+                text,
+                projectId: _sessionListVm.SelectedProjectId);
+            await memory.RememberAsync(item);
+            await RefreshProjectMemoryAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Remember failed: {ex.Message}");
+        }
+    }
+
+    private async void OnRememberForSession(object? sender, string text)
+    {
+        var session = _sessionListVm.SelectedSession;
+        if (session is null)
+            return;
+
+        try
+        {
+            var memory = App.GetService<ISessionMemory>();
+            var item = AssistantMemoryItem.Create(
+                MemoryType.Fact,
+                MemoryScope.Session,
+                MemorySource.ExplicitUser,
+                NoteKey(text),
+                text,
+                projectId: session.ProjectId ?? _sessionListVm.SelectedProjectId,
+                sessionId: session.Id);
+            await memory.RememberAsync(item);
+            await RefreshProjectMemoryAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Remember failed: {ex.Message}");
+        }
+    }
+
+    private async void OnForgetMemory(object? sender, Guid id)
+    {
+        try
+        {
+            await App.GetService<ISessionMemory>().ForgetAsync(id);
+            await RefreshProjectMemoryAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Forget failed: {ex.Message}");
+        }
+    }
+
+    private async void OnInstructionsChanged(object? sender, string text)
+    {
+        try
+        {
+            var library = App.GetService<IProjectLibrary>();
+            await library.UpdateInstructionsAsync(_sessionListVm.SelectedProjectId, text);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Instructions failed: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshProjectMemoryAsync()
+    {
+        try
+        {
+            var library = App.GetService<IProjectLibrary>();
+            var memory = App.GetService<ISessionMemory>();
+            var projectId = _sessionListVm.SelectedProjectId;
+            var sessionId = _sessionListVm.SelectedSession?.Id;
+            var project = await library.FindAsync(projectId);
+            var notes = await memory.ListAsync(projectId, sessionId);
+            var items = ToNoteItems(notes);
+            var instructions = project?.Instructions;
+            var rememberSession = sessionId is not null;
+
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                SessionSidebar.ShowInstructions(projectId, instructions);
+                SessionSidebar.ShowMemory(items);
+                SessionSidebar.SetRememberSessionEnabled(rememberSession);
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Memory refresh failed: {ex.Message}");
+        }
+    }
+
+    private void SetAnswering(Guid? id)
+    {
+        foreach (var session in _sessionListVm.Sessions)
+            session.IsAnswering = id is not null && session.Id == id;
+
+        foreach (var session in _sessionListVm.PinnedSessions)
+            session.IsAnswering = id is not null && session.Id == id;
+    }
+
+    private static string NoteKey(string text)
+    {
+        var line = text.Trim();
+        var cut = line.IndexOfAny(['\r', '\n']);
+        if (cut >= 0)
+            line = line[..cut];
+
+        if (line.Length > 48)
+            line = line[..48];
+
+        return line.Length == 0 ? "Note" : line;
+    }
+
+    private static IReadOnlyList<MemoryNoteItem> ToNoteItems(IReadOnlyList<AssistantMemoryItem> notes)
+    {
+        var items = new List<MemoryNoteItem>(notes.Count);
+        foreach (var note in notes)
+        {
+            var scope = note.SessionId is null ? "Project" : "Session";
+            items.Add(new MemoryNoteItem
+            {
+                Id = note.Id,
+                Title = scope + " · " + note.Key,
+                Detail = note.Value
+            });
+        }
+
+        return items;
     }
 
     private void NavigateHomeInternal()

@@ -41,9 +41,19 @@ public sealed record Conversation
     public IReadOnlyList<Message> Messages { get; init; } = [];
 
     /// <summary>
+    /// Project this session belongs to. Null on files saved before projects existed;
+    /// those sessions are shown under <see cref="ChatProject.GeneralId"/>.
+    /// </summary>
+    public Guid? ProjectId { get; init; }
+
+    /// <summary>
     /// Creates a new empty conversation.
     /// </summary>
-    public static Conversation Create(string? title = null, string? model = null, string? systemPrompt = null)
+    public static Conversation Create(
+        string? title = null,
+        string? model = null,
+        string? systemPrompt = null,
+        Guid? projectId = null)
     {
         var now = DateTimeOffset.UtcNow;
         return new Conversation
@@ -54,6 +64,7 @@ public sealed record Conversation
             ModifiedAt = now,
             Model = model,
             SystemPrompt = systemPrompt,
+            ProjectId = projectId,
             Messages = []
         };
     }
@@ -82,6 +93,15 @@ public sealed record Conversation
     public Conversation WithTitle(string title) => this with
     {
         Title = title,
+        ModifiedAt = DateTimeOffset.UtcNow
+    };
+
+    /// <summary>
+    /// Returns a new conversation filed in the given project.
+    /// </summary>
+    public Conversation WithProject(Guid projectId) => this with
+    {
+        ProjectId = projectId,
         ModifiedAt = DateTimeOffset.UtcNow
     };
 }

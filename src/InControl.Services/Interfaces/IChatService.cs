@@ -28,12 +28,14 @@ public interface IChatService
     /// <param name="title">Optional title.</param>
     /// <param name="model">Model to use.</param>
     /// <param name="systemPrompt">Optional system prompt.</param>
+    /// <param name="projectId">Project to file the session in. Null uses General.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The created conversation.</returns>
     Task<Conversation> CreateConversationAsync(
         string? title = null,
         string? model = null,
         string? systemPrompt = null,
+        Guid? projectId = null,
         CancellationToken ct = default);
 
     /// <summary>

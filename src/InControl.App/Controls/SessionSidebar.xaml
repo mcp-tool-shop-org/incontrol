@@ -6,6 +6,27 @@
     xmlns:local="using:InControl.App.Controls">
 
     <UserControl.Resources>
+        <DataTemplate x:Key="ProjectItemTemplate">
+            <TextBlock Text="{Binding Name}"
+                       Style="{StaticResource BodyTextBlockStyle}"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="1" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="MemoryNoteTemplate">
+            <StackPanel Padding="4,2" Spacing="0">
+                <TextBlock Text="{Binding Title}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1" />
+                <TextBlock Text="{Binding Detail}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="2" />
+            </StackPanel>
+        </DataTemplate>
+
         <!-- Session Item Template -->
         <DataTemplate x:Key="SessionItemTemplate">
             <Grid Padding="8,10" ColumnSpacing="10">
@@ -62,15 +83,45 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="200" />
             </Grid.RowDefinitions>
 
-            <!-- New Session Button -->
             <Button Grid.Row="0"
+                    x:Name="NewProjectButton"
+                    HorizontalAlignment="Stretch"
+                    Margin="12,12,12,4"
+                    Padding="12,8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="14" />
+                    <TextBlock Text="New project" />
+                </StackPanel>
+            </Button>
+
+            <ListView Grid.Row="1"
+                      x:Name="ProjectList"
+                      SelectionMode="Single"
+                      ItemTemplate="{StaticResource ProjectItemTemplate}"
+                      MaxHeight="88"
+                      Margin="8,0,8,8"
+                      Padding="4,0"
+                      IsItemClickEnabled="True">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="8,4" />
+                        <Setter Property="MinHeight" Value="32" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>
+
+            <!-- New Session Button -->
+            <Button Grid.Row="2"
                     x:Name="NewSessionButton"
                     HorizontalAlignment="Stretch"
-                    Margin="12,12,12,8"
-                    Padding="12,10">
+                    Margin="12,0,12,8"
+                    Padding="12,8">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE710;" FontSize="14" />
                     <TextBlock Text="New session" />
@@ -81,61 +132,62 @@
             </Button>
 
             <!-- Session Search -->
-            <AutoSuggestBox Grid.Row="1"
+            <AutoSuggestBox Grid.Row="3"
                             x:Name="SessionSearch"
                             PlaceholderText="Search sessions..."
                             QueryIcon="Find"
-                            Margin="12,0,12,12">
+                            Margin="12,0,12,8">
                 <AutoSuggestBox.KeyboardAccelerators>
                     <KeyboardAccelerator Key="F" Modifiers="Control" />
                 </AutoSuggestBox.KeyboardAccelerators>
             </AutoSuggestBox>
 
             <!-- Pinned Sessions Section -->
-            <StackPanel Grid.Row="2"
+            <StackPanel Grid.Row="4"
                         x:Name="PinnedSection"
                         Visibility="Collapsed"
-                        Margin="0,0,0,8">
+                        Margin="0,0,0,4">
                 <TextBlock Text="Pinned"
                            Style="{StaticResource CaptionTextBlockStyle}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Margin="16,0,0,8" />
+                           Margin="16,0,0,4" />
                 <ListView x:Name="PinnedList"
                           SelectionMode="Single"
                           ItemTemplate="{StaticResource SessionItemTemplate}"
                           Padding="4,0"
-                          MaxHeight="200"
+                          MaxHeight="120"
                           IsItemClickEnabled="True">
                     <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" >
+                        <Style TargetType="ListViewItem">
                             <Setter Property="Padding" Value="4,2" />
                         </Style>
                     </ListView.ItemContainerStyle>
                 </ListView>
                 <Border Height="1"
                         Background="{ThemeResource DividerStrokeColorDefaultBrush}"
-                        Margin="12,8,12,0" />
+                        Margin="12,4,12,0" />
             </StackPanel>
 
             <!-- Session List -->
-            <Grid Grid.Row="3">
+            <Grid Grid.Row="5">
                 <!-- Empty State -->
                 <StackPanel x:Name="EmptyState"
                             Visibility="Visible"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Center"
-                            Padding="16,24"
+                            Padding="16,12"
                             Spacing="4">
                     <FontIcon Glyph="&#xE7C5;"
-                              FontSize="32"
+                              FontSize="28"
                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                               HorizontalAlignment="Center"
-                              Margin="0,0,0,12" />
-                    <TextBlock Text="No sessions yet"
+                              Margin="0,0,0,8" />
+                    <TextBlock Text="No sessions in this project"
                                Style="{StaticResource BodyStrongTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                HorizontalAlignment="Center"
-                               TextAlignment="Center" />
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
                     <TextBlock Text="Create one to start working."
                                Style="{StaticResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
@@ -152,7 +204,7 @@
                           IsItemClickEnabled="True"
                           SingleSelectionFollowsFocus="True">
                     <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" >
+                        <Style TargetType="ListViewItem">
                             <Setter Property="Padding" Value="4,2" />
                         </Style>
                     </ListView.ItemContainerStyle>
@@ -164,6 +216,46 @@
                     </ListView.Header>
                 </ListView>
             </Grid>
+
+            <Border Grid.Row="6"
+                    BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,6,12,8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Memory"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="Project notes are shared. A session note stays in that session."
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   TextWrapping="Wrap" />
+                        <TextBox x:Name="InstructionsBox"
+                                 PlaceholderText="Project instructions"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="44" />
+                        <ListView x:Name="MemoryList"
+                                  SelectionMode="Single"
+                                  ItemTemplate="{StaticResource MemoryNoteTemplate}"
+                                  MaxHeight="64" />
+                        <Button x:Name="RememberProjectButton"
+                                HorizontalAlignment="Stretch"
+                                Padding="8,4"
+                                Content="Remember for project" />
+                        <Button x:Name="RememberSessionButton"
+                                HorizontalAlignment="Stretch"
+                                Padding="8,4"
+                                Content="Remember for this session"
+                                IsEnabled="False" />
+                        <Button x:Name="ForgetMemoryButton"
+                                HorizontalAlignment="Stretch"
+                                Padding="8,4"
+                                Content="Forget selected note"
+                                IsEnabled="False" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

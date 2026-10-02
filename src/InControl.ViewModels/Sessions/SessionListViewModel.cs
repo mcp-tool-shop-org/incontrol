@@ -1,51 +1,79 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using InControl.Core.Models;
-using InControl.Core.UX;
 
 namespace InControl.ViewModels.Sessions;
 
 /// <summary>
 /// ViewModel for the session sidebar list.
-/// Manages session collection, search, pinning, and selection.
+/// Manages projects, the sessions in the selected project, search, pinning, and selection.
 /// </summary>
 public sealed class SessionListViewModel : INotifyPropertyChanged
 {
     private string _searchQuery = string.Empty;
     private SessionItemViewModel? _selectedSession;
     private bool _isLoading;
+    private Guid _selectedProjectId = ChatProject.GeneralId;
 
     public SessionListViewModel()
     {
         Sessions = new ObservableCollection<SessionItemViewModel>();
         PinnedSessions = new ObservableCollection<SessionItemViewModel>();
         FilteredSessions = new ObservableCollection<SessionItemViewModel>();
+        VisiblePinned = new ObservableCollection<SessionItemViewModel>();
+        Projects = new ObservableCollection<ProjectItemViewModel>();
+        Projects.Add(new ProjectItemViewModel(ChatProject.General()) { IsSelected = true });
     }
 
     /// <summary>
-    /// All sessions (unpinned).
+    /// All sessions (unpinned), across projects.
     /// </summary>
     public ObservableCollection<SessionItemViewModel> Sessions { get; }
 
     /// <summary>
-    /// Pinned sessions shown at the top.
+    /// Pinned sessions, across projects.
     /// </summary>
     public ObservableCollection<SessionItemViewModel> PinnedSessions { get; }
 
     /// <summary>
-    /// Sessions filtered by search query.
+    /// Unpinned sessions in the selected project that match the search.
     /// </summary>
     public ObservableCollection<SessionItemViewModel> FilteredSessions { get; }
 
     /// <summary>
-    /// Whether there are any sessions.
+    /// Pinned sessions in the selected project.
+    /// </summary>
+    public ObservableCollection<SessionItemViewModel> VisiblePinned { get; }
+
+    /// <summary>
+    /// Projects shown above the session list.
+    /// </summary>
+    public ObservableCollection<ProjectItemViewModel> Projects { get; }
+
+    /// <summary>
+    /// Whether there are any sessions in any project.
     /// </summary>
     public bool HasSessions => Sessions.Count > 0 || PinnedSessions.Count > 0;
 
     /// <summary>
-    /// Whether there are pinned sessions.
+    /// Whether the selected project has any visible sessions.
+    /// </summary>
+    public bool HasVisibleSessions => FilteredSessions.Count > 0 || VisiblePinned.Count > 0;
+
+    /// <summary>
+    /// Whether there are pinned sessions in any project.
     /// </summary>
     public bool HasPinnedSessions => PinnedSessions.Count > 0;
+
+    /// <summary>
+    /// Whether the selected project has pinned sessions.
+    /// </summary>
+    public bool HasVisiblePinned => VisiblePinned.Count > 0;
+
+    /// <summary>
+    /// The project whose sessions are listed.
+    /// </summary>
+    public Guid SelectedProjectId => _selectedProjectId;
 
     /// <summary>
     /// The current search query.
@@ -55,12 +83,12 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         get => _searchQuery;
         set
         {
-            if (_searchQuery != value)
-            {
-                _searchQuery = value;
-                OnPropertyChanged(nameof(SearchQuery));
-                ApplyFilter();
-            }
+            if (_searchQuery == value)
+                return;
+
+            _searchQuery = value;
+            OnPropertyChanged(nameof(SearchQuery));
+            ApplyFilter();
         }
     }
 
@@ -72,19 +100,19 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         get => _selectedSession;
         set
         {
-            if (_selectedSession != value)
-            {
-                if (_selectedSession != null)
-                    _selectedSession.IsSelected = false;
+            if (_selectedSession == value)
+                return;
 
-                _selectedSession = value;
+            if (_selectedSession != null)
+                _selectedSession.IsSelected = false;
 
-                if (_selectedSession != null)
-                    _selectedSession.IsSelected = true;
+            _selectedSession = value;
 
-                OnPropertyChanged(nameof(SelectedSession));
-                OnPropertyChanged(nameof(HasSelectedSession));
-            }
+            if (_selectedSession != null)
+                _selectedSession.IsSelected = true;
+
+            OnPropertyChanged(nameof(SelectedSession));
+            OnPropertyChanged(nameof(HasSelectedSession));
         }
     }
 
@@ -101,26 +129,69 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         get => _isLoading;
         set
         {
-            if (_isLoading != value)
-            {
-                _isLoading = value;
-                OnPropertyChanged(nameof(IsLoading));
-            }
+            if (_isLoading == value)
+                return;
+
+            _isLoading = value;
+            OnPropertyChanged(nameof(IsLoading));
         }
     }
 
     /// <summary>
-    /// Creates a new session and adds it to the list.
+    /// Replaces the project list. General is added if the source omitted it.
+    /// </summary>
+    public void SetProjects(IEnumerable<ChatProject> projects)
+    {
+        Projects.Clear();
+        var list = projects.ToList();
+        if (list.All(project => project.Id != ChatProject.GeneralId))
+            list.Insert(0, ChatProject.General());
+
+        foreach (var project in list)
+            Projects.Add(new ProjectItemViewModel(project));
+
+        if (Projects.All(project => project.Id != _selectedProjectId))
+            _selectedProjectId = ChatProject.GeneralId;
+
+        MarkSelectedProject();
+        ApplyFilter();
+    }
+
+    /// <summary>
+    /// Adds a project row.
+    /// </summary>
+    public void AddProject(ChatProject project)
+    {
+        Projects.Add(new ProjectItemViewModel(project));
+    }
+
+    /// <summary>
+    /// Shows the sessions that belong to this project.
+    /// </summary>
+    public void SelectProject(Guid id)
+    {
+        if (Projects.All(project => project.Id != id))
+            return;
+
+        _selectedProjectId = id;
+        MarkSelectedProject();
+        OnPropertyChanged(nameof(SelectedProjectId));
+        ApplyFilter();
+    }
+
+    /// <summary>
+    /// Creates a new session in the selected project and adds it to the list.
     /// </summary>
     public SessionItemViewModel CreateSession()
     {
-        var conversation = Conversation.Create();
+        var conversation = Conversation.Create(projectId: _selectedProjectId);
         var viewModel = new SessionItemViewModel(conversation);
 
         Sessions.Insert(0, viewModel);
         SelectedSession = viewModel;
 
         OnPropertyChanged(nameof(HasSessions));
+        ApplyFilter();
         return viewModel;
     }
 
@@ -158,13 +229,13 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         else
         {
             Sessions.Remove(session);
-            FilteredSessions.Remove(session);
         }
 
         if (SelectedSession == session)
             SelectedSession = null;
 
         OnPropertyChanged(nameof(HasSessions));
+        ApplyFilter();
     }
 
     /// <summary>
@@ -181,7 +252,6 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         else
         {
             Sessions.Remove(session);
-            FilteredSessions.Remove(session);
             session.IsPinned = true;
             PinnedSessions.Add(session);
         }
@@ -191,18 +261,17 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Duplicates a session.
+    /// Duplicates a session into the same project.
     /// </summary>
     public SessionItemViewModel DuplicateSession(SessionItemViewModel source)
     {
         var original = source.GetConversation();
-        var duplicate = Conversation.Create(original.Title + " (copy)");
+        var duplicate = Conversation.Create(
+            original.Title + " (copy)",
+            projectId: original.ProjectId);
 
-        // Copy messages
         foreach (var message in original.Messages)
-        {
             duplicate = duplicate.WithMessage(message);
-        }
 
         var viewModel = new SessionItemViewModel(duplicate);
         Sessions.Insert(0, viewModel);
@@ -214,22 +283,54 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Clears the search query and shows all sessions.
+    /// Finds a session in either the pinned or recent list.
+    /// </summary>
+    public SessionItemViewModel? FindSession(Guid id)
+    {
+        foreach (var session in Sessions)
+        {
+            if (session.Id == id)
+                return session;
+        }
+
+        foreach (var session in PinnedSessions)
+        {
+            if (session.Id == id)
+                return session;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Clears the search query and shows the selected project's sessions.
     /// </summary>
     public void ClearSearch()
     {
         SearchQuery = string.Empty;
     }
 
+    /// <summary>
+    /// Rebuilds the visible session lists for the selected project and search text.
+    /// </summary>
     public void ApplyFilter()
     {
         FilteredSessions.Clear();
+        VisiblePinned.Clear();
 
         var query = SearchQuery.Trim();
-        var source = string.IsNullOrEmpty(query) ? Sessions : Sessions;
 
-        foreach (var session in source)
+        foreach (var session in PinnedSessions)
         {
+            if (MatchesProject(session))
+                VisiblePinned.Add(session);
+        }
+
+        foreach (var session in Sessions)
+        {
+            if (!MatchesProject(session))
+                continue;
+
             if (string.IsNullOrEmpty(query) ||
                 session.Title.Contains(query, StringComparison.OrdinalIgnoreCase))
             {
@@ -238,9 +339,23 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(FilteredSessions));
+        OnPropertyChanged(nameof(HasVisibleSessions));
+        OnPropertyChanged(nameof(HasVisiblePinned));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    private bool MatchesProject(SessionItemViewModel session)
+    {
+        var projectId = session.ProjectId ?? ChatProject.GeneralId;
+        return projectId == _selectedProjectId;
+    }
+
+    private void MarkSelectedProject()
+    {
+        foreach (var project in Projects)
+            project.IsSelected = project.Id == _selectedProjectId;
+    }
 
     private void OnPropertyChanged(string propertyName)
     {

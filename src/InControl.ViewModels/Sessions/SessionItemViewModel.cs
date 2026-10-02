@@ -12,6 +12,7 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
     private Conversation _conversation;
     private bool _isPinned;
     private bool _isSelected;
+    private bool _isAnswering;
 
     public SessionItemViewModel(Conversation conversation)
     {
@@ -22,6 +23,11 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
     /// The unique identifier for this session.
     /// </summary>
     public Guid Id => _conversation.Id;
+
+    /// <summary>
+    /// Project this session is filed in. Null is treated as General by the list.
+    /// </summary>
+    public Guid? ProjectId => _conversation.ProjectId;
 
     /// <summary>
     /// The session title. Falls back to "Untitled session" if empty.
@@ -59,7 +65,25 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
         {
             var time = RelativeTime;
             var count = MessageCount;
-            return count > 0 ? $"{time} \u00B7 {count} messages" : time;
+            var detail = count > 0 ? $"{time} \u00B7 {count} messages" : time;
+            return _isAnswering ? detail + " \u00B7 answering" : detail;
+        }
+    }
+
+    /// <summary>
+    /// Whether this session is the one the window is waiting on.
+    /// </summary>
+    public bool IsAnswering
+    {
+        get => _isAnswering;
+        set
+        {
+            if (_isAnswering == value)
+                return;
+
+            _isAnswering = value;
+            OnPropertyChanged(nameof(IsAnswering));
+            OnPropertyChanged(nameof(Subtitle));
         }
     }
 
@@ -107,6 +131,7 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
     {
         _conversation = conversation;
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(ProjectId));
         OnPropertyChanged(nameof(MessageCount));
         OnPropertyChanged(nameof(LastModified));
         OnPropertyChanged(nameof(RelativeTime));

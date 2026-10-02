@@ -16,6 +16,8 @@ public sealed class ChatService : IChatService
     private readonly IInferenceClient _inferenceClient;
     private readonly IConversationStorage _storage;
     private readonly ILogger<ChatService> _logger;
+    private readonly IProjectLibrary? _projects;
+    private readonly ISessionMemory? _memory;
     private readonly Dictionary<Guid, Conversation> _conversations = new();
     private readonly Dictionary<Guid, CancellationTokenSource> _activeGenerations = new();
     private bool _loaded;
@@ -27,11 +29,15 @@ public sealed class ChatService : IChatService
     public ChatService(
         IInferenceClient inferenceClient,
         IConversationStorage storage,
-        ILogger<ChatService> logger)
+        ILogger<ChatService> logger,
+        IProjectLibrary? projects = null,
+        ISessionMemory? memory = null)
     {
         _inferenceClient = inferenceClient;
         _storage = storage;
         _logger = logger;
+        _projects = projects;
+        _memory = memory;
     }
 
     /// <summary>
@@ -48,7 +54,13 @@ public sealed class ChatService : IChatService
             var conversations = await _storage.LoadAllAsync(ct);
             foreach (var c in conversations)
             {
-                _conversations[c.Id] = c;
+                // Older files have no project. Show them in General without bumping ModifiedAt.
+                var stored = c.ProjectId is null
+                    ? c with { ProjectId = ChatProject.GeneralId }
+                    : c;
+                _conversations[stored.Id] = stored;
+                if (c.ProjectId is null)
+                    await SaveQuietly(stored, ct);
             }
             _logger.LogInformation("Loaded {Count} conversations from storage", conversations.Count);
         }
@@ -62,11 +74,12 @@ public sealed class ChatService : IChatService
         string? title = null,
         string? model = null,
         string? systemPrompt = null,
+        Guid? projectId = null,
         CancellationToken ct = default)
     {
         await EnsureLoadedAsync(ct);
 
-        var conversation = Conversation.Create(title, model, systemPrompt);
+        var conversation = Conversation.Create(title, model, systemPrompt, projectId ?? ChatProject.GeneralId);
         _conversations[conversation.Id] = conversation;
 
         // Persist immediately
@@ -136,6 +149,7 @@ public sealed class ChatService : IChatService
         {
             // Delete from disk
             await _storage.DeleteAsync(conversationId, ct);
+            await ForgetSessionNotesAsync(conversationId, ct);
 
             ConversationDeleted?.Invoke(this, new ConversationEventArgs { Conversation = conversation });
         }
@@ -159,8 +173,8 @@ public sealed class ChatService : IChatService
         var model = conversation.Model
             ?? throw new InvalidOperationException("No model selected for this conversation");
 
-        // Build the chat request from conversation history
-        var request = ChatRequest.FromConversation(conversation);
+        // Build the chat request from this session's transcript, plus a few recalled notes.
+        var request = await WithRecallAsync(conversation, ChatRequest.FromConversation(conversation), ct);
 
         _logger.LogDebug("Sending message to {Model}, conversation {Id}", model, conversationId);
 
@@ -178,15 +192,15 @@ public sealed class ChatService : IChatService
                 yield return token;
             }
 
-            // Append assistant response to conversation
-            var assistantMessage = Message.Assistant(responseContent.ToString(), model);
-            conversation = conversation.WithMessage(assistantMessage);
-            _conversations[conversationId] = conversation;
-
-            // Persist after completed exchange
-            await SaveQuietly(conversation);
-
-            ConversationUpdated?.Invoke(this, new ConversationEventArgs { Conversation = conversation });
+            // A delete during the reply wins. Do not write the session back.
+            if (_conversations.ContainsKey(conversationId))
+            {
+                var assistantMessage = Message.Assistant(responseContent.ToString(), model);
+                conversation = conversation.WithMessage(assistantMessage);
+                _conversations[conversationId] = conversation;
+                await SaveQuietly(conversation);
+                ConversationUpdated?.Invoke(this, new ConversationEventArgs { Conversation = conversation });
+            }
         }
         finally
         {
@@ -229,7 +243,7 @@ public sealed class ChatService : IChatService
         var model = conversation.Model
             ?? throw new InvalidOperationException("No model selected for this conversation");
 
-        var request = ChatRequest.FromConversation(conversation);
+        var request = await WithRecallAsync(conversation, ChatRequest.FromConversation(conversation), ct);
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _activeGenerations[conversationId] = cts;
@@ -244,12 +258,13 @@ public sealed class ChatService : IChatService
                 yield return token;
             }
 
-            var assistantMessage = Message.Assistant(responseContent.ToString(), model);
-            conversation = conversation.WithMessage(assistantMessage);
-            _conversations[conversationId] = conversation;
-
-            // Persist after regeneration
-            await SaveQuietly(conversation);
+            if (_conversations.ContainsKey(conversationId))
+            {
+                var assistantMessage = Message.Assistant(responseContent.ToString(), model);
+                conversation = conversation.WithMessage(assistantMessage);
+                _conversations[conversationId] = conversation;
+                await SaveQuietly(conversation);
+            }
         }
         finally
         {
@@ -287,6 +302,56 @@ public sealed class ChatService : IChatService
         {
             _logger.LogDebug("Stopping generation for conversation {Id}", conversationId);
             cts.Cancel();
+        }
+    }
+
+    /// <summary>
+    /// Appends project instructions and a few matching notes. The transcript itself is unchanged.
+    /// </summary>
+    private async Task<ChatRequest> WithRecallAsync(Conversation conversation, ChatRequest request, CancellationToken ct)
+    {
+        if (_memory is null)
+            return request;
+
+        try
+        {
+            var projectId = conversation.ProjectId ?? ChatProject.GeneralId;
+            string? instructions = null;
+            if (_projects is not null)
+            {
+                var project = await _projects.FindAsync(projectId, ct);
+                instructions = project?.Instructions;
+            }
+
+            var query = conversation.Messages.LastOrDefault(message => message.Role == MessageRole.User)?.Content;
+            var block = await _memory.BuildRecallAsync(projectId, conversation.Id, instructions, query, ct);
+            if (string.IsNullOrWhiteSpace(block))
+                return request;
+
+            var prompt = string.IsNullOrWhiteSpace(request.SystemPrompt)
+                ? block
+                : request.SystemPrompt.TrimEnd() + "\n\n" + block;
+            return request with { SystemPrompt = prompt };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Skipping recall for conversation {Id}", conversation.Id);
+            return request;
+        }
+    }
+
+    private async Task ForgetSessionNotesAsync(Guid conversationId, CancellationToken ct)
+    {
+        if (_memory is null)
+            return;
+
+        try
+        {
+            await _memory.ForgetSessionAsync(conversationId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to forget session notes for {Id}", conversationId);
         }
     }
 

@@ -58,6 +58,16 @@ public sealed record AssistantMemoryItem
     public string? Justification { get; init; }
 
     /// <summary>
+    /// Project this note belongs to. Recall never crosses projects.
+    /// </summary>
+    public Guid? ProjectId { get; init; }
+
+    /// <summary>
+    /// Session this note belongs to. Null means every session in the project can recall it.
+    /// </summary>
+    public Guid? SessionId { get; init; }
+
+    /// <summary>
     /// Creates a new memory item with defaults.
     /// </summary>
     public static AssistantMemoryItem Create(
@@ -67,7 +77,9 @@ public sealed record AssistantMemoryItem
         string key,
         string value,
         string? justification = null,
-        double confidence = 1.0) => new()
+        double confidence = 1.0,
+        Guid? projectId = null,
+        Guid? sessionId = null) => new()
     {
         Id = Guid.NewGuid(),
         Type = type,
@@ -78,7 +90,9 @@ public sealed record AssistantMemoryItem
         Confidence = confidence,
         CreatedAt = DateTimeOffset.UtcNow,
         LastAccessedAt = DateTimeOffset.UtcNow,
-        Justification = justification
+        Justification = justification,
+        ProjectId = projectId,
+        SessionId = sessionId
     };
 }
 
