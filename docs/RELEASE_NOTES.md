@@ -1,6 +1,6 @@
 # Release Notes
 
-The published app release is **0.3.0**. It is the source tree at tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). There is no MSIX. Install by building from source, as `docs/INSTALLATION.md` describes. The notes for that release are in `CHANGELOG.md`.
+The published GitHub release is tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). That tag is source only and has no MSIX. Current main is app 2.0.0 and is not that tag. Install the current tree as `docs/INSTALLATION.md` describes. The notes for tag `v0.3.0` are in `CHANGELOG.md`.
 
 The 0.1.0 section below was written for a release that was not published. Do not download an InControl-Desktop package. Nothing in this file is an installer.
 

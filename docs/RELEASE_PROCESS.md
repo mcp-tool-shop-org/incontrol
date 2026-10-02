@@ -2,9 +2,9 @@
 
 ## What 0.3.0 actually shipped
 
-Tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol) is the source tree. The GitHub release does not attach an MSIX. A tag runs the library tests. It does not sign a package, and it does not publish `InControl-Desktop`.
+Tag `v0.3.0` in [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol) is an older source-only release. The GitHub release does not attach an MSIX. A tag runs the library tests. It does not sign a package, and it does not publish `InControl-Desktop`. Current main is app 2.0.0.
 
-To install that release, build from source. See `docs/INSTALLATION.md`.
+Install the current tree from `docs/INSTALLATION.md`. Checking out tag `v0.3.0` is how you build that older release.
 
 Issues: https://github.com/mcp-tool-shop-org/incontrol/issues
 
