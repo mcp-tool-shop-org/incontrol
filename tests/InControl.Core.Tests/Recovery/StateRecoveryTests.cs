@@ -1,4 +1,5 @@
 using FluentAssertions;
+using InControl.Core.Models;
 using InControl.Core.Recovery;
 using InControl.Core.State;
 using InControl.Core.Storage;
@@ -6,6 +7,14 @@ using Xunit;
 
 namespace InControl.Core.Tests.Recovery;
 
+[CollectionDefinition("DataPathsIsolation", DisableParallelization = true)]
+public sealed class DataPathsIsolationCollection;
+
+/// <summary>
+/// Recovery facts that read sessions go through <see cref="DataPaths.Configure"/>
+/// onto this temp root. They must not run beside other facts, because the override is process-wide.
+/// </summary>
+[Collection("DataPathsIsolation")]
 public class StateRecoveryTests : IDisposable
 {
     private readonly string _testDir;
@@ -18,6 +27,7 @@ public class StateRecoveryTests : IDisposable
 
     public void Dispose()
     {
+        DataPaths.ResetConfiguration();
         if (Directory.Exists(_testDir))
         {
             Directory.Delete(_testDir, recursive: true);
@@ -27,10 +37,33 @@ public class StateRecoveryTests : IDisposable
     [Fact]
     public async Task CheckHealthAsync_ReturnsHealthy_WhenNoSessions()
     {
+        UseTempPaths();
+        Directory.CreateDirectory(DataPaths.Sessions);
+
         var report = await StateRecovery.CheckHealthAsync();
 
-        report.Should().NotBeNull();
-        // May or may not be healthy depending on actual state
+        IsUnderTemp(DataPaths.Sessions).Should().BeTrue();
+        report.IsHealthy.Should().BeTrue();
+        report.Issues.Should().BeEmpty();
+        report.TotalFiles.Should().Be(0);
+        report.CorruptFiles.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CheckHealthAsync_ConversationFile_IsNotOfferedForQuarantineOrDelete()
+    {
+        UseTempPaths();
+        Directory.CreateDirectory(DataPaths.Sessions);
+        var conversation = Conversation.Create("Kept answer");
+        var path = Path.Combine(DataPaths.Sessions, $"{conversation.Id}.json");
+        File.WriteAllText(path, StateSerializer.Serialize(conversation));
+
+        var report = await StateRecovery.CheckHealthAsync();
+
+        report.IsHealthy.Should().BeTrue();
+        report.CorruptFiles.Should().Be(0);
+        report.TotalFiles.Should().Be(1);
+        report.Issues.Should().BeEmpty();
     }
 
     [Fact]
@@ -47,25 +80,54 @@ public class StateRecoveryTests : IDisposable
     [Fact]
     public void ListBackups_ReturnsEmptyList_WhenNoBackups()
     {
+        UseTempPaths();
+
         var backups = StateRecovery.ListBackups();
 
-        // May have backups from previous tests, but shouldn't throw
-        backups.Should().NotBeNull();
+        backups.Should().BeEmpty();
     }
 
     [Fact]
     public async Task CreateBackupAsync_CreatesBackupFile()
     {
+        UseTempPaths();
+        Directory.CreateDirectory(DataPaths.Sessions);
+        var conversation = Conversation.Create("Backed up");
+        File.WriteAllText(
+            Path.Combine(DataPaths.Sessions, $"{conversation.Id}.json"),
+            StateSerializer.Serialize(conversation));
+
         var result = await StateRecovery.CreateBackupAsync();
 
-        if (result.IsSuccess)
-        {
-            result.Value.Should().NotBeNullOrEmpty();
-            File.Exists(result.Value).Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
+        var backupPath = result.Value!;
+        IsUnderTemp(backupPath).Should().BeTrue();
+        File.Exists(backupPath).Should().BeTrue();
 
-            // Cleanup
-            File.Delete(result.Value);
-        }
+        var listed = StateRecovery.ListBackups();
+        listed.Should().ContainSingle(backup => backup.FilePath == backupPath);
+        listed.Should().OnlyContain(backup => IsUnderTemp(backup.FilePath));
+    }
+
+    private void UseTempPaths()
+    {
+        DataPaths.Configure(new DataPathsConfig(
+            AppDataRoot: _testDir,
+            Sessions: Path.Combine(_testDir, "sessions"),
+            Logs: Path.Combine(_testDir, "logs"),
+            Cache: Path.Combine(_testDir, "cache"),
+            Exports: Path.Combine(_testDir, "exports"),
+            Config: Path.Combine(_testDir, "config"),
+            Temp: Path.Combine(_testDir, "temp"),
+            Support: Path.Combine(_testDir, "support")));
+    }
+
+    private bool IsUnderTemp(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetFullPath(_testDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        return full.StartsWith(root, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
