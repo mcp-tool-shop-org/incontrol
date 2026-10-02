@@ -1,8 +1,15 @@
 # Packaging
 
-Version 0.3.0 does not ship an MSIX. Install from source: `docs/INSTALLATION.md`. Nothing in this directory is a release artifact, and there is no `InControl-Desktop.msix` to install.
+Nothing in this directory is an upload. Tag v0.3.0 is the source tree. Install that release from `docs/INSTALLATION.md`.
 
-The notes below are leftover packaging sketches. They are not the current install path.
+Partner Center already has this product through package 1.4.0. The newest upload file is `InControl.App_1.4.0_x64.msixupload`. The next package is accepted only when both of these are true:
+
+- Identity `Name` is exactly `InControl.App`. `InControl.Desktop` is a different package and is rejected.
+- Identity `Version` is four numbers and higher than `1.4.0.0`. The prepared version is `2.0.0.0`.
+
+The name on the repo, and the display name in the manifest, stay InControl. Display name is not the package identity.
+
+`Publisher` is the certificate subject on the 1.4.0 upload. That subject is not in this repository. Leave `${PUBLISHER}` until it is known. A local test certificate is not that publisher, and a package signed with a different subject is rejected even when the name and version are right.
 
 ## Structure
 
@@ -32,8 +39,8 @@ The manifest template uses these placeholders:
 
 | Placeholder | Replaced With |
 |-------------|---------------|
-| `${VERSION}` | MSIX version (x.y.z.w format) |
-| `${PUBLISHER}` | Certificate publisher CN |
+| `${VERSION}` | Four-part package version. The prepared value is `2.0.0.0`. |
+| `${PUBLISHER}` | Certificate subject from the 1.4.0 upload. Do not guess it. |
 
 ## Building Locally
 
@@ -52,41 +59,16 @@ Copy-Item packaging/AppxManifest.template.xml ./publish/AppxManifest.xml
 # Edit AppxManifest.xml to replace ${VERSION} and ${PUBLISHER}
 
 # Package (requires Windows SDK)
-makeappx pack /d ./publish /p InControl-Desktop.msix /nv
+# Identity inside the manifest must already say Name="InControl.App" and Version="2.0.0.0".
+makeappx pack /d ./publish /p InControl.App_2.0.0.0_x64.msix /nv
 ```
 
 ## Signing
 
-Signing is handled by the CI pipeline. For local testing:
+A tag does not build or sign an MSIX. `.github/workflows/release.yml` runs the library tests. `.github/workflows/release-signed.yml` is `workflow_dispatch` only, and it refuses to run until a signing certificate is configured. That certificate's subject has to be the publisher already on the 1.4.0 package. Do not create a stand-in subject and upload the result.
 
-```powershell
-# Create test certificate (one-time)
-New-SelfSignedCertificate `
-  -Type Custom `
-  -Subject "CN=InControl-Desktop-Dev" `
-  -KeyUsage DigitalSignature `
-  -FriendlyName "InControl Dev Cert" `
-  -CertStoreLocation "Cert:\CurrentUser\My"
-
-# Sign package
-signtool sign /fd SHA256 /a /f cert.pfx /p password InControl-Desktop.msix
-```
-
-## CI Pipeline
-
-The release workflow (`../.github/workflows/release.yml`):
-
-1. Builds the application
-2. Runs all tests
-3. Publishes self-contained executable
-4. Generates build metadata
-5. Creates MSIX package
-6. Generates SHA256 checksums
-7. Creates GitHub release (draft)
+The signed workflow writes `InControl.App_<version>_x64.msix`. It rejects a package version below `2.0.0.0`, and it rejects a manifest whose identity name is not `InControl.App`.
 
 ## Version Policy
 
-Version is sourced from the project file:
-- `src/InControl.App/InControl.App.csproj`
-
-CI reads and injects this version. Manual version management is forbidden.
+The app version is `2.0.0` in `src/InControl.App/InControl.App.csproj`. The MSIX identity version is `2.0.0.0` in `src/InControl.App/Package.appxmanifest`. `AppxAutoIncrementPackageRevision` is off, so a rebuild does not move the fourth part. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2.

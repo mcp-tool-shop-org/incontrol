@@ -1,16 +1,14 @@
-# InControl-Desktop Signed Release Pipeline
+# InControl signed package. workflow_dispatch only. A tag does not start this.
+# No signing certificate is stored in this repository, and no MSIX is committed.
 #
-# This workflow builds, signs, and publishes production releases.
-# Unsigned builds are impossible from this workflow.
+# Partner Center already has identity Name InControl.App through version 1.4.0.
+# This workflow packs that same name. The package version is four numbers,
+# starting at 2.0.0.0. Publisher is the signing certificate subject and has
+# to match the 1.4.0 upload. Run this only when that certificate is configured.
 #
 # Prerequisites:
-# - Code signing certificate in Azure Key Vault or GitHub Secrets
 # - SIGNING_CERTIFICATE_BASE64: Base64-encoded PFX
 # - SIGNING_CERTIFICATE_PASSWORD: PFX password
-#
-# Not part of a source release. A tag does not start this workflow.
-# There is no signing certificate in this repository yet, and no MSIX is built.
-# Run it by hand only when a certificate is actually configured.
 
 name: Signed Release
 
@@ -69,6 +67,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_suffix: ${{ steps.version.outputs.suffix }}
       commit_short: ${{ steps.metadata.outputs.commit_short }}
+      msix_version: ${{ steps.version.outputs.msix_version }}
 
     steps:
       - name: Checkout
@@ -92,17 +91,43 @@ jobs:
             $version = $tag -replace '^v', ''
           }
 
-          if ($version -match '^(\d+\.\d+\.\d+)(-(.+))?$') {
-            $baseVersion = $matches[1]
-            $suffix = if ($matches[3]) { $matches[3] } else { '' }
-          } else {
-            Write-Error "Invalid version format: $version"
+          if ($version -match '-') {
+            Write-Error "Partner Center versions are four numbers. A prerelease suffix cannot be uploaded. Got: $version"
             exit 1
           }
 
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "base=$baseVersion" >> $env:GITHUB_OUTPUT
-          echo "suffix=$suffix" >> $env:GITHUB_OUTPUT
+          $parts = @($version -split '\.')
+          if ($parts.Count -lt 2 -or $parts.Count -gt 4) {
+            Write-Error "Invalid version format: $version. Use 2.0.0. The manifest version becomes 2.0.0.0."
+            exit 1
+          }
+
+          $nums = New-Object System.Collections.Generic.List[int]
+          foreach ($part in $parts) {
+            if ($part -notmatch '^\d+$') {
+              Write-Error "Invalid version format: $version. Use 2.0.0. The manifest version becomes 2.0.0.0."
+              exit 1
+            }
+            $n = [int]$part
+            if ($n -lt 0 -or $n -gt 65535) {
+              Write-Error "Version part out of range (0-65535): $part"
+              exit 1
+            }
+            $nums.Add($n)
+          }
+          while ($nums.Count -lt 4) { $nums.Add(0) }
+
+          $msix = ($nums[0..3] -join '.')
+          if ([version]$msix -lt [version]'2.0.0.0') {
+            Write-Error "Package version $msix is below 2.0.0.0. Partner Center already has InControl.App through 1.4.0.0, so this package starts at 2.0.0.0."
+            exit 1
+          }
+
+          $semver = '{0}.{1}.{2}' -f $nums[0], $nums[1], $nums[2]
+          echo "version=$semver" >> $env:GITHUB_OUTPUT
+          echo "base=$semver" >> $env:GITHUB_OUTPUT
+          echo "suffix=" >> $env:GITHUB_OUTPUT
+          echo "msix_version=$msix" >> $env:GITHUB_OUTPUT
 
       - name: Generate Metadata
         id: metadata
@@ -210,13 +235,13 @@ jobs:
       - name: Create MSIX Manifest
         shell: pwsh
         run: |
-          $version = '${{ needs.build.outputs.version }}'
-          $msixVersion = $version -replace '-.*', ''
+          $msixVersion = '${{ needs.build.outputs.msix_version }}'
           if ($msixVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-            $msixVersion = "$msixVersion.0"
+            Write-Error "MSIX version must be four numbers. Got: $msixVersion"
+            exit 1
           }
 
-          # Get publisher from certificate
+          # Publisher comes from the certificate. It must match the 1.4.0 upload.
           $certPath = $env:CERT_PATH
           $certPassword = '${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}'
           $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certPath, $certPassword)
@@ -226,20 +251,28 @@ jobs:
           Write-Host "MSIX Version: $msixVersion"
 
           $manifest = Get-Content -Path packaging/AppxManifest.template.xml -Raw
+          if ($manifest -notmatch 'Name="InControl\.App"') {
+            Write-Error "MSIX identity Name must stay InControl.App. Partner Center rejects a different package name."
+            exit 1
+          }
           $manifest = $manifest -replace '\$\{VERSION\}', $msixVersion
           $manifest = $manifest -replace '\$\{PUBLISHER\}', $publisher
+          if ($manifest -match '\$\{PUBLISHER\}' -or $manifest -notmatch "Version=`"$msixVersion`"") {
+            Write-Error "Manifest identity was not filled. Name InControl.App, version $msixVersion, and the 1.4.0 publisher are all required."
+            exit 1
+          }
           $manifest | Out-File -FilePath ./publish/AppxManifest.xml -Encoding utf8
 
       - name: Create MSIX Package
         shell: pwsh
         run: |
-          $version = '${{ needs.build.outputs.version }}'
+          $msixVersion = '${{ needs.build.outputs.msix_version }}'
           $makeappx = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
             Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
             Select-Object -First 1
 
           New-Item -ItemType Directory -Force -Path ./artifacts | Out-Null
-          $outputPath = "./artifacts/InControl-Desktop-$version.msix"
+          $outputPath = "./artifacts/InControl.App_${msixVersion}_x64.msix"
 
           & $makeappx.FullName pack /d ./publish /p $outputPath /nv
 
@@ -310,13 +343,14 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ needs.build.outputs.version }}'
+          $msixVersion = '${{ needs.build.outputs.msix_version }}'
 
           $sigInfo = @{
             signed = $true
             signedAt = (Get-Date -Format 'o')
             algorithm = 'SHA256'
             timestampServer = 'http://timestamp.digicert.com'
-            packageFile = "InControl-Desktop-$version.msix"
+            packageFile = "InControl.App_${msixVersion}_x64.msix"
           }
 
           $sigInfo | ConvertTo-Json | Out-File -FilePath "./artifacts/signature-info-$version.json" -Encoding utf8
@@ -358,7 +392,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: InControl-Desktop v${{ needs.build.outputs.version }}
+          name: InControl v${{ needs.build.outputs.version }}
           draft: true
           prerelease: ${{ needs.build.outputs.version_suffix != '' }}
           generate_release_notes: true
@@ -367,11 +401,13 @@ jobs:
             artifacts/checksums-*.txt
             artifacts/signature-info-*.json
           body: |
-            ## InControl-Desktop v${{ needs.build.outputs.version }}
+            ## InControl v${{ needs.build.outputs.version }}
+
+            Package identity `InControl.App`, version `${{ needs.build.outputs.msix_version }}`. That file is the Partner Center upload. It is not a Store listing by itself.
 
             ### Installation
 
-            1. Download `InControl-Desktop-${{ needs.build.outputs.version }}.msix`
+            1. Download `InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix`
             2. Verify the SHA256 checksum (see `checksums-${{ needs.build.outputs.version }}.txt`)
             3. Double-click to install
 
@@ -379,16 +415,14 @@ jobs:
 
             #### Verify Checksum
             ```powershell
-            $expected = (Get-Content checksums-${{ needs.build.outputs.version }}.txt | Select-String 'InControl-Desktop').ToString().Split(' ')[0]
-            $actual = (Get-FileHash InControl-Desktop-${{ needs.build.outputs.version }}.msix -Algorithm SHA256).Hash.ToLower()
-            if ($expected -eq $actual) { Write-Host "✅ Checksum verified" } else { Write-Host "❌ Checksum mismatch" }
+            $expected = (Get-Content checksums-${{ needs.build.outputs.version }}.txt | Select-String 'InControl.App_').ToString().Split(' ')[0]
+            $actual = (Get-FileHash InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix -Algorithm SHA256).Hash.ToLower()
+            if ($expected -eq $actual) { Write-Host "Checksum verified" } else { Write-Host "Checksum mismatch" }
             ```
 
             #### Verify Signature
             ```powershell
-            # Right-click the MSIX → Properties → Digital Signatures
-            # Or use signtool:
-            signtool verify /pa InControl-Desktop-${{ needs.build.outputs.version }}.msix
+            signtool verify /pa InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix
             ```
 
             ### Build Information

@@ -76,10 +76,10 @@ Each release produces:
 
 | Artifact | Description |
 |----------|-------------|
-| Git tag `v*` | The source tree. This is the 0.3.0 release artifact. |
+| Git tag `v*` | The source tree. Tag v0.3.0 is that release. |
 | `CHANGELOG.md` | Release notes |
 
-A signed MSIX is not produced. Do not publish `InControl-Desktop-x.y.z.msix` or `InControl.App_X.Y.Z_x64.msix` as the release.
+Tag v0.3.0 does not include an MSIX. Do not attach `InControl-Desktop-x.y.z.msix` to a GitHub release. A later Partner Center upload is a different step. That upload has to be identity `InControl.App` at a four-part version higher than 1.4.0.0. The prepared version is 2.0.0.0. No such file is in this repository yet.
 
 ### 4. Release Notes Template
 
@@ -119,7 +119,7 @@ On tag push (`v*`):
 2. The workflow does not build or sign an MSIX
 3. Release notes live in CHANGELOG.md
 
-There is no `InControl.App_{version}_{arch}.msix` artifact. The 0.3.0 release is the git tag.
+There is no MSIX artifact on the GitHub release. Tag v0.3.0 is the git tag. Partner Center is a separate upload, and the package that belongs there is `InControl.App` at `2.0.0.0`, which is not built by this tag workflow.
 
 ## Hotfix Process
 

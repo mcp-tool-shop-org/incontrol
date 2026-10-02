@@ -415,12 +415,12 @@ public sealed partial class SettingsPage : UserControl
             ?.InformationalVersion;
         if (string.IsNullOrWhiteSpace(informational))
         {
-            return "0.3.0";
+            return "2.0.0";
         }
 
         var plus = informational.IndexOf('+');
         var version = plus >= 0 ? informational[..plus] : informational;
-        return string.IsNullOrWhiteSpace(version) ? "0.3.0" : version.Trim();
+        return string.IsNullOrWhiteSpace(version) ? "2.0.0" : version.Trim();
     }
 
     private async void OnTestVoiceClick(object sender, RoutedEventArgs e)

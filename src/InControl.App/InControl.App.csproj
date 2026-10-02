@@ -15,10 +15,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>InControl - Ollama chat for Windows, on this PC or over SSH to a GPU you rented</Description>
 
-    <Version>0.3.0</Version>
-    <AssemblyVersion>0.3.0.0</AssemblyVersion>
-    <FileVersion>0.3.0.0</FileVersion>
-    <InformationalVersion>0.3.0</InformationalVersion>
+    <!-- Store package is 2.0.0.0. Partner Center already has InControl.App 1.4.0. -->
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <InformationalVersion>2.0.0</InformationalVersion>
   </PropertyGroup>
 
   <!-- Debug: Unpackaged deployment (framework-dependent for faster dev iteration) -->
@@ -43,7 +44,8 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
-    <AppxAutoIncrementPackageRevision>true</AppxAutoIncrementPackageRevision>
+    <!-- Leave the fourth part at 0. A build must not walk 2.0.0.0 forward on its own. -->
+    <AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>
     <AppxBundle>Never</AppxBundle>
     <AppxPackageDir>..\..\AppPackages\</AppxPackageDir>
     <IsPackable>false</IsPackable>
