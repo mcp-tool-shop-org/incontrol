@@ -55,6 +55,6 @@
 ## E. Identity (soft gate — does not block ship)
 
 - [x] `[all]` Logo in README header (2026-02-27)
-- [ ] `[all]` Translations (polyglot-mcp, 8 languages)
+- [x] `[all]` Translations (polyglot-mcp, 8 languages). Local TranslateGemma 27B, reviewed 2026-10-02. Spanish, French, Italian, and Portuguese said the remote banner keeps the chat on this PC. Those four lines now say the chat leaves.
 - [x] `[org]` Landing page (@mcptoolshop/site-theme) (2026-10-02)
-- [ ] `[all]` GitHub repo metadata: description, homepage, topics
+- [x] `[all]` GitHub repo metadata: description, homepage, topics (2026-10-02). Homepage serves the handbook, including where the chat runs.

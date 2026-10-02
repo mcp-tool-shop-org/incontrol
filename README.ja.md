@@ -1,0 +1,252 @@
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+</p>
+
+<p align="center"><img src="logo.png" alt="InControl" width="400"></p>
+
+<h1 align="center">InControl</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-9-purple?style=flat-square&logo=dotnet" alt=".NET 9">
+  <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
+  <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+</p>
+
+**Windows版Ollamaチャット。** デフォルトでは、このPCで実行されます。必要に応じて、SSH経由でレンタルしたGPUを使用できます。
+
+InControlはOllama HTTP APIを使用します。レンタル環境に接続するまで、データは送信されません。上部のバーには、接続されたマシンの名前が表示され、チャットがこのPCから送信されることが示されます。
+
+## なぜInControlを使うのか？
+
+- **まずこのPC。** プロンプトは、レンタルしたGPUに接続するまで、ここに保存されます。
+- **どちらの場合も同じOllama。** レンタル環境でOllamaが`127.0.0.1:11434`上で実行されます。InControlはSSHローカルフォワードを使用してアクセスします。HTTPクライアントはパブリックポートに直接アクセスしません。
+- **ツール許可リストではありません。** 接続性は、アシスタントツールのURLを制御します。チャットがどこで実行されるかを決定するものではありません。
+- **WinUI 3。** Windowsアプリで、スレッド内にマークダウンを使用します。
+- **アシスタントプロファイル** - 構成可能な個性、詳細度、リスク許容度
+- **プラグインシステム** - サンドボックス化されたプラグインとマニフェストベースのSDKを使用して、機能を拡張します。
+- **ポリシーエンジン** - 組織/チーム/ユーザーのポリシーレイヤーが、ツール、プラグイン、メモリ、および接続を管理します。
+- **接続モード** - オフライン専用、アシスト付き、または完全な監査ログ付きの接続
+
+## NuGetパッケージ
+
+コアライブラリは、独自のローカルAI統合を構築するためのスタンドアロンのNuGetパッケージとして利用できます。
+
+| パッケージ | バージョン | 説明 |
+|---------|---------|-------------|
+| [InControl.Core](https://www.nuget.org/packages/InControl.Core) | [![NuGet](https://img.shields.io/nuget/v/InControl.Core?style=flat-square)](https://www.nuget.org/packages/InControl.Core) | ローカルAIチャットアプリケーションのドメインモデル、会話タイプ、および共有抽象化。 |
+| [InControl.Inference](https://www.nuget.org/packages/InControl.Inference) | [![NuGet](https://img.shields.io/nuget/v/InControl.Inference?style=flat-square)](https://www.nuget.org/packages/InControl.Inference) | ストリーミングチャット、モデル管理、およびヘルスチェックを備えたLLMバックエンド抽象化レイヤー。Ollamaの実装が含まれます。 |
+
+```bash
+dotnet add package InControl.Core
+dotnet add package InControl.Inference
+```
+
+```csharp
+// Example: use InControl.Inference in your own app
+var client = inferenceClientFactory.Create("ollama");
+await foreach (var token in client.StreamChatAsync(messages))
+{
+    Console.Write(token);
+}
+```
+
+## ターゲットハードウェア
+
+| コンポーネント | 最小 | 推奨 |
+|-----------|---------|-------------|
+| GPU | RTX 3060 (8GB) | RTX 4080/5080 (16GB) |
+| RAM | 16GB | 32GB |
+| OS | Windows 10 1809+ | Windows 11 |
+| .NET | 9.0 | 9.0 |
+
+## インストール
+
+ソースからビルドします。このリポジトリのMSIXリリースはまだありません。
+
+```bash
+git clone https://github.com/mcp-tool-shop-org/incontrol.git
+cd incontrol
+dotnet restore
+dotnet build
+
+# Run (Ollama on this PC)
+dotnet run --project src/InControl.App
+```
+
+## 前提条件
+
+InControlには、ローカルLLMバックエンドが必要です。 [Ollama](https://ollama.ai/)の使用をお勧めします。
+
+```bash
+# Install Ollama from https://ollama.ai/download
+
+# Pull a model
+ollama pull llama3.2
+
+# Start the server (runs on http://127.0.0.1:11434)
+ollama serve
+```
+
+## レンタルしたGPU
+
+[設定] → **このチャットの実行場所**。レンタル環境から直接SSHコマンドを貼り付けます（`ssh -p <mapped-port> root@<public-ip> -i <key>`）。ボタンをクリックすると、チャットがそのマシンに送信されます。
+
+フォワードは、このPCの`127.0.0.1:11436`でリッスンし、`11434`ではリッスンしません。Ollamaがそのポートを通じて応答するまで、チャットはここに残ります。
+
+レンタル環境のOllamaを`127.0.0.1:11434`で実行したままにします。`OLLAMA_HOST=0.0.0.0`を設定せず、ポート11434を公開しないでください。SSHポートは、マッピングされたsshdポートであり、11434ではありません。
+
+RunPodの`ssh.runpod.io`プロキシは、単なるシェルです。ポートをフォワードすることはできません。**RunPodポッドを検索**は、環境の`RUNPOD_API_KEY`を使用し、ポッドの直接パブリックIP SSHを埋めます。キーは保存されません。検索はポッドを開始せず、チャットを送信しません。Vastは、直接アドレスでのフォワードをドキュメント化しています。アドレスは、レンタルが再起動すると消えます。ポッドを再度検索するか、新しいコマンドを貼り付けます。プライベートキーは、このPCに残ります。
+
+完全なルールは、[docs/COMPUTE.md](docs/COMPUTE.md)にあります。
+
+## ビルド
+
+### ビルド環境の確認
+
+```powershell
+# Run verification script
+./scripts/verify.ps1
+```
+
+### 開発ビルド
+
+```bash
+dotnet build
+```
+
+### リリースビルド
+
+```powershell
+# Creates release artifacts in artifacts/
+./scripts/release.ps1
+```
+
+### テストの実行
+
+```bash
+dotnet test
+```
+
+## アーキテクチャ
+
+InControlは、クリーンで階層化されたアーキテクチャに従います。
+
+```
++-------------------------------------------+
+|         InControl.App (WinUI 3)           |  UI Layer
++-------------------------------------------+
+|         InControl.ViewModels              |  Presentation
++-------------------------------------------+
+|         InControl.Services                |  Business Logic
++-------------------------------------------+
+|         InControl.Inference               |  LLM Backends
++-------------------------------------------+
+|         InControl.Core                    |  Shared Types
++-------------------------------------------+
+```
+
+詳細な設計ドキュメントについては、[ARCHITECTURE.md](./docs/ARCHITECTURE.md)を参照してください。
+
+### 主要なサブシステム
+
+| サブシステム | 名前空間 | 目的 |
+|-----------|-----------|---------|
+| アシスタント | `InControl.Core.Assistant` | プロファイル、メモリストア、個性ガード、オンボーディング |
+| プラグイン | `InControl.Core.Plugins` | マニフェストで検証された、サンドボックス化された拡張機能とSDK |
+| ポリシー | `InControl.Core.Policy` | JSONポリシー文書（組織/チーム/ユーザー）、ツール/プラグイン/メモリ/接続ルール |
+| 接続 | `InControl.Core.Connectivity` | 監査証跡を備えた3つのモードのネットワークガバナンス |
+| ヘルスチェック | `InControl.Services.Health` | プラグ可能なヘルスチェック（アプリ、推論、ストレージ） |
+| 診断 | `InControl.Core.Diagnostics` | サニタイズされた構成を使用したサポートバンドルの作成 |
+
+## データストレージ
+
+すべてのデータはローカルに保存されます。
+
+| データ | 場所 |
+|------|----------|
+| セッション | `%LOCALAPPDATA%\InControl\sessions\` |
+| ログ | `%LOCALAPPDATA%\InControl\logs\` |
+| キャッシュ | `%LOCALAPPDATA%\InControl\cache\` |
+| エクスポート | `%USERPROFILE%\Documents\InControl\exports\` |
+
+完全なデータ処理ドキュメントについては、[PRIVACY.md](./docs/PRIVACY.md)を参照してください。
+
+## トラブルシューティング
+
+一般的な問題とその解決策は、[TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)に記載されています。
+
+### クイックフィックス
+
+**アプリが起動しない:**
+- .NET 9.0 Runtimeがインストールされていることを確認します。
+- `dotnet --list-runtimes`を実行して確認します。
+
+**モデルが利用できない:**
+- Ollamaが実行されていることを確認します: `ollama serve`
+- モデルをプルします: `ollama pull llama3.2`
+
+**GPUが検出されない:**
+- NVIDIAドライバを最新バージョンに更新します。
+- CUDAツールキットのインストールを確認します。
+
+## 貢献
+
+貢献は大歓迎です！
+
+1. リポジトリをフォークします。
+2. 機能ブランチを作成します。
+3. 新しい機能のテストを作成します。
+4. プルリクエストを送信します。
+
+## 問題の報告
+
+1. まず[TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)を確認します。
+2. アプリの「診断情報のコピー」機能を使用します。
+3. 診断情報が添付された状態で、問題を報告します。
+
+## 技術スタック
+
+| レイヤー | テクノロジー |
+|-------|------------|
+| UIフレームワーク | WinUI 3 (Windows App SDK 1.6) |
+| アーキテクチャ | CommunityToolkit.Mvvmを使用したMVVM |
+| LLM統合 | OllamaSharp、Microsoft.Extensions.AI |
+| DIコンテナ | Microsoft.Extensions.DependencyInjection |
+| 構成 | Microsoft.Extensions.Configuration |
+| ログ記録 | Microsoft.Extensions.Logging + Serilog |
+
+## バージョン
+
+現在のバージョン：**0.3.0**
+
+リリース履歴については、[CHANGELOG.md](./CHANGELOG.md) を参照してください。
+
+## セキュリティとデータ範囲
+
+InControlは、Ollama用のWinUI 3チャットアプリケーションです。
+
+- **アクセスされるデータ：** このPC上のOllama、ローカルストレージ内のチャット履歴、および（SSH経由で接続した場合のみ）接続先のPC上のOllama
+- **アクセスされないデータ：** InControlアカウント、テレメトリ、分析
+- **必要な権限：** OllamaへのループバックHTTP、レンタル環境に接続する際のこのPC上のSSHクライアント、およびチャット履歴用のファイルシステム
+
+完全なポリシー：[SECURITY.md](SECURITY.md)
+
+---
+
+## サポート
+
+- **バグ報告：** [Issues](https://github.com/mcp-tool-shop-org/incontrol/issues)
+- **セキュリティ：** [SECURITY.md](SECURITY.md)
+
+## ライセンス
+
+[MIT](LICENSE) — 完全なテキストは[LICENSE](LICENSE)を参照してください。
+
+---
+
+<p align="center">
+  Built by <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>
+</p>
