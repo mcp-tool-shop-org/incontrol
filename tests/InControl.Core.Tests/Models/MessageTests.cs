@@ -18,6 +18,15 @@ public class MessageTests
         message.Id.Should().NotBeEmpty();
         message.CreatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
         message.Model.Should().BeNull();
+        message.Images.Should().BeNull();
+    }
+
+    [Fact]
+    public void User_KeepsImages_AndDropsAnEmptyList()
+    {
+        Message.User("look", ["QUJD"]).Images.Should().Equal("QUJD");
+        Message.User("look", []).Images.Should().BeNull();
+        Message.User("look", null).Images.Should().BeNull();
     }
 
     [Fact]

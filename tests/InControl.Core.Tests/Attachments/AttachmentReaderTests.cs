@@ -152,5 +152,73 @@ public class AttachmentReaderTests
         AttachmentReader.ImagesOf([text, image]).Should().Equal("QUJD");
         AttachmentReader.ImagesOf([text]).Should().BeNull();
         AttachmentReader.ImagesOf(null).Should().BeNull();
+        AttachmentReader.ImagesOf([new ChatAttachment("c.png", AttachmentKind.Image, null, "", 0)]).Should().BeNull();
+    }
+
+    [Fact]
+    public void Read_BlankName_IsCalledFile()
+    {
+        var result = AttachmentReader.Read("   ", Encoding.UTF8.GetBytes("hello"));
+
+        result.Attachment!.Name.Should().Be("file");
+        result.Attachment.Text.Should().Be("hello");
+    }
+
+    [Fact]
+    public void Read_ImageOverTheLimit_IsRefusedInMegabytes()
+    {
+        var bytes = new byte[AttachmentReader.MaxImageBytes + 1];
+
+        var result = AttachmentReader.Read("big.png", bytes);
+
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().Contain("10 MB");
+    }
+
+    [Fact]
+    public void ReadFile_ImageUnderTheLimit_IsAnImage()
+    {
+        var dir = Directory.CreateTempSubdirectory("incontrol-attach-");
+        try
+        {
+            var png = Path.Combine(dir.FullName, "shot.png");
+            File.WriteAllBytes(png, PngHeader);
+
+            var result = AttachmentReader.ReadFile(png);
+
+            result.Attachment!.Kind.Should().Be(AttachmentKind.Image);
+            result.Attachment.ImageBase64.Should().Be(Convert.ToBase64String(PngHeader));
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ReadFile_LockedFile_SaysItCouldNotBeRead()
+    {
+        var dir = Directory.CreateTempSubdirectory("incontrol-attach-");
+        var path = Path.Combine(dir.FullName, "locked.txt");
+        using (var locked = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+        {
+            locked.WriteByte((byte)'a');
+            locked.Flush();
+
+            var result = AttachmentReader.ReadFile(path);
+
+            result.Succeeded.Should().BeFalse();
+            result.Error.Should().Contain("could not be read");
+        }
+
+        dir.Delete(recursive: true);
+    }
+
+    [Fact]
+    public void Compose_NullPromptAndMissingText_StillFencesTheFile()
+    {
+        var text = new ChatAttachment("a.txt", AttachmentKind.Text, null, null, 0);
+
+        AttachmentReader.Compose(null!, [text]).Should().Be("File: a.txt\n```\n\n```");
     }
 }

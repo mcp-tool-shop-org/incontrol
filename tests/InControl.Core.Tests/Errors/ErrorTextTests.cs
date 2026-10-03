@@ -27,4 +27,11 @@ public class ErrorTextTests
     {
         ErrorText.Readable(text).Should().Be(text);
     }
+
+    [Fact]
+    public void Readable_KeepsTheMessageWhenTheEscapeIsNotValid()
+    {
+        // \u needs four hex digits. Unescape throws, and the sentence is still the message.
+        ErrorText.Readable("{\"message\":\"bad\\u12\"}").Should().Be("bad\\u12");
+    }
 }
