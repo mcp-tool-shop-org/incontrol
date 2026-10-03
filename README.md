@@ -227,7 +227,7 @@ Contributions welcome! Please:
 
 ## Version
 
-Current version: **2.0.1**. In the Microsoft Store it is InControl-Desktop, package identity `mcp-tool-shop.InControl-Desktop` at `2.0.1.0`. The Store already had this app through 1.4.0, so the package version starts above it. The name on the repo, in the window and on the Start tile is InControl.
+Current version: **2.0.1**. In the Microsoft Store it is InControl-Desktop, package identity `mcp-tool-shop.InControl-Desktop`, version `2.0.1.0`. The Store already had this app through 1.4.0, so the package version starts above it. The name on the repo, in the window and on the Start tile is InControl.
 
 See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
 

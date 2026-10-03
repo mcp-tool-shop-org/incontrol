@@ -20,12 +20,14 @@ InControl utilizza l'API HTTP di Ollama. Nessun dato viene inviato a un server a
 
 ## Perché InControl?
 
-- **Prima su questo PC.** I messaggi di istruzione rimangono qui finché non si connette una GPU in affitto.
-- **Stessa versione di Ollama in entrambi i casi.** L'esecuzione in affitto utilizza Ollama su `127.0.0.1:11434`. InControl vi accede tramite un inoltro SSH locale. Il client HTTP non comunica mai con una porta pubblica.
+- **Prima questo PC.** I messaggi di istruzione rimangono qui finché non si connette una GPU in affitto.
+- **Lo stesso Ollama, in entrambi i casi.** L'affitto esegue Ollama su `127.0.0.1:11434`. InControl vi accede tramite un inoltro SSH locale. Il client HTTP non comunica mai con una porta pubblica.
 - **Non è la lista di strumenti consentiti.** La connettività controlla gli URL degli strumenti di assistenza. Non determina dove viene eseguita la chat.
 - **Progetti e note.** Salva le sessioni all'interno dei progetti, con le relative istruzioni. Chiedi di ricordare una nota per un progetto o una sessione e le note corrispondenti verranno incluse nel messaggio successivo.
-- **Voce su questo PC.** Le risposte possono essere lette ad alta voce da Kokoro, che viene eseguito su questo PC. Il modello vocale viene scaricato una sola volta, la prima volta che viene utilizzato.
-- **WinUI 3.** Un'app per Windows, con markdown nel thread.
+- **Ricerca sul web, quando la si attiva.** Il pulsante Web consente a un modello che può utilizzare strumenti di effettuare ricerche su DuckDuckGo e leggere pagine pubbliche. È disattivato finché non lo si attiva e ogni risposta elenca le ricerche effettuate.
+- **Allega file.** Aggiungi file di testo e codice a un messaggio, oppure immagini per un modello di visione come gemma3 o llama3.2-vision. Utilizza la graffetta, Ctrl+Shift+O o trascina i file nel compositore.
+- **Voce su questo PC.** Le risposte possono essere lette ad alta voce da Kokoro, che viene eseguito su questo PC. Il modello vocale viene scaricato una sola volta, la prima volta che è necessario utilizzare la voce: quando viene pronunciata una risposta o quando si aprono le impostazioni.
+- **WinUI 3.** Un'app Windows nativa. Le risposte visualizzano il markdown: enfasi, blocchi di codice, elenchi, tabelle e collegamenti.
 - **Motore di policy.** I documenti di policy dell'organizzazione, del team e dell'utente regolano gli strumenti, la memoria e la connettività.
 - **Modalità di connettività.** Solo offline, assistita o connessa, con un registro di controllo.
 
@@ -225,7 +227,7 @@ I contributi sono benvenuti! Si prega di:
 
 ## Versione
 
-Versione corrente: **2.0.0**. Nel Microsoft Store è InControl-Desktop, con ID pacchetto `mcp-tool-shop.InControl-Desktop` all'indirizzo `2.0.0.0`. Lo Store aveva già questa app nella versione 1.4.0, quindi la versione del pacchetto inizia da un numero superiore. Il nome nel repository, nella finestra e sulla tile del menu Start è InControl.
+Versione corrente: **2.0.1**. Nel Microsoft Store è InControl-Desktop, l'identità del pacchetto è `mcp-tool-shop.InControl-Desktop` all'indirizzo `2.0.1.0`. Lo Store aveva già questa app nella versione 1.4.0, quindi la versione del pacchetto inizia da un valore superiore. Il nome nel repository, nella finestra e sulla tile di avvio è InControl.
 
 Consulta [CHANGELOG.md](./CHANGELOG.md) per capire perché la versione è aumentata e per la cronologia della versione 0.3.0.
 

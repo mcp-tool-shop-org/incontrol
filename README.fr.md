@@ -22,11 +22,13 @@ InControl utilise l’API HTTP d’Ollama. Rien n’est envoyé à une instance 
 
 - **Cet ordinateur d’abord.** Les invites restent affichées jusqu’à ce que vous connectiez une GPU louée.
 - **Même Ollama, quelle que soit la méthode.** Une instance louée exécute Ollama sur `127.0.0.1:11434`. InControl y accède via un transfert SSH local. Le client HTTP ne communique jamais avec un port public.
-- **Pas la liste blanche d’outils.** La connectivité contrôle les URL des outils d’assistance. Elle ne détermine pas où la conversation a lieu.
-- **Projets et notes.** Enregistrez les sessions dans les projets avec leurs propres instructions. Demandez-lui de se souvenir d’une note pour un projet ou une session, et les notes correspondantes seront incluses dans le message suivant.
-- **Voix sur cet ordinateur.** Les réponses peuvent être lues à voix haute par Kokoro, qui s’exécute sur cet ordinateur. Le modèle vocal est téléchargé une seule fois, la première fois qu’il est utilisé.
-- **WinUI 3.** Une application Windows, avec du markdown dans le fil de discussion.
-- **Moteur de stratégie.** Les documents de stratégie de l’organisation, de l’équipe et de l’utilisateur régissent les outils, la mémoire et la connectivité.
+- **Ce n’est pas la liste blanche des outils.** La connectivité contrôle les URL des outils d’assistance. Elle ne détermine pas où la conversation a lieu.
+- **Projets et notes.** Enregistrez les sessions dans des projets avec leurs propres instructions. Demandez-lui de se souvenir d’une note pour un projet ou une session, et les notes correspondantes seront incluses dans le message suivant.
+- **Recherche sur le Web, lorsque vous l’activez.** Le bouton Web permet à un modèle capable d’utiliser des outils d’effectuer des recherches sur DuckDuckGo et de lire des pages publiques. Il est désactivé jusqu’à ce que vous l’activiez, et chaque réponse affiche les recherches effectuées.
+- **Joindre des fichiers.** Ajoutez des fichiers texte et des fichiers de code à un message, ou des images pour un modèle de vision tel que gemma3 ou llama3.2-vision. Utilisez l’icône trombone, Ctrl+Maj+O, ou faites glisser des fichiers dans le champ de composition.
+- **Voix sur cet ordinateur.** Les réponses peuvent être lues à voix haute par Kokoro, qui s’exécute sur cet ordinateur. Le modèle vocal est téléchargé une seule fois, la première fois que la voix est nécessaire : lorsqu’une réponse est prononcée, ou lorsque vous ouvrez les paramètres.
+- **WinUI 3.** Une application Windows native. Les réponses rendent le markdown : emphase, blocs de code, listes, tableaux et liens.
+- **Moteur de politique.** Les documents de politique de l’organisation, de l’équipe et de l’utilisateur régissent les outils, la mémoire et la connectivité.
 - **Modes de connectivité.** Uniquement hors ligne, assisté ou connecté, avec un journal d’audit.
 
 ## Packages NuGet
@@ -225,7 +227,7 @@ Les contributions sont les bienvenues ! Veuillez :
 
 ## Version
 
-Version actuelle : **2.0.0**. Dans le Microsoft Store, il s’agit d’InControl-Desktop, l’ID du package étant `mcp-tool-shop.InControl-Desktop` à `2.0.0.0`. Le Store proposait déjà cette application en version 1.4.0, de sorte que la version du package commence au-dessus de cette valeur. Le nom dans le dépôt, dans la fenêtre et sur la vignette du menu Démarrer est InControl.
+Version actuelle : **2.0.1**. Dans le Microsoft Store, il s’agit de InControl-Desktop, l’identité du package est `mcp-tool-shop.InControl-Desktop` à `2.0.1.0`. Le Store proposait déjà cette application en version 1.4.0, de sorte que la version du package commence au-dessus de cette version. Le nom dans le dépôt, dans la fenêtre et sur la vignette du menu Démarrer est InControl.
 
 Consultez [CHANGELOG.md](./CHANGELOG.md) pour savoir pourquoi la version a augmenté et pour connaître l’historique de la version 0.3.0.
 

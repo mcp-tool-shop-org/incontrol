@@ -24,9 +24,11 @@ O InControl utiliza a API HTTP do Ollama. Nada é enviado para um servidor aluga
 - **O mesmo Ollama, de qualquer forma.** Um aluguel executa o Ollama em `127.0.0.1:11434`. O InControl acessa-o com um encaminhamento SSH local. O cliente HTTP nunca se comunica com uma porta pública.
 - **Não é a lista de permissões de ferramentas.** A conectividade controla os URLs das ferramentas de assistência. Não determina onde o chat é executado.
 - **Projetos e notas.** Salve as sessões em projetos com suas próprias instruções. Peça para ele lembrar uma nota para um projeto ou sessão, e as notas correspondentes serão incluídas na próxima mensagem.
-- **Voz neste PC.** As respostas podem ser lidas em voz alta pelo Kokoro, que é executado neste PC. O modelo de voz é baixado uma vez, na primeira vez que ele fala.
-- **WinUI 3.** Um aplicativo do Windows, com markdown no thread.
-- **Mecanismo de política.** Documentos de política da organização, equipe e usuário governam ferramentas, memória e conectividade.
+- **Pesquisa na web, quando você a ativar.** O botão Web permite que um modelo que pode usar ferramentas pesquise no DuckDuckGo e leia páginas públicas. Ele está desativado até que você o ative, e cada resposta lista as pesquisas que foram feitas.
+- **Anexar arquivos.** Adicione arquivos de texto e código a uma mensagem, ou imagens para um modelo de visão, como o gemma3 ou o llama3.2-vision. Use o ícone de clipe de papel, Ctrl+Shift+O ou arraste os arquivos para o editor.
+- **Voz neste PC.** As respostas podem ser lidas em voz alta pelo Kokoro, que é executado neste PC. O modelo de voz é baixado uma vez, na primeira vez que a voz é necessária: quando uma resposta é falada ou quando você abre as Configurações.
+- **WinUI 3.** Um aplicativo Windows nativo. As respostas renderizam Markdown: ênfase, blocos de código, listas, tabelas e links.
+- **Mecanismo de política.** Documentos de política da organização, equipe e usuário regem as ferramentas, a memória e a conectividade.
 - **Modos de conectividade.** Apenas offline, assistido ou conectado, com um registro de auditoria.
 
 ## Pacotes NuGet
@@ -225,7 +227,7 @@ Contribuições são bem-vindas! Por favor:
 
 ## Versão
 
-Versão atual: **2.0.0**. Na Microsoft Store, é o InControl-Desktop, identidade do pacote `mcp-tool-shop.InControl-Desktop` em `2.0.0.0`. A Store já tinha este aplicativo na versão 1.4.0, então a versão do pacote começa acima dela. O nome no repositório, na janela e no bloco do menu Iniciar é InControl.
+Versão atual: **2.0.1**. Na Microsoft Store, é o InControl-Desktop, com a identidade do pacote `mcp-tool-shop.InControl-Desktop` em `2.0.1.0`. A Store já tinha este aplicativo na versão 1.4.0, portanto, a versão do pacote começa acima dela. O nome no repositório, na janela e no bloco do menu Iniciar é InControl.
 
 Veja [CHANGELOG.md](./CHANGELOG.md) para saber por que a versão aumentou e para o histórico da versão 0.3.0.
 
