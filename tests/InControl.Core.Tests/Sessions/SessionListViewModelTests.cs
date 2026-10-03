@@ -133,29 +133,17 @@ public class SessionListViewModelTests
     }
 
     [Fact]
-    public void DuplicateSession_CreatesNewSession()
+    public void AddCopy_PutsTheCopyFirst()
     {
         var vm = new SessionListViewModel();
-        var original = vm.CreateSession();
+        vm.AddSession(Conversation.Create("Older"));
+        var copy = Conversation.Create("My Session (copy)");
 
-        var duplicate = vm.DuplicateSession(original);
+        var added = vm.AddCopy(copy);
 
-        duplicate.Should().NotBeSameAs(original);
-        duplicate.Id.Should().NotBe(original.Id);
+        added.Id.Should().Be(copy.Id);
+        vm.Sessions[0].Should().BeSameAs(added);
         vm.Sessions.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public void DuplicateSession_CopiesTitle()
-    {
-        var vm = new SessionListViewModel();
-        vm.AddSession(Conversation.Create("My Session"));
-        var original = vm.Sessions[0];
-
-        var duplicate = vm.DuplicateSession(original);
-
-        duplicate.Title.Should().Contain("My Session");
-        duplicate.Title.Should().Contain("copy");
     }
 
     [Fact]
@@ -266,18 +254,5 @@ public class SessionListViewModelTests
 
         session.ProjectId.Should().Be(other);
         vm.FilteredSessions.Should().Contain(session);
-    }
-
-    [Fact]
-    public void DuplicateSession_KeepsTheProject()
-    {
-        var vm = new SessionListViewModel();
-        var other = Guid.NewGuid();
-        vm.AddSession(Conversation.Create("Away", projectId: other));
-
-        var duplicate = vm.DuplicateSession(vm.Sessions[0]);
-
-        duplicate.ProjectId.Should().Be(other);
-        duplicate.Title.Should().Contain("copy");
     }
 }

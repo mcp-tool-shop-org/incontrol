@@ -61,6 +61,11 @@ public sealed partial class SessionSidebar : UserControl
     public event EventHandler<Guid>? SessionDeleteRequested;
 
     /// <summary>
+    /// Event raised when a session should be copied.
+    /// </summary>
+    public event EventHandler<Guid>? SessionDuplicateRequested;
+
+    /// <summary>
     /// Event raised when a session should be exported.
     /// </summary>
     public event EventHandler<Guid>? SessionExportRequested;
@@ -366,6 +371,11 @@ public sealed partial class SessionSidebar : UserControl
         rename.DataContext = session;
         menu.Items.Add(rename);
 
+        var duplicate = new MenuFlyoutItem { Text = "Duplicate", Icon = new SymbolIcon(Symbol.Copy) };
+        duplicate.Click += OnDuplicateClick;
+        duplicate.DataContext = session;
+        menu.Items.Add(duplicate);
+
         menu.Items.Add(new MenuFlyoutSeparator());
 
         var pin = new MenuFlyoutItem
@@ -521,6 +531,13 @@ public sealed partial class SessionSidebar : UserControl
         {
             SessionDeleteRequested?.Invoke(this, session.Id);
         }
+    }
+
+    private void OnDuplicateClick(object sender, RoutedEventArgs e)
+    {
+        var session = GetContextSession(sender);
+        if (session is not null)
+            SessionDuplicateRequested?.Invoke(this, session.Id);
     }
 
     private void SetupKeyboardNavigation()

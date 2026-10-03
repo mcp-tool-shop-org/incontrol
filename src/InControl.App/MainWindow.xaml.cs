@@ -261,11 +261,17 @@ public sealed partial class MainWindow : Window
         SessionSidebar.SessionSelected += OnSessionSelected;
         SessionSidebar.SessionRenamed += OnSessionRenamed;
         SessionSidebar.SessionDeleteRequested += OnSessionDeleteRequested;
+        SessionSidebar.SessionDuplicateRequested += OnSessionDuplicateRequested;
         SessionSidebar.SessionExportRequested += OnSessionExportRequested;
         SessionSidebar.RememberForProjectRequested += OnRememberForProject;
         SessionSidebar.RememberForSessionRequested += OnRememberForSession;
         SessionSidebar.ForgetMemoryRequested += OnForgetMemory;
         SessionSidebar.InstructionsChanged += OnInstructionsChanged;
+
+        App.GetService<IChatService>().PersistenceFailed += (_, e) => ShowNotice(
+            e.Operation == ConversationPersistenceOperation.Delete
+                ? "That session could not be deleted. It is still on this PC."
+                : "This chat could not be saved to disk. What is on screen will be missing after a restart.");
 
         // ConversationView InputComposer events
         ConversationView.Composer.ModelManagerRequested += (s, e) => _navigation.Navigate<ModelManagerPage>();
@@ -781,6 +787,29 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Stores a copy of a session and shows it at the top of the list.
+    /// </summary>
+    private async void OnSessionDuplicateRequested(object? sender, Guid conversationId)
+    {
+        try
+        {
+            var copy = await App.GetService<IChatService>().DuplicateConversationAsync(conversationId);
+            if (copy is null)
+            {
+                ShowNotice("That session could not be copied.");
+                return;
+            }
+
+            _sessionListVm.AddCopy(copy);
+            SessionSidebar.RefreshVisualState();
+        }
+        catch (Exception ex)
+        {
+            ShowFailure("Could not copy that session", ex);
+        }
+    }
+
+    /// <summary>
     /// Handles a session delete request from the sidebar.
     /// </summary>
     private async void OnSessionDeleteRequested(object? sender, Guid conversationId)
@@ -791,7 +820,9 @@ public sealed partial class MainWindow : Window
                 OnCancelRequested(this, EventArgs.Empty);
 
             var chatService = App.GetService<IChatService>();
-            await chatService.DeleteConversationAsync(conversationId);
+            // A false result keeps the session. PersistenceFailed has already told the user.
+            if (!await chatService.DeleteConversationAsync(conversationId))
+                return;
 
             // Remove from sidebar ViewModel
             SessionItemViewModel? toRemove = null;

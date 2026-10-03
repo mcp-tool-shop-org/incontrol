@@ -41,3 +41,6 @@ site/node_modules/
 
 # Polyglot cache
 .polyglot-cache.json
+
+# Agent worktrees
+.claude/worktrees/

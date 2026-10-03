@@ -45,6 +45,16 @@ public interface IChatService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Stores a copy of a conversation, with its messages and project, titled "(copy)".
+    /// </summary>
+    /// <param name="conversationId">The conversation to copy.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The stored copy, or null if the source is missing or the copy could not be saved.</returns>
+    Task<Conversation?> DuplicateConversationAsync(
+        Guid conversationId,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Gets a conversation by ID.
     /// </summary>
     /// <param name="conversationId">The conversation ID.</param>

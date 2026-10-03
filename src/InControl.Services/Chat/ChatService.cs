@@ -112,6 +112,33 @@ public sealed class ChatService : IChatService
         return conversation;
     }
 
+    public async Task<Conversation?> DuplicateConversationAsync(Guid conversationId, CancellationToken ct = default)
+    {
+        await EnsureLoadedAsync(ct);
+        if (!_conversations.TryGetValue(conversationId, out var source))
+            return null;
+
+        var copy = Conversation.Create(
+            source.Title + " (copy)",
+            source.Model,
+            source.SystemPrompt,
+            source.ProjectId ?? ChatProject.GeneralId);
+        foreach (var message in source.Messages)
+            copy = copy.WithMessage(message);
+
+        _conversations[copy.Id] = copy;
+
+        // A copy that is not on disk would vanish on restart. Do not show one.
+        if (!await SaveQuietly(copy, ct))
+        {
+            _conversations.Remove(copy.Id);
+            return null;
+        }
+
+        ConversationCreated?.Invoke(this, new ConversationEventArgs { Conversation = copy });
+        return copy;
+    }
+
     public async Task<Conversation?> GetConversationAsync(Guid conversationId, CancellationToken ct = default)
     {
         await EnsureLoadedAsync(ct);

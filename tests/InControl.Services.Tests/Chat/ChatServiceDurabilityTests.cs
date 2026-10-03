@@ -279,4 +279,48 @@ public class ChatServiceDurabilityTests
 
         failures.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Duplicate_StoresACopyWithTheMessagesAndProject()
+    {
+        var storage = new ScriptedStorage();
+        var chat = NewChat(storage);
+        var project = Guid.NewGuid();
+        var source = await chat.CreateConversationAsync("Plan", model: "fake", projectId: project);
+        await Drain(chat.SendMessageAsync(source.Id, "Hello"));
+
+        var copy = await chat.DuplicateConversationAsync(source.Id);
+
+        copy.Should().NotBeNull();
+        copy!.Id.Should().NotBe(source.Id);
+        copy.Title.Should().Be("Plan (copy)");
+        copy.ProjectId.Should().Be(project);
+        copy.Model.Should().Be("fake");
+        copy.Messages.Select(m => m.Content).Should().Equal(
+            (await chat.GetConversationAsync(source.Id))!.Messages.Select(m => m.Content));
+        storage.Contains(copy.Id).Should().BeTrue();
+        (await chat.GetConversationsAsync()).Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Duplicate_WhenTheCopyCannotBeSaved_ReturnsNullAndKeepsNothing()
+    {
+        var storage = new ScriptedStorage();
+        var chat = NewChat(storage);
+        var source = await chat.CreateConversationAsync("Plan", model: "fake");
+        storage.ThrowOnSave = true;
+
+        var copy = await chat.DuplicateConversationAsync(source.Id);
+
+        copy.Should().BeNull();
+        (await chat.GetConversationsAsync()).Should().ContainSingle(c => c.Id == source.Id);
+    }
+
+    [Fact]
+    public async Task Duplicate_OfAMissingSession_ReturnsNull()
+    {
+        var chat = NewChat(new ScriptedStorage());
+
+        (await chat.DuplicateConversationAsync(Guid.NewGuid())).Should().BeNull();
+    }
 }

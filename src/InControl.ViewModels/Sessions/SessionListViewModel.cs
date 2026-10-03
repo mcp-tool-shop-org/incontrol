@@ -261,19 +261,11 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Duplicates a session into the same project.
+    /// Shows a stored copy at the top of the list. The chat service makes and saves the copy.
     /// </summary>
-    public SessionItemViewModel DuplicateSession(SessionItemViewModel source)
+    public SessionItemViewModel AddCopy(Conversation copy)
     {
-        var original = source.GetConversation();
-        var duplicate = Conversation.Create(
-            original.Title + " (copy)",
-            projectId: original.ProjectId);
-
-        foreach (var message in original.Messages)
-            duplicate = duplicate.WithMessage(message);
-
-        var viewModel = new SessionItemViewModel(duplicate);
+        var viewModel = new SessionItemViewModel(copy);
         Sessions.Insert(0, viewModel);
 
         OnPropertyChanged(nameof(HasSessions));
