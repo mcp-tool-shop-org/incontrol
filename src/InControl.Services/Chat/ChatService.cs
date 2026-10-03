@@ -20,11 +20,16 @@ public sealed class ChatService : IChatService
     private readonly ISessionMemory? _memory;
     private readonly Dictionary<Guid, Conversation> _conversations = new();
     private readonly Dictionary<Guid, CancellationTokenSource> _activeGenerations = new();
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
+    // Saves and deletes take turns, so a delete cannot land in the middle of a save.
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
+    private readonly object _generationGate = new();
     private bool _loaded;
 
     public event EventHandler<ConversationEventArgs>? ConversationCreated;
     public event EventHandler<ConversationEventArgs>? ConversationUpdated;
     public event EventHandler<ConversationEventArgs>? ConversationDeleted;
+    public event EventHandler<ConversationPersistenceFailedEventArgs>? PersistenceFailed;
 
     public ChatService(
         IInferenceClient inferenceClient,
@@ -47,26 +52,42 @@ public sealed class ChatService : IChatService
     public async Task EnsureLoadedAsync(CancellationToken ct = default)
     {
         if (_loaded) return;
-        _loaded = true;
 
+        await _loadGate.WaitAsync(ct);
         try
         {
-            var conversations = await _storage.LoadAllAsync(ct);
-            foreach (var c in conversations)
+            if (_loaded) return;
+
+            try
             {
-                // Older files have no project. Show them in General without bumping ModifiedAt.
-                var stored = c.ProjectId is null
-                    ? c with { ProjectId = ChatProject.GeneralId }
-                    : c;
-                _conversations[stored.Id] = stored;
-                if (c.ProjectId is null)
-                    await SaveQuietly(stored, ct);
+                var conversations = await _storage.LoadAllAsync(ct);
+                foreach (var c in conversations)
+                {
+                    // Older files have no project. Show them in General without bumping ModifiedAt.
+                    var stored = c.ProjectId is null
+                        ? c with { ProjectId = ChatProject.GeneralId }
+                        : c;
+                    _conversations[stored.Id] = stored;
+                    if (c.ProjectId is null)
+                        await SaveQuietly(stored, ct);
+                }
+                _logger.LogInformation("Loaded {Count} conversations from storage", conversations.Count);
             }
-            _logger.LogInformation("Loaded {Count} conversations from storage", conversations.Count);
+            catch (OperationCanceledException)
+            {
+                // A cancelled load is not a finished one. The next call tries again.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load conversations from storage");
+            }
+
+            _loaded = true;
         }
-        catch (Exception ex)
+        finally
         {
-            _logger.LogWarning(ex, "Failed to load conversations from storage");
+            _loadGate.Release();
         }
     }
 
@@ -141,18 +162,47 @@ public sealed class ChatService : IChatService
         return conversation;
     }
 
-    public async Task DeleteConversationAsync(Guid conversationId, CancellationToken ct = default)
+    public async Task<bool> DeleteConversationAsync(Guid conversationId, CancellationToken ct = default)
     {
         await EnsureLoadedAsync(ct);
 
-        if (_conversations.Remove(conversationId, out var conversation))
-        {
-            // Delete from disk
-            await _storage.DeleteAsync(conversationId, ct);
-            await ForgetSessionNotesAsync(conversationId, ct);
+        if (!_conversations.TryGetValue(conversationId, out var conversation))
+            return true;
 
-            ConversationDeleted?.Invoke(this, new ConversationEventArgs { Conversation = conversation });
+        bool deleted;
+        await _writeGate.WaitAsync(ct);
+        try
+        {
+            // A save that held the gate has finished. Delete after it so the file does not come back.
+            if (!_conversations.ContainsKey(conversationId))
+                return true;
+
+            // False also means there was no file. Only a file that is still there is a failure.
+            deleted = await _storage.DeleteAsync(conversationId, ct)
+                || !await _storage.ExistsAsync(conversationId, ct);
+            if (deleted)
+                _conversations.Remove(conversationId);
         }
+        finally
+        {
+            _writeGate.Release();
+        }
+
+        if (!deleted)
+        {
+            _logger.LogWarning("Could not delete the file for conversation {Id}; keeping the session", conversationId);
+            PersistenceFailed?.Invoke(this, new ConversationPersistenceFailedEventArgs
+            {
+                ConversationId = conversationId,
+                Operation = ConversationPersistenceOperation.Delete
+            });
+            return false;
+        }
+
+        await ForgetSessionNotesAsync(conversationId, ct);
+
+        ConversationDeleted?.Invoke(this, new ConversationEventArgs { Conversation = conversation });
+        return true;
     }
 
     public async IAsyncEnumerable<string> SendMessageAsync(
@@ -182,7 +232,7 @@ public sealed class ChatService : IChatService
 
         // Track active generation for cancellation
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _activeGenerations[conversationId] = cts;
+        lock (_generationGate) _activeGenerations[conversationId] = cts;
 
         var responseContent = new System.Text.StringBuilder();
 
@@ -195,6 +245,7 @@ public sealed class ChatService : IChatService
             }
 
             // A delete during the reply wins. Do not write the session back.
+            // SaveQuietly checks again under the write gate, so a delete during the save wins too.
             if (_conversations.ContainsKey(conversationId))
             {
                 var assistantMessage = Message.Assistant(responseContent.ToString(), model);
@@ -206,7 +257,7 @@ public sealed class ChatService : IChatService
         }
         finally
         {
-            _activeGenerations.Remove(conversationId);
+            lock (_generationGate) _activeGenerations.Remove(conversationId);
             cts.Dispose();
         }
     }
@@ -249,7 +300,7 @@ public sealed class ChatService : IChatService
         var request = await WithRecallAsync(conversation, ChatRequest.FromConversation(conversation), ct);
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _activeGenerations[conversationId] = cts;
+        lock (_generationGate) _activeGenerations[conversationId] = cts;
 
         var responseContent = new System.Text.StringBuilder();
 
@@ -271,7 +322,7 @@ public sealed class ChatService : IChatService
         }
         finally
         {
-            _activeGenerations.Remove(conversationId);
+            lock (_generationGate) _activeGenerations.Remove(conversationId);
             cts.Dispose();
         }
     }
@@ -301,10 +352,21 @@ public sealed class ChatService : IChatService
 
     public void StopGeneration(Guid conversationId)
     {
-        if (_activeGenerations.TryGetValue(conversationId, out var cts))
+        CancellationTokenSource? cts;
+        lock (_generationGate)
+            _activeGenerations.TryGetValue(conversationId, out cts);
+
+        if (cts is null)
+            return;
+
+        _logger.LogDebug("Stopping generation for conversation {Id}", conversationId);
+        try
         {
-            _logger.LogDebug("Stopping generation for conversation {Id}", conversationId);
             cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The reply finished and released its source between the lookup and the cancel.
         }
     }
 
@@ -359,17 +421,41 @@ public sealed class ChatService : IChatService
     }
 
     /// <summary>
-    /// Saves a conversation without throwing on failure.
+    /// Saves a conversation without throwing on failure. Returns false and raises
+    /// <see cref="PersistenceFailed"/> when the file was not written. A cancel still propagates.
     /// </summary>
-    private async Task SaveQuietly(Conversation conversation, CancellationToken ct = default)
+    private async Task<bool> SaveQuietly(Conversation conversation, CancellationToken ct = default)
     {
         try
         {
-            await _storage.SaveAsync(conversation, ct);
+            await _writeGate.WaitAsync(ct);
+            try
+            {
+                // A session deleted before this write got its turn stays deleted.
+                if (!_conversations.ContainsKey(conversation.Id))
+                    return true;
+
+                await _storage.SaveAsync(conversation, ct);
+            }
+            finally
+            {
+                _writeGate.Release();
+            }
+            return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to persist conversation {Id}", conversation.Id);
+            PersistenceFailed?.Invoke(this, new ConversationPersistenceFailedEventArgs
+            {
+                ConversationId = conversation.Id,
+                Operation = ConversationPersistenceOperation.Save
+            });
+            return false;
         }
     }
 }

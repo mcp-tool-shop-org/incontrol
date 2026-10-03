@@ -16,6 +16,26 @@ public sealed class OllamaOptions
     public string BaseUrl { get; set; } = "http://127.0.0.1:11434";
 
     /// <summary>
+    /// The address chat should use on this PC. A blank value falls back to 127.0.0.1, and the
+    /// name localhost is rewritten to 127.0.0.1 because Windows resolves it to IPv6 first and
+    /// then misses an Ollama that listens on IPv4 only.
+    /// </summary>
+    public string ResolveBaseUrl()
+    {
+        const string fallback = "http://127.0.0.1:11434";
+        var url = BaseUrl?.Trim();
+        if (string.IsNullOrEmpty(url))
+            return fallback;
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        var rewritten = new UriBuilder(uri) { Host = "127.0.0.1" }.Uri.AbsoluteUri;
+        return url.EndsWith('/') ? rewritten : rewritten.TrimEnd('/');
+    }
+
+    /// <summary>
     /// Whether to keep models loaded in memory between requests.
     /// </summary>
     public bool KeepAlive { get; set; } = true;

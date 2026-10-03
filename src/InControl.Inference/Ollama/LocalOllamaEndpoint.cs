@@ -17,9 +17,7 @@ public sealed class LocalOllamaEndpoint : IOllamaEndpoint
         _options = options;
     }
 
-    public string BaseUrl => string.IsNullOrWhiteSpace(_options.Value.BaseUrl)
-        ? "http://127.0.0.1:11434"
-        : _options.Value.BaseUrl;
+    public string BaseUrl => _options.Value.ResolveBaseUrl();
 
     public bool PromptsLeaveThisPc => false;
 

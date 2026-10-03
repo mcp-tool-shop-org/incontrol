@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="InControl.Inference.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\InControl.Core\InControl.Core.csproj" />
   </ItemGroup>
 

@@ -97,7 +97,12 @@ public partial class ConversationListViewModel : ViewModelBase
     {
         await ExecuteAsync(async () =>
         {
-            await _chatService.DeleteConversationAsync(item.Id);
+            if (!await _chatService.DeleteConversationAsync(item.Id))
+            {
+                SetError("Could not delete this session. Its file is still on disk.");
+                return;
+            }
+
             Conversations.Remove(item);
 
             if (SelectedConversation == item)

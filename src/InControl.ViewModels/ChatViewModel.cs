@@ -76,6 +76,15 @@ public partial class ChatViewModel : ViewModelBase
         _chatService = chatService;
         _voiceService = voiceService;
         _voiceOptions = voiceOptions;
+        _chatService.PersistenceFailed += OnPersistenceFailed;
+    }
+
+    private void OnPersistenceFailed(object? sender, ConversationPersistenceFailedEventArgs e)
+    {
+        if (e.Operation != ConversationPersistenceOperation.Save || CurrentConversation?.Id != e.ConversationId)
+            return;
+
+        SetError("This chat could not be saved to disk. It may be missing after a restart.");
     }
 
     /// <summary>

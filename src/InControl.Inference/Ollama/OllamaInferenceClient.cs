@@ -16,105 +16,30 @@ namespace InControl.Inference.Ollama;
 public sealed class OllamaInferenceClient : IInferenceClient
 {
     private readonly IOptions<OllamaOptions> _options;
-    private readonly IOllamaEndpoint _endpoint;
     private readonly ILogger<OllamaInferenceClient> _logger;
-    private readonly object _clientGate = new();
-    private OllamaApiClient? _client;
-    private HttpClient? _http;
-    private string? _clientUrl;
+    private readonly OllamaClientCache _clients;
+    private readonly TimeSpan _timeout;
 
     public OllamaInferenceClient(
         IOptions<OllamaOptions> options,
         IOllamaEndpoint endpoint,
-        ILogger<OllamaInferenceClient> logger)
+        ILogger<OllamaInferenceClient> logger,
+        IOptions<InferenceOptions>? inference = null)
     {
         _options = options;
-        _endpoint = endpoint;
         _logger = logger;
-        _endpoint.Changed += (_, _) => DropClient();
+        _clients = new OllamaClientCache(endpoint);
+        _timeout = OllamaTimeouts.FromSeconds((inference?.Value ?? new InferenceOptions()).TimeoutSeconds);
     }
 
     public string BackendName => "Ollama";
-
-    private OllamaApiClient GetClient()
-    {
-        var url = _endpoint.BaseUrl;
-        lock (_clientGate)
-        {
-            if (_client is not null && string.Equals(_clientUrl, url, StringComparison.Ordinal))
-                return _client;
-
-            DisposeClientLocked();
-            (_client, _http) = CreateNonRedirectingClient(url);
-            _clientUrl = url;
-            _logger.LogDebug("Created Ollama client at {BaseUrl}", url);
-            return _client;
-        }
-    }
-
-    private void DropClient()
-    {
-        lock (_clientGate)
-        {
-            DisposeClientLocked();
-        }
-    }
-
-    /// <summary>
-    /// Drops the cached client. The <see cref="HttpClient"/> overload does not dispose the handler,
-    /// so the previous client and its handler are both disposed here.
-    /// </summary>
-    private void DisposeClientLocked()
-    {
-        var client = _client;
-        var http = _http;
-        _client = null;
-        _http = null;
-        _clientUrl = null;
-        try
-        {
-            client?.Dispose();
-        }
-        finally
-        {
-            http?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Same endpoint URL as <see cref="IOllamaEndpoint.BaseUrl"/>. Redirects are off so a 307 or 308
-    /// cannot replay a chat, health, or model request onto another host.
-    /// </summary>
-    private static (OllamaApiClient Client, HttpClient Http) CreateNonRedirectingClient(string baseUrl)
-    {
-        HttpClientHandler? handler = null;
-        HttpClient? http = null;
-        try
-        {
-            handler = new HttpClientHandler { AllowAutoRedirect = false };
-            http = new HttpClient(handler, disposeHandler: true)
-            {
-                BaseAddress = new Uri(baseUrl)
-            };
-            handler = null;
-            var client = new OllamaApiClient(http);
-            var ownedHttp = http;
-            http = null;
-            return (client, ownedHttp);
-        }
-        finally
-        {
-            http?.Dispose();
-            handler?.Dispose();
-        }
-    }
 
     public async Task<bool> IsAvailableAsync(CancellationToken ct = default)
     {
         try
         {
-            var client = GetClient();
-            await client.GetVersionAsync(ct);
+            using var lease = _clients.Acquire();
+            await OllamaTimeouts.RunAsync(token => lease.Client.GetVersionAsync(token), _timeout, ct);
             return true;
         }
         catch (Exception ex)
@@ -129,11 +54,11 @@ public sealed class OllamaInferenceClient : IInferenceClient
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var client = GetClient();
-            var version = await client.GetVersionAsync(ct);
+            using var lease = _clients.Acquire();
+            var version = await OllamaTimeouts.RunAsync(token => lease.Client.GetVersionAsync(token), _timeout, ct);
             sw.Stop();
 
-            var models = await client.ListLocalModelsAsync(ct);
+            var models = await OllamaTimeouts.RunAsync(token => lease.Client.ListLocalModelsAsync(token), _timeout, ct);
             var modelCount = models.Count();
 
             return new HealthCheckResult
@@ -157,8 +82,8 @@ public sealed class OllamaInferenceClient : IInferenceClient
     {
         try
         {
-            var client = GetClient();
-            var models = await client.ListLocalModelsAsync(ct);
+            using var lease = _clients.Acquire();
+            var models = await OllamaTimeouts.RunAsync(token => lease.Client.ListLocalModelsAsync(token), _timeout, ct);
 
             return models.Select(m => new ModelInfo
             {
@@ -189,7 +114,9 @@ public sealed class OllamaInferenceClient : IInferenceClient
         ChatRequest request,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var client = GetClient();
+        // The lease keeps this client alive if the endpoint changes while the reply streams.
+        using var lease = _clients.Acquire();
+        var client = lease.Client;
         client.SelectedModel = request.Model;
 
         // Build messages list for OllamaSharp
@@ -253,7 +180,8 @@ public sealed class OllamaInferenceClient : IInferenceClient
 
         _logger.LogDebug("Starting streaming chat with model {Model}", request.Model);
 
-        await foreach (var response in client.ChatAsync(chatRequest, ct))
+        var replies = OllamaTimeouts.StreamAsync(token => client.ChatAsync(chatRequest, token), _timeout, ct);
+        await foreach (var response in replies.WithCancellation(ct))
         {
             if (response?.Message?.Content is { } content && content.Length > 0)
             {

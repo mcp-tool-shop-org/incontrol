@@ -35,11 +35,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<OllamaOptions>>().Value;
-            var local = string.IsNullOrWhiteSpace(options.BaseUrl)
-                ? "http://127.0.0.1:11434"
-                : options.BaseUrl;
             return new ComputeSession(
-                local,
+                options.ResolveBaseUrl(),
                 sp.GetRequiredService<ISshSessionFactory>(),
                 sp.GetRequiredService<ITcpProbe>(),
                 Path.Combine(DataPaths.AppDataRoot, "ssh"),
