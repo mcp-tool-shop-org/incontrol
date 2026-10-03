@@ -110,6 +110,29 @@ public sealed class OllamaInferenceClient : IInferenceClient
             string.Equals(m.Id, modelId, StringComparison.OrdinalIgnoreCase));
     }
 
+    public async Task<bool?> SupportsImagesAsync(string modelId, CancellationToken ct = default)
+    {
+        try
+        {
+            using var lease = _clients.Acquire();
+            var info = await lease.Client.ShowModelAsync(modelId, ct);
+            if (info?.Capabilities is not { } capabilities)
+                return null;
+
+            return capabilities.Any(c => string.Equals(c, "vision", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // An older Ollama has no capabilities list. Unknown is not the same as no.
+            _logger.LogDebug(ex, "Could not read capabilities for {Model}", modelId);
+            return null;
+        }
+    }
+
     public async IAsyncEnumerable<string> StreamChatAsync(
         ChatRequest request,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -119,36 +142,22 @@ public sealed class OllamaInferenceClient : IInferenceClient
         var client = lease.Client;
         client.SelectedModel = request.Model;
 
-        // Build messages list for OllamaSharp
-        var messages = new List<OllamaSharp.Models.Chat.Message>();
-
-        // Add system prompt if provided
-        if (!string.IsNullOrWhiteSpace(request.SystemPrompt))
+        // A text-only model refuses the whole request if any message carries an image.
+        // Older images stay in the saved chat but are left out; a new one is refused plainly.
+        var includeImages = true;
+        if (request.Messages.Any(m => m.Images is { Count: > 0 })
+            && await SupportsImagesAsync(request.Model, ct) == false)
         {
-            messages.Add(new OllamaSharp.Models.Chat.Message
+            if (request.Messages.LastOrDefault(m => m.Role == MessageRole.User)?.Images is { Count: > 0 })
             {
-                Role = OllamaSharp.Models.Chat.ChatRole.System,
-                Content = request.SystemPrompt
-            });
+                throw new InvalidOperationException(
+                    $"{request.Model} can't read images. Pick a vision model, such as gemma3 or llama3.2-vision, or send without the image.");
+            }
+
+            includeImages = false;
         }
 
-        // Convert our messages to OllamaSharp messages
-        foreach (var msg in request.Messages)
-        {
-            var role = msg.Role switch
-            {
-                MessageRole.User => OllamaSharp.Models.Chat.ChatRole.User,
-                MessageRole.Assistant => OllamaSharp.Models.Chat.ChatRole.Assistant,
-                MessageRole.System => OllamaSharp.Models.Chat.ChatRole.System,
-                _ => OllamaSharp.Models.Chat.ChatRole.User
-            };
-
-            messages.Add(new OllamaSharp.Models.Chat.Message
-            {
-                Role = role,
-                Content = msg.Content
-            });
-        }
+        var messages = ToOllamaMessages(request, includeImages);
 
         var chatRequest = new OllamaSharp.Models.Chat.ChatRequest
         {
@@ -181,13 +190,69 @@ public sealed class OllamaInferenceClient : IInferenceClient
         _logger.LogDebug("Starting streaming chat with model {Model}", request.Model);
 
         var replies = OllamaTimeouts.StreamAsync(token => client.ChatAsync(chatRequest, token), _timeout, ct);
+        var received = false;
         await foreach (var response in replies.WithCancellation(ct))
         {
+            // Reasoning models stream their thinking before the answer, in its own field.
+            if (response?.Message?.Thinking is { Length: > 0 } thinking)
+                request.OnThinking?.Invoke(thinking);
+
             if (response?.Message?.Content is { } content && content.Length > 0)
             {
+                received = true;
                 yield return content;
             }
         }
+
+        // Ollama reports some refusals, such as images sent to a text-only model, as a
+        // stream with no tokens. An empty reply must not be saved as if it were an answer.
+        if (!received)
+        {
+            throw new InvalidOperationException(
+                request.Messages.Any(m => m.Images is { Count: > 0 })
+                    ? $"{request.Model} sent back no reply. It may not read images. Pick a vision model, or remove the image."
+                    : $"{request.Model} sent back no reply.");
+        }
+    }
+
+    /// <summary>
+    /// Maps a chat request to OllamaSharp messages: the system prompt first, then the transcript with any images.
+    /// </summary>
+    internal static List<OllamaSharp.Models.Chat.Message> ToOllamaMessages(ChatRequest request, bool includeImages = true)
+    {
+        var messages = new List<OllamaSharp.Models.Chat.Message>();
+
+        // Add system prompt if provided
+        if (!string.IsNullOrWhiteSpace(request.SystemPrompt))
+        {
+            messages.Add(new OllamaSharp.Models.Chat.Message
+            {
+                Role = OllamaSharp.Models.Chat.ChatRole.System,
+                Content = request.SystemPrompt
+            });
+        }
+
+        // Convert our messages to OllamaSharp messages
+        foreach (var msg in request.Messages)
+        {
+            var role = msg.Role switch
+            {
+                MessageRole.User => OllamaSharp.Models.Chat.ChatRole.User,
+                MessageRole.Assistant => OllamaSharp.Models.Chat.ChatRole.Assistant,
+                MessageRole.System => OllamaSharp.Models.Chat.ChatRole.System,
+                _ => OllamaSharp.Models.Chat.ChatRole.User
+            };
+
+            messages.Add(new OllamaSharp.Models.Chat.Message
+            {
+                Role = role,
+                Content = msg.Content,
+                // Images go to vision models through Ollama's images field.
+                Images = includeImages && msg.Images is { Count: > 0 } images ? images.ToArray() : null
+            });
+        }
+
+        return messages;
     }
 
     public async Task<ChatResponse> ChatAsync(ChatRequest request, CancellationToken ct = default)

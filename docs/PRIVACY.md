@@ -10,7 +10,7 @@ The privacy policy is [PRIVACY.md](../PRIVACY.md) at the root of this repository
 
 Sessions, projects, remembered notes, settings and logs stay on this PC. InControl does not run an account service and it does not send telemetry.
 
-The chat stays on this PC until you connect a rented GPU in **Where this chat runs**. That connection sends the conversation, the project's instructions, and any remembered notes that match the message to Ollama on the machine you named. Disconnect, and the chat is local again. This is a different decision from the tool-URL allowlist.
+The chat stays on this PC until you connect a rented GPU in **Where this chat runs**. That connection sends the conversation, the project's instructions, any remembered notes that match the message, and any attached files to Ollama on the machine you named. Disconnect, and the chat is local again. This is a different decision from the tool-URL allowlist.
 
 ### Storage Locations
 
@@ -48,7 +48,7 @@ The app talks to Ollama. Chat stays on this PC until a rented GPU is connected. 
 |------------|------|--------------|
 | Ollama model pull | You start a pull | The model name, to Ollama's registry through the Ollama the banner names |
 | RunPod API | You press **Look up my RunPod pods** with `RUNPOD_API_KEY` set | The key, to list pods. The key is not stored, and the chat is not sent |
-| GitHub | The first time a reply is spoken | A download request for the Kokoro voice model (about 300 MB). Speech runs on this PC |
+| GitHub | The first time voice is needed: a reply is spoken, or you open Settings | A download request for the Kokoro voice model (about 300 MB). Speech runs on this PC |
 | ollama.com | You run diagnostics on the Help page | A reachability check |
 
 Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model pull. Chat on this PC still works. It does not stop the voice model download, and it is not a kill switch for every socket.

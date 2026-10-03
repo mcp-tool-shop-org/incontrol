@@ -96,6 +96,6 @@ The `OnboardingViewModel` guides first-run users through four steps: Welcome, Ba
 - **This PC first**: prompts stay here until you connect a rented GPU over SSH. There is no account and no telemetry. A rental is a choice, and the chat says when prompts leave.
 - **Ollama**: the app talks to Ollama. There is no llama.cpp backend.
 - **Native Windows**: WinUI 3 with Fluent Design, not Electron
-- **Markdown rendering**: rich text, code blocks, and syntax highlighting in responses
+- **Attachments**: text and code files go into the message; images go to vision models through Ollama's images field
 - **Governed extensibility**: plugins and tools operate within declared permission boundaries
 - **Auditable by default**: every policy decision, network request, and plugin action is logged

@@ -36,14 +36,20 @@ public sealed record Message
     public int? TokenCount { get; init; }
 
     /// <summary>
+    /// Base64 images attached to this message, for vision models. Null when there are none.
+    /// </summary>
+    public IReadOnlyList<string>? Images { get; init; }
+
+    /// <summary>
     /// Creates a new user message.
     /// </summary>
-    public static Message User(string content) => new()
+    public static Message User(string content, IReadOnlyList<string>? images = null) => new()
     {
         Id = Guid.NewGuid(),
         Role = MessageRole.User,
         Content = content,
-        CreatedAt = DateTimeOffset.UtcNow
+        CreatedAt = DateTimeOffset.UtcNow,
+        Images = images is { Count: > 0 } ? images : null
     };
 
     /// <summary>

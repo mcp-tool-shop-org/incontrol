@@ -11,6 +11,10 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 
 ## [2.0.0] - 2026-10-02
 
+### Added
+- Attach files to a message with the paperclip, Ctrl+Shift+O, or by dropping them on the composer. Text and code files (up to 256 KB) go into the message in a fenced block. PNG, JPEG and WebP images (up to 10 MB) go to vision models through Ollama. Each file shows as a chip that can be removed before sending, and attachments are saved with the chat.
+- Before images are sent, InControl asks Ollama whether the model can read them. A text-only model gets a plain message instead, and the files stay attached. Images from earlier in a chat are left out of the request for a text-only model, so the chat keeps working.
+
 ### Changed
 - The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. The package identity is `mcp-tool-shop.InControl-Desktop`, publisher display name `mcp-tool-shop`, as on the Partner Center Product Identity page. An earlier draft used `InControl.App`, which was the 1.4.0 upload's file name and would have been rejected. The application id is `App` again, as in 1.3.0, so Start and taskbar pins survive the update. NuGet library versions are unchanged.
 - The package runs on Windows 10 version 2004 and later. The build had been writing Windows 11 22H2 as the minimum.
@@ -18,6 +22,9 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 - PRIVACY.md lists every network connection, including the one-time voice model download and the diagnostics check, says that project instructions and remembered notes go to a connected rental, and describes Store storage and updates.
 
 ### Fixed
+- A reply that Ollama refuses, or that comes back empty, is shown as an error with Ollama's own sentence instead of a blank reply. The empty card is removed.
+- The voice model downloads the first time voice is needed, when a reply is spoken or Settings opens, not at every first launch.
+- Screen readers announce each session by its title.
 - The status strip says Online when Ollama answers and Offline when it does not. It had the two the wrong way round.
 - A long reply or model pull is no longer cut off at 100 seconds. The inference timeout is now how long a stream may go quiet, not how long it may run.
 - Changing the endpoint no longer drops a reply that is still streaming. The old connection is closed after its last call ends.
@@ -33,7 +40,7 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 - Model Manager keeps the selected default model when it refreshes.
 - Connect, Stay on this PC, RunPod lookup and the Help page diagnostics handlers catch their errors, and an unhandled UI exception no longer closes the app.
 - After an unclean exit, the next launch says so and that saved chats are intact. Code that claimed to recover an unsent prompt, but never did, is removed.
-- Clear All Memory clears the remembered notes. Controls that did nothing are removed or relabelled: Change Storage, Settings Export Diagnostics, Clear activity, plugin install, policy Configure and audit Export, and the composer's Attach file. Reset to Defaults is now Reset appearance.
+- Clear All Memory clears the remembered notes. Controls that did nothing are removed or relabelled: Change Storage, Settings Export Diagnostics, Clear activity, plugin install, and policy Configure and audit Export. Reset to Defaults is now Reset appearance.
 - A message card stops listening to a message it no longer shows, so tokens cannot paint into the wrong card.
 - Restoring a backup extracts it to a staging folder first. A corrupt or empty backup no longer deletes the current sessions.
 - Exporting all sessions reads the list once. Clearing session notes clears only that session's notes.

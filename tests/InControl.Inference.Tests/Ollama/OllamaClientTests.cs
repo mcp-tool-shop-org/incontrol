@@ -224,4 +224,99 @@ public class OllamaClientTests
         using var again = cache.Acquire();
         again.Entry.Should().BeSameAs(first);
     }
+
+    [Fact]
+    public void Messages_CarryImagesToOllama_AndLeaveTextOnlyMessagesWithout()
+    {
+        var request = new ChatRequest
+        {
+            Model = "llava",
+            SystemPrompt = "Be brief.",
+            Messages =
+            [
+                Message.User("What is this?", ["QUJD"]),
+                Message.Assistant("A chart."),
+                Message.User("Thanks")
+            ]
+        };
+
+        var messages = OllamaInferenceClient.ToOllamaMessages(request);
+
+        messages.Should().HaveCount(4);
+        messages[0].Content.Should().Be("Be brief.");
+        messages[1].Images.Should().Equal("QUJD");
+        messages[2].Images.Should().BeNull();
+        messages[3].Images.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Stream_WithNoTokens_ThrowsInsteadOfAnEmptyReply_AndNamesImagesWhenSent()
+    {
+        using var server = new FakeOllamaServer(async (_, write) =>
+            await write(FakeOllamaServer.ChatLine("", done: true)));
+        var client = NewClient(new TestEndpoint(server.Url));
+        var withImage = new ChatRequest { Model = "llama3.1:8b", Messages = [Message.User("what is this", ["QUJD"])] };
+
+        var textOnly = async () => await ReadAll(client.StreamChatAsync(Request()));
+        var image = async () => await ReadAll(client.StreamChatAsync(withImage));
+
+        (await textOnly.Should().ThrowAsync<InvalidOperationException>()).Which.Message.Should().Be("m sent back no reply.");
+        (await image.Should().ThrowAsync<InvalidOperationException>()).Which.Message.Should().Contain("may not read images");
+    }
+
+    [Fact]
+    public async Task TextOnlyModel_LeavesOldImagesOut_AndRefusesANewOneBeforeSending()
+    {
+        var chatCalls = 0;
+        using var server = new FakeOllamaServer(async (path, write) =>
+        {
+            if (path.StartsWith("/api/show", StringComparison.Ordinal))
+            {
+                await write("{\"capabilities\":[\"completion\",\"tools\"]}");
+                return;
+            }
+
+            Interlocked.Increment(ref chatCalls);
+            await write(FakeOllamaServer.ChatLine("ok"));
+            await write(FakeOllamaServer.ChatLine("", done: true));
+        });
+        var client = NewClient(new TestEndpoint(server.Url));
+
+        var earlierImage = new ChatRequest
+        {
+            Model = "llama3.1:8b",
+            Messages = [Message.User("what is this", ["QUJD"]), Message.Assistant("..."), Message.User("thanks")]
+        };
+        var newImage = new ChatRequest
+        {
+            Model = "llama3.1:8b",
+            Messages = [Message.User("and this?", ["QUJD"])]
+        };
+
+        (await ReadAll(client.StreamChatAsync(earlierImage)).WaitAsync(Wait)).Should().Equal("ok");
+
+        var refused = async () => await ReadAll(client.StreamChatAsync(newImage));
+        (await refused.Should().ThrowAsync<InvalidOperationException>()).Which.Message.Should().Contain("can't read images");
+        chatCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Stream_PassesThinkingToTheCallback_AndYieldsOnlyTheAnswer()
+    {
+        using var server = new FakeOllamaServer(async (_, write) =>
+        {
+            await write("{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"thinking\":\"Let me \"},\"done\":false}");
+            await write("{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"thinking\":\"check.\"},\"done\":false}");
+            await write(FakeOllamaServer.ChatLine("Answer"));
+            await write(FakeOllamaServer.ChatLine("", done: true));
+        });
+        var client = NewClient(new TestEndpoint(server.Url));
+        var thinking = new System.Text.StringBuilder();
+        var request = Request() with { OnThinking = chunk => thinking.Append(chunk) };
+
+        var tokens = await ReadAll(client.StreamChatAsync(request)).WaitAsync(Wait);
+
+        tokens.Should().Equal("Answer");
+        thinking.ToString().Should().Be("Let me check.");
+    }
 }

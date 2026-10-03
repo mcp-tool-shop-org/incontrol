@@ -79,4 +79,41 @@ public class ChatServiceSendTests : IDisposable
         var again = await reloaded.GetConversationAsync(session.Id);
         again!.Messages.Should().ContainSingle(m => m.Role == MessageRole.User && m.Content == "Hello");
     }
+
+    [Fact]
+    public async Task Send_WithImages_StoresThemOnThePromptAndSendsThem()
+    {
+        var files = new FileStore(new Mock<ILogger<FileStore>>().Object, _root);
+        var storage = new JsonConversationStorage(files, new Mock<ILogger<JsonConversationStorage>>().Object);
+        var fake = new FakeInferenceClient().SetTokenDelay(TimeSpan.Zero);
+        var chat = new ChatService(fake, storage, new Mock<ILogger<ChatService>>().Object);
+        var session = await chat.CreateConversationAsync(model: "vision");
+
+        await foreach (var _ in chat.SendMessageAsync(session.Id, "What is in this image?", ["QUJD"]))
+        {
+        }
+
+        fake.LastRequest!.Messages.Single(m => m.Role == MessageRole.User).Images.Should().Equal("QUJD");
+
+        // The image survives a save and a fresh load, so a regenerate still sends it.
+        var reloaded = new ChatService(fake, new JsonConversationStorage(files, new Mock<ILogger<JsonConversationStorage>>().Object), new Mock<ILogger<ChatService>>().Object);
+        var stored = await reloaded.GetConversationAsync(session.Id);
+        stored!.Messages.First(m => m.Role == MessageRole.User).Images.Should().Equal("QUJD");
+    }
+
+    [Fact]
+    public async Task Send_WithoutImages_LeavesImagesNull()
+    {
+        var files = new FileStore(new Mock<ILogger<FileStore>>().Object, _root);
+        var storage = new JsonConversationStorage(files, new Mock<ILogger<JsonConversationStorage>>().Object);
+        var fake = new FakeInferenceClient().SetTokenDelay(TimeSpan.Zero);
+        var chat = new ChatService(fake, storage, new Mock<ILogger<ChatService>>().Object);
+        var session = await chat.CreateConversationAsync(model: "text");
+
+        await foreach (var _ in chat.SendMessageAsync(session.Id, "Hello", images: []))
+        {
+        }
+
+        fake.LastRequest!.Messages.Single(m => m.Role == MessageRole.User).Images.Should().BeNull();
+    }
 }

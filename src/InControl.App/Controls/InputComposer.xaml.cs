@@ -2,6 +2,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using InControl.Core.UX;
+using InControl.Core.Attachments;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using Windows.Storage.Pickers;
 
 namespace InControl.App.Controls;
 
@@ -16,6 +20,12 @@ public sealed partial class InputComposer : UserControl
     private bool _isOfflineBlocked;
     private bool _isTransitioning;
     private object? _cachedSelectedModel;
+    private readonly List<ChatAttachment> _attachments = [];
+
+    /// <summary>
+    /// Most files one message carries.
+    /// </summary>
+    private const int MaxAttachments = 10;
 
     public InputComposer()
     {
@@ -83,6 +93,16 @@ public sealed partial class InputComposer : UserControl
     /// Event raised when a file attachment is requested.
     /// </summary>
     public event EventHandler? AttachFileRequested;
+
+    /// <summary>
+    /// Event raised with a short message when a file could not be attached.
+    /// </summary>
+    public event EventHandler<string>? AttachmentFailed;
+
+    /// <summary>
+    /// Files attached to the next message.
+    /// </summary>
+    public IReadOnlyList<ChatAttachment> Attachments => _attachments;
 
     /// <summary>
     /// Event raised when Model Manager should open (from disabled banner).
@@ -153,7 +173,17 @@ public sealed partial class InputComposer : UserControl
     public void Clear()
     {
         IntentInput.Text = string.Empty;
+        ClearAttachments();
         ExecutionState = ExecutionState.Idle;
+    }
+
+    /// <summary>
+    /// Removes every attached file.
+    /// </summary>
+    public void ClearAttachments()
+    {
+        _attachments.Clear();
+        RenderAttachments();
     }
 
     /// <summary>
@@ -174,6 +204,8 @@ public sealed partial class InputComposer : UserControl
         IntentInput.KeyDown += OnIntentInputKeyDown;
         ActionButton.Click += OnActionButtonClick;
         AttachFileButton.Click += OnAttachFileButtonClick;
+        ComposerRoot.DragOver += OnComposerDragOver;
+        ComposerRoot.Drop += OnComposerDrop;
         ModelSelector.SelectionChanged += OnModelSelectionChanged;
         DisabledActionButton.Click += OnDisabledActionClick;
 
@@ -215,7 +247,7 @@ public sealed partial class InputComposer : UserControl
 
         if (CanRun())
         {
-            var args = new RunRequestedEventArgs(IntentInput.Text.TrimEnd('\r', '\n'), SelectedModel);
+            var args = new RunRequestedEventArgs(IntentInput.Text.TrimEnd('\r', '\n'), SelectedModel, _attachments.ToList());
             RunRequested?.Invoke(this, args);
         }
     }
@@ -239,14 +271,143 @@ public sealed partial class InputComposer : UserControl
         }
         else if (CanRun())
         {
-            var args = new RunRequestedEventArgs(IntentInput.Text, SelectedModel);
+            var args = new RunRequestedEventArgs(IntentInput.Text, SelectedModel, _attachments.ToList());
             RunRequested?.Invoke(this, args);
         }
     }
 
-    private void OnAttachFileButtonClick(object sender, RoutedEventArgs e)
+    private async void OnAttachFileButtonClick(object sender, RoutedEventArgs e)
     {
         AttachFileRequested?.Invoke(this, EventArgs.Empty);
+        await PickFilesAsync();
+    }
+
+    private async System.Threading.Tasks.Task PickFilesAsync()
+    {
+        try
+        {
+            var picker = new FileOpenPicker
+            {
+                ViewMode = PickerViewMode.List,
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            picker.FileTypeFilter.Add("*");
+
+            // A desktop WinUI window has to hand its handle to the picker.
+            if (App.MainWindow is { } window)
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+
+            var files = await picker.PickMultipleFilesAsync();
+            if (files is null)
+                return;
+
+            foreach (var file in files)
+                await AddFileAsync(file);
+        }
+        catch (Exception ex)
+        {
+            AttachmentFailed?.Invoke(this, $"Could not open the file picker: {ex.Message}");
+        }
+    }
+
+    private void OnComposerDragOver(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems) || !_executionState.AllowsInput())
+            return;
+
+        e.AcceptedOperation = DataPackageOperation.Copy;
+        e.DragUIOverride.Caption = "Attach";
+    }
+
+    private async void OnComposerDrop(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+            return;
+
+        var deferral = e.GetDeferral();
+        try
+        {
+            var items = await e.DataView.GetStorageItemsAsync();
+            foreach (var item in items)
+            {
+                if (item is StorageFile file)
+                    await AddFileAsync(file);
+                else
+                    AttachmentFailed?.Invoke(this, $"{item.Name} is a folder. Attach the files inside it.");
+            }
+        }
+        catch (Exception ex)
+        {
+            AttachmentFailed?.Invoke(this, $"Could not attach the dropped files: {ex.Message}");
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private async System.Threading.Tasks.Task AddFileAsync(StorageFile file)
+    {
+        if (_attachments.Count >= MaxAttachments)
+        {
+            AttachmentFailed?.Invoke(this, $"A message can carry {MaxAttachments} files. {file.Name} was not attached.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(file.Path))
+        {
+            AttachmentFailed?.Invoke(this, $"{file.Name} is not a file on this PC, so it could not be read.");
+            return;
+        }
+
+        var path = file.Path;
+        var result = await System.Threading.Tasks.Task.Run(() => AttachmentReader.ReadFile(path));
+        if (result.Attachment is not { } attachment)
+        {
+            AttachmentFailed?.Invoke(this, result.Error ?? $"{file.Name} could not be attached.");
+            return;
+        }
+
+        _attachments.Add(attachment);
+        RenderAttachments();
+    }
+
+    private void RenderAttachments()
+    {
+        AttachmentChips.Children.Clear();
+        foreach (var attachment in _attachments)
+        {
+            var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            label.Children.Add(new FontIcon
+            {
+                Glyph = attachment.Kind == AttachmentKind.Image ? "\uEB9F" : "\uE8A5",
+                FontSize = 12
+            });
+            label.Children.Add(new TextBlock
+            {
+                Text = attachment.Name,
+                MaxWidth = 220,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            label.Children.Add(new FontIcon { Glyph = "\uE711", FontSize = 10 });
+
+            var chip = new Button { Content = label, Padding = new Thickness(8, 4, 8, 4), Tag = attachment };
+            ToolTipService.SetToolTip(chip, $"Remove {attachment.Name}");
+            AutomationProperties.SetName(chip, $"Remove attached file {attachment.Name}");
+            chip.Click += (s, _) =>
+            {
+                if (s is Button { Tag: ChatAttachment item })
+                {
+                    _attachments.Remove(item);
+                    RenderAttachments();
+                }
+            };
+            AttachmentChips.Children.Add(chip);
+        }
+
+        UpdateActionButtonForRun();
+        UpdateDisabledState();
     }
 
     private void OnModelSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -267,9 +428,10 @@ public sealed partial class InputComposer : UserControl
         await ShowNotImplementedDialog("Add Previous Output");
     }
 
-    private void OnAddFileClick(object sender, RoutedEventArgs e)
+    private async void OnAddFileClick(object sender, RoutedEventArgs e)
     {
         AttachFileRequested?.Invoke(this, EventArgs.Empty);
+        await PickFilesAsync();
     }
 
     private void OnClearContextClick(object sender, RoutedEventArgs e)
@@ -358,7 +520,7 @@ public sealed partial class InputComposer : UserControl
 
     private void UpdateActionButtonForRun()
     {
-        var hasText = !string.IsNullOrWhiteSpace(IntentInput.Text);
+        var hasText = HasContent();
         var hasModel = ModelSelector.SelectedItem != null;
         var allowsInput = _executionState.AllowsInput();
 
@@ -409,7 +571,7 @@ public sealed partial class InputComposer : UserControl
         else
         {
             var hasModel = ModelSelector.SelectedItem != null;
-            var hasText = !string.IsNullOrWhiteSpace(IntentInput.Text);
+            var hasText = HasContent();
 
             if (_isOfflineBlocked)
             {
@@ -439,9 +601,14 @@ public sealed partial class InputComposer : UserControl
         }
     }
 
+    /// <summary>
+    /// A prompt, or at least one attached file, is something to send.
+    /// </summary>
+    private bool HasContent() => !string.IsNullOrWhiteSpace(IntentInput.Text) || _attachments.Count > 0;
+
     private bool CanRun()
     {
-        return !string.IsNullOrWhiteSpace(IntentInput.Text)
+        return HasContent()
             && ModelSelector.SelectedItem != null
             && _executionState.AllowsInput()
             && !_isOfflineBlocked;
@@ -455,11 +622,17 @@ public sealed partial class InputComposer : UserControl
 /// </summary>
 public sealed class RunRequestedEventArgs : EventArgs
 {
-    public RunRequestedEventArgs(string intent, string? model)
+    public RunRequestedEventArgs(string intent, string? model, IReadOnlyList<ChatAttachment>? attachments = null)
     {
         Intent = intent;
         Model = model;
+        Attachments = attachments ?? [];
     }
+
+    /// <summary>
+    /// Files attached to this message.
+    /// </summary>
+    public IReadOnlyList<ChatAttachment> Attachments { get; }
 
     /// <summary>
     /// The user's intent text.

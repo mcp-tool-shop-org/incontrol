@@ -144,11 +144,25 @@
                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                 </Grid>
 
-                <!-- Content -->
-                <TextBlock Grid.Row="1"
-                           x:Name="ModelContent"
-                           TextWrapping="Wrap"
-                           IsTextSelectionEnabled="True" />
+                <!-- Content: a reasoning model's thinking, then the answer -->
+                <StackPanel Grid.Row="1" Spacing="8">
+                    <Expander x:Name="ThinkingExpander"
+                              Header="Thinking"
+                              IsExpanded="True"
+                              Visibility="Collapsed"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
+                              AutomationProperties.Name="Model thinking">
+                        <TextBlock x:Name="ThinkingText"
+                                   TextWrapping="Wrap"
+                                   IsTextSelectionEnabled="True"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Expander>
+                    <TextBlock x:Name="ModelContent"
+                               TextWrapping="Wrap"
+                               IsTextSelectionEnabled="True" />
+                </StackPanel>
 
                 <!-- Footer (Token count, speak button) -->
                 <StackPanel Grid.Row="2"
@@ -182,7 +196,8 @@
                     <ProgressRing IsActive="True"
                                   Width="12"
                                   Height="12" />
-                    <TextBlock Text="Receiving output..."
+                    <TextBlock x:Name="StreamingText"
+                               Text="Receiving output..."
                                Style="{StaticResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>

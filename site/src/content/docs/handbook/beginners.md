@@ -59,7 +59,16 @@ Sessions live in projects. **General** is where a session goes by default. A pro
 
 ### Voice
 
-InControl can read replies aloud with Kokoro, which runs on this PC. The first time it speaks, it downloads the voice model, about 300 MB. Turn off auto-speak in Settings if you don't want replies read aloud.
+InControl can read replies aloud with Kokoro, which runs on this PC. The first time voice is needed, when a reply is spoken or you open Settings, it downloads the voice model, about 300 MB. Turn off auto-speak in Settings if you don't want replies read aloud.
+
+### Attaching files
+
+Click the paperclip next to the model picker, press Ctrl+Shift+O, or drop files on the composer. Each file shows as a chip; click it to remove it before sending.
+
+- **Text and code files** (up to 256 KB each) go into the message in a fenced block, so any model can read them.
+- **Images** (PNG, JPEG or WebP, up to 10 MB) go to the model beside the message. Only a vision model, such as gemma3 or llama3.2-vision, can read them. If the selected model cannot, InControl says so before sending and keeps the image attached.
+
+Attached files are saved with the chat. While a rental is connected, they go to that machine with the message.
 
 ### The offline switch
 

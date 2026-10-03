@@ -245,6 +245,14 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Appends a reasoning model's thinking to the streaming output.
+    /// </summary>
+    public void AppendThinking(string chunk)
+    {
+        _streamingMessage?.AppendThinking(chunk);
+    }
+
+    /// <summary>
     /// Completes the streaming model output.
     /// </summary>
     public void CompleteModelOutput(Message finalMessage)

@@ -232,9 +232,17 @@ public sealed class ChatService : IChatService
         return true;
     }
 
+    public IAsyncEnumerable<string> SendMessageAsync(
+        Guid conversationId,
+        string message,
+        CancellationToken ct = default) =>
+        SendMessageAsync(conversationId, message, images: null, onThinking: null, ct);
+
     public async IAsyncEnumerable<string> SendMessageAsync(
         Guid conversationId,
         string message,
+        IReadOnlyList<string>? images,
+        Action<string>? onThinking = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         if (!_conversations.TryGetValue(conversationId, out var conversation))
@@ -247,13 +255,14 @@ public sealed class ChatService : IChatService
 
         // Keep the prompt only after the model is known, and write it before the stream.
         // A missing model must not leave an unanswered line in the open session.
-        var userMessage = Message.User(message);
+        var userMessage = Message.User(message, images);
         conversation = conversation.WithMessage(userMessage);
         _conversations[conversationId] = conversation;
         await SaveQuietly(conversation, ct);
 
         // Build the chat request from this session's transcript, plus a few recalled notes.
         var request = await WithRecallAsync(conversation, ChatRequest.FromConversation(conversation), ct);
+        request = request with { OnThinking = onThinking };
 
         _logger.LogDebug("Sending message to {Model}, conversation {Id}", model, conversationId);
 

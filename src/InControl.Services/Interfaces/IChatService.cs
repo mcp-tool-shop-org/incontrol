@@ -112,6 +112,22 @@ public interface IChatService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Sends a message with base64 images beside it, for vision models, and streams the response.
+    /// </summary>
+    /// <param name="conversationId">The conversation ID.</param>
+    /// <param name="message">The user message, with any attached text files already in it.</param>
+    /// <param name="images">Base64 images, or null.</param>
+    /// <param name="onThinking">Receives a reasoning model's thinking as it streams, or null.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Async stream of response tokens.</returns>
+    IAsyncEnumerable<string> SendMessageAsync(
+        Guid conversationId,
+        string message,
+        IReadOnlyList<string>? images,
+        Action<string>? onThinking = null,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Regenerates the last assistant response.
     /// </summary>
     /// <param name="conversationId">The conversation ID.</param>

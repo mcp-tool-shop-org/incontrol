@@ -49,6 +49,17 @@ public partial class MessageViewModel : ObservableObject
     private bool _isStreaming;
 
     /// <summary>
+    /// A reasoning model's thinking for this reply. Shown while it streams; not saved.
+    /// </summary>
+    [ObservableProperty]
+    private string _thinking = string.Empty;
+
+    /// <summary>
+    /// Appends streamed thinking.
+    /// </summary>
+    public void AppendThinking(string chunk) => Thinking += chunk;
+
+    /// <summary>
     /// Whether this message is currently being spoken aloud.
     /// </summary>
     [ObservableProperty]

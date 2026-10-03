@@ -12,6 +12,7 @@ InControl is an Ollama chat app for Windows, published in the Microsoft Store as
 
 ### What stays on your device:
 - Conversations and chat history, until you connect a rental
+- Files you attach to a message, saved with that chat
 - Projects, project instructions, and notes you ask InControl to remember
 - Your settings and preferences
 - The private key file you choose (it is not uploaded)
@@ -27,7 +28,7 @@ InControl is an Ollama chat app for Windows, published in the Microsoft Store as
 
 ## What a Prompt Contains
 
-Each message to the model carries the conversation so far. It can also carry the project's instructions and a few of your remembered notes that match the message. On this PC, all of that goes only to your local Ollama. While a rental is connected, all of that goes to Ollama on the rented machine. InControl does not get anything back from that machine except the replies.
+Each message to the model carries the conversation so far. It can also carry the project's instructions, a few of your remembered notes that match the message, and any files you attach: the text of a text or code file, or the image itself. Attached files are saved with the chat on this PC. On this PC, all of that goes only to your local Ollama. While a rental is connected, all of that goes to Ollama on the rented machine. InControl does not get anything back from that machine except the replies.
 
 ## Network Connections
 
@@ -36,7 +37,7 @@ InControl does not run its own cloud, does not require an account, and does not 
 1. **A rental you connect.** Prompts go through an SSH port forward to the machine you chose.
 2. **Pulling a model.** Ollama downloads it from its registry when you start a pull. The request goes through the Ollama the banner is naming.
 3. **RunPod lookup.** If `RUNPOD_API_KEY` is in your environment, InControl can list pods that are already running. Lookup does not start a pod and does not store the key.
-4. **The voice model.** The first time InControl speaks a reply, it downloads the Kokoro voice model (about 300 MB) from GitHub (`github.com/taylorchu/kokoro-onnx`) into the app's cache. Speech itself runs on this PC. Turn off auto-speak in Settings if you don't want that download.
+4. **The voice model.** The first time voice is needed, when a reply is spoken or when you open Settings, InControl downloads the Kokoro voice model (about 300 MB) from GitHub (`github.com/taylorchu/kokoro-onnx`) into the app's cache. Speech itself runs on this PC. With auto-speak off and Settings unopened, it is not downloaded.
 5. **Diagnostics.** When you run diagnostics on the Help page, InControl checks that `https://ollama.com` is reachable.
 
 Links on the Model Manager page, such as the Ollama download page, open in your browser.

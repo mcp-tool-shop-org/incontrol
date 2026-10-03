@@ -24,8 +24,9 @@ InControl speaks the Ollama HTTP API. Nothing is sent to a rental until you conn
 - **Same Ollama either way.** A rental runs Ollama on `127.0.0.1:11434`. InControl reaches it with an SSH local forward. The HTTP client never talks to a public port.
 - **Not the tool allowlist.** Connectivity controls assistant tool URLs. It does not decide where the chat runs.
 - **Projects and notes.** File sessions under projects with their own instructions. Ask it to remember a note for a project or a session, and matching notes ride along with the next message.
-- **Voice on this PC.** Replies can be read aloud by Kokoro, which runs on this PC. The voice model downloads once, the first time it speaks.
-- **WinUI 3.** A Windows app, with markdown in the thread.
+- **Attach files.** Add text and code files to a message, or images for a vision model such as gemma3 or llama3.2-vision. Use the paperclip, Ctrl+Shift+O, or drop files on the composer.
+- **Voice on this PC.** Replies can be read aloud by Kokoro, which runs on this PC. The voice model downloads once, the first time voice is needed: when a reply is spoken, or when you open Settings.
+- **WinUI 3.** A native Windows app.
 - **Policy engine.** Org, team and user policy documents govern tools, memory, and connectivity.
 - **Connectivity modes.** Offline-only, assisted, or connected, with an audit log.
 

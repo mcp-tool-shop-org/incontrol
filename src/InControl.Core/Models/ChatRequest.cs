@@ -41,6 +41,11 @@ public sealed record ChatRequest
     public IReadOnlyList<string>? StopSequences { get; init; }
 
     /// <summary>
+    /// Receives a reasoning model's thinking as it streams. Thinking is shown, not saved.
+    /// </summary>
+    public Action<string>? OnThinking { get; init; }
+
+    /// <summary>
     /// Creates a simple chat request with a single user message.
     /// </summary>
     public static ChatRequest Simple(string model, string userMessage) => new()

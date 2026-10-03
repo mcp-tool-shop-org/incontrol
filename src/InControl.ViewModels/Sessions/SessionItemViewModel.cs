@@ -149,4 +149,9 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    /// <summary>
+    /// Screen readers announce a list row by this text, so it is the title, not the type name.
+    /// </summary>
+    public override string ToString() => Title;
 }

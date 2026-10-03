@@ -37,6 +37,11 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
     private const string WorkingDirectoryModelFileName = "kokoro.onnx";
 
     /// <summary>
+    /// Where the downloaded model is kept. Present once voice has been used on this PC.
+    /// </summary>
+    public static string CachedModelPath => Path.Combine(DataPaths.Cache, WorkingDirectoryModelFileName);
+
+    /// <summary>
     /// The float32 model KokoroSharp 0.6.2 itself downloads for <see cref="KModel.float32"/>.
     /// </summary>
     private const string ModelDownloadUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx";

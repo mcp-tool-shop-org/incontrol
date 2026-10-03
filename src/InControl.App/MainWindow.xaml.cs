@@ -6,6 +6,7 @@ using InControl.App.Controls;
 using InControl.App.Pages;
 using InControl.App.Services;
 using InControl.Core.Assistant;
+using InControl.Core.Attachments;
 using InControl.Core.Configuration;
 using InControl.Core.Models;
 using InControl.Core.Storage;
@@ -141,6 +142,9 @@ public sealed partial class MainWindow : Window
     private static string Brief(Exception ex)
     {
         var text = ex.Message.Trim();
+
+        // Ollama errors arrive as JSON. Show the sentence inside, not the braces.
+        text = InControl.Core.Errors.ErrorText.Readable(text);
         var cut = text.IndexOfAny(['\r', '\n']);
         if (cut >= 0)
             text = text[..cut];
@@ -277,6 +281,7 @@ public sealed partial class MainWindow : Window
         ConversationView.Composer.ModelManagerRequested += (s, e) => _navigation.Navigate<ModelManagerPage>();
         ConversationView.Composer.RunRequested += OnRunRequested;
         ConversationView.Composer.CancelRequested += OnCancelRequested;
+        ConversationView.Composer.AttachmentFailed += (_, message) => ShowNotice(message, InfoBarSeverity.Warning);
 
         // ConversationView speak events
         ConversationView.SpeakRequested += OnSpeakRequested;
@@ -375,6 +380,11 @@ public sealed partial class MainWindow : Window
     {
         try
         {
+            // Load the engine early only when its model is already here. A first run downloads
+            // the model when a reply is spoken or Settings lists voices, not at launch.
+            if (!File.Exists(KokoroVoiceService.CachedModelPath))
+                return;
+
             var voiceService = App.GetService<IVoiceService>();
             await voiceService.ConnectAsync();
         }
@@ -414,7 +424,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async void OnRunRequested(object? sender, RunRequestedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(e.Intent) || string.IsNullOrWhiteSpace(e.Model))
+        if ((string.IsNullOrWhiteSpace(e.Intent) && e.Attachments.Count == 0) || string.IsNullOrWhiteSpace(e.Model))
             return;
 
         // One reply at a time in this window. The text they typed stays put.
@@ -424,10 +434,39 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // Attached text files go into the message. Images travel beside it for vision models.
+        var content = AttachmentReader.Compose(e.Intent, e.Attachments);
+        var images = AttachmentReader.ImagesOf(e.Attachments);
+        var title = !string.IsNullOrWhiteSpace(e.Intent)
+            ? e.Intent
+            : string.Join(", ", e.Attachments.Select(a => a.Name));
+
+        // Ask before sending. A text-only model refuses images, and the files stay attached.
+        if (images is not null)
+        {
+            bool? sees;
+            try
+            {
+                sees = await App.GetService<IInferenceClient>().SupportsImagesAsync(e.Model!);
+            }
+            catch (Exception)
+            {
+                sees = null;
+            }
+
+            if (sees == false)
+            {
+                ShowNotice($"{e.Model} can't read images. Pick a vision model, such as gemma3 or llama3.2-vision, or remove the image.", InfoBarSeverity.Warning);
+                return;
+            }
+        }
+
+        ConversationView.Composer.ClearAttachments();
+
         var runCts = new CancellationTokenSource();
         _runCts = runCts;
         _answerText.Clear();
-        _answerPrompt = e.Intent;
+        _answerPrompt = content;
         _answerModel = e.Model;
 
         var chatService = App.GetService<IChatService>();
@@ -451,7 +490,7 @@ public sealed partial class MainWindow : Window
                 var systemPrompt = chatOptions?.Value.DefaultSystemPrompt;
 
                 conversation = await chatService.CreateConversationAsync(
-                    title: e.Intent.Length > 50 ? e.Intent[..50] + "..." : e.Intent,
+                    title: title.Length > 50 ? title[..50] + "..." : title,
                     model: model,
                     systemPrompt: systemPrompt,
                     projectId: _sessionListVm.SelectedProjectId,
@@ -477,7 +516,7 @@ public sealed partial class MainWindow : Window
 
             if (Viewing())
             {
-                _conversationVm.AddUserIntent(e.Intent);
+                _conversationVm.AddUserIntent(content);
                 _conversationVm.ExecutionState = ExecutionState.Running;
                 _conversationVm.CurrentModel = model;
                 ConversationView.Composer.ExecutionState = ExecutionState.Running;
@@ -508,8 +547,14 @@ public sealed partial class MainWindow : Window
 
             var yieldCounter = 0;
 
+            void OnThinking(string chunk) => DispatcherQueue.TryEnqueue(() =>
+            {
+                if (Viewing())
+                    _conversationVm.AppendThinking(chunk);
+            });
+
             await foreach (var token in chatService.SendMessageAsync(
-                conversation.Id, e.Intent, runCts.Token))
+                conversation.Id, content, images, OnThinking, runCts.Token))
             {
                 _answerText.Append(token);
                 if (!Viewing())
@@ -554,7 +599,11 @@ public sealed partial class MainWindow : Window
         {
             if (Viewing())
             {
-                _conversationVm.FinalizeModelOutput();
+                // A reply that never started leaves no empty card behind.
+                if (_answerText.Length == 0)
+                    _conversationVm.CancelModelOutput();
+                else
+                    _conversationVm.FinalizeModelOutput();
                 _conversationVm.ExecutionState = ExecutionState.Issue;
                 ConversationView.Composer.ExecutionState = ExecutionState.Idle;
             }

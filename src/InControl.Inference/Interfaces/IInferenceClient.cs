@@ -42,6 +42,13 @@ public interface IInferenceClient
     Task<ModelInfo?> GetModelAsync(string modelId, CancellationToken ct = default);
 
     /// <summary>
+    /// Whether the model can read images. Null when the backend cannot say.
+    /// </summary>
+    /// <param name="modelId">The model identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool?> SupportsImagesAsync(string modelId, CancellationToken ct = default) => Task.FromResult<bool?>(null);
+
+    /// <summary>
     /// Streams chat completion tokens as they are generated.
     /// </summary>
     /// <param name="request">The chat request.</param>

@@ -13,6 +13,7 @@ namespace InControl.App.Controls;
 /// </summary>
 public sealed partial class MessageCard : UserControl
 {
+    private bool _foldedThinking;
     /// <summary>
     /// Raised when the user clicks the speak button on an assistant message.
     /// </summary>
@@ -312,6 +313,11 @@ public sealed partial class MessageCard : UserControl
         ModelContent.Text = message.Content;
         ModelTimestamp.Text = message.TimestampDisplay;
 
+        // A recycled card starts over: open while thinking, folded once there is an answer.
+        _foldedThinking = !string.IsNullOrEmpty(message.Content);
+        ThinkingExpander.IsExpanded = !_foldedThinking;
+        ShowThinking(message);
+
         // Show model name if available
         if (!string.IsNullOrEmpty(message.Model))
         {
@@ -347,6 +353,31 @@ public sealed partial class MessageCard : UserControl
         Subscribe(message);
     }
 
+    /// <summary>
+    /// Shows a reasoning model's thinking. It stays open while the model thinks and folds
+    /// away once the answer starts, so the card never looks stalled.
+    /// </summary>
+    private void ShowThinking(MessageViewModel message)
+    {
+        var hasThinking = !string.IsNullOrEmpty(message.Thinking);
+        ThinkingExpander.Visibility = hasThinking ? Visibility.Visible : Visibility.Collapsed;
+        if (!hasThinking)
+        {
+            StreamingText.Text = "Receiving output...";
+            return;
+        }
+
+        ThinkingText.Text = message.Thinking;
+        var answering = !string.IsNullOrEmpty(message.Content);
+        ThinkingExpander.Header = answering || !message.IsStreaming ? "Thinking" : "Thinking...";
+        StreamingText.Text = answering ? "Receiving output..." : "Thinking...";
+        if (answering && !_foldedThinking)
+        {
+            ThinkingExpander.IsExpanded = false;
+            _foldedThinking = true;
+        }
+    }
+
     private void ShowSystemMessage(MessageViewModel message)
     {
         HideAllCards();
@@ -377,7 +408,13 @@ public sealed partial class MessageCard : UserControl
                     if (message.IsAssistant)
                     {
                         ModelContent.Text = message.Content;
+                        ShowThinking(message);
                     }
+                    break;
+
+                case nameof(MessageViewModel.Thinking):
+                    if (message.IsAssistant)
+                        ShowThinking(message);
                     break;
 
                 case nameof(MessageViewModel.IsStreaming):
