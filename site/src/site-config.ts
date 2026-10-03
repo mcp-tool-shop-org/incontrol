@@ -45,7 +45,7 @@ export const config: SiteConfig = {
         {
           title: 'Build from source',
           code: `# App 2.0.0. No MSIX file in the repo.
-# Package identity InControl.App 2.0.0.0 is being prepared.
+# Package identity mcp-tool-shop.InControl-Desktop 2.0.0.0 is being prepared.
 # Tag v0.3.0 is an older source-only release.
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
 cd incontrol

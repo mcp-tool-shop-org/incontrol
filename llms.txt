@@ -8,7 +8,7 @@ InControl is an Ollama chat app for Windows. Chat stays on this PC until a rente
 
 RunPod lookup reads `RUNPOD_API_KEY` from the environment. The key is not stored, and the lookup does not send the chat.
 
-The app version in this tree is 2.0.0. The prepared package identity is InControl.App 2.0.0.0. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release. The repository is https://github.com/mcp-tool-shop-org/incontrol.
+The app version in this tree is 2.0.0. The prepared package identity is mcp-tool-shop.InControl-Desktop 2.0.0.0. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release. The repository is https://github.com/mcp-tool-shop-org/incontrol.
 
 ## Quick Start
 
@@ -59,7 +59,7 @@ InControl.Core                 → Shared types
 - Windows only (WinUI 3 / Windows App SDK 1.6)
 - Requires .NET 9.0
 - GPU: minimum RTX 3060 (8GB), recommended RTX 4080/5080 (16GB)
-- Build from source with `dotnet build`. See `docs/INSTALLATION.md`. The app version in this tree is 2.0.0. The prepared package identity is InControl.App 2.0.0.0. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release.
+- Build from source with `dotnet build`. See `docs/INSTALLATION.md`. The app version in this tree is 2.0.0. The prepared package identity is mcp-tool-shop.InControl-Desktop 2.0.0.0. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release.
 - App project must target x64; class libraries use AnyCPU
 
 ## Data Storage

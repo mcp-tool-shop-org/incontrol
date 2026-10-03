@@ -8,4 +8,4 @@ Two different choices live near this word. They are not the same switch.
 
 **Tool URLs.** Allowing a tool URL does not send the chat to a rented GPU. Connecting a rental does not change the tool allowlist.
 
-There is no MSIX in this repository and no mode that stops every socket. Version 2.0.0 is a source build. A later package identity `InControl.App` `2.0.0.0` is being prepared. Tag `v0.3.0` is an older source-only release. See `docs/INSTALLATION.md`.
+There is no MSIX in this repository and no mode that stops every socket. Version 2.0.0 is a source build. A later package identity `mcp-tool-shop.InControl-Desktop` `2.0.0.0` is being prepared. Tag `v0.3.0` is an older source-only release. See `docs/INSTALLATION.md`.

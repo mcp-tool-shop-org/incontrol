@@ -5,14 +5,18 @@ All notable changes to InControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The app version is **2.0.0**. Partner Center already has packages for this product through 1.4.0, and the newest upload is `InControl.App_1.4.0_x64`. Microsoft rejects an upload unless the package identity name is still `InControl.App` and the package version is higher, so the MSIX version is **2.0.0.0**. The repo and the name in the window stay InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. The package publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A different publisher is rejected even when the name and version are right. No MSIX file is committed in this repository.
+The app version is **2.0.0**. The Microsoft Store already has this product, Store ID 9N1FG39JWF83, through package 1.4.0.0. An upload is accepted only when its identity matches the Product Identity page in Partner Center: Name `mcp-tool-shop.InControl-Desktop`, Publisher `CN=5305D976-6952-4F00-9C21-3A5DB090359F`, PublisherDisplayName `mcp-tool-shop`, and a higher version. The MSIX version is **2.0.0.0**. The name in the window and on the Start tile stays InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. No MSIX file is committed in this repository.
 
 ## [Unreleased]
 
 ### Changed
-- The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. Partner Center already lists `InControl.App` through 1.4.0. A lower number, or a package named `InControl.Desktop`, is rejected. The product name stays InControl. NuGet library versions are unchanged. The manifest publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`.
+- The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. The package identity is `mcp-tool-shop.InControl-Desktop`, publisher display name `mcp-tool-shop`, as on the Partner Center Product Identity page. An earlier draft used `InControl.App`, which was the 1.4.0 upload's file name and would have been rejected. The application id is `App` again, as in 1.3.0, so Start and taskbar pins survive the update. NuGet library versions are unchanged.
+- The package runs on Windows 10 version 2004 and later. The build had been writing Windows 11 22H2 as the minimum.
+- The tiles, taskbar icon, Store logo and splash screen are the llama from the README. `scripts/generate-icons.py` draws them from `logo.png`.
+- PRIVACY.md lists every network connection, including the one-time voice model download and the diagnostics check, says that project instructions and remembered notes go to a connected rental, and describes Store storage and updates.
 
 ### Fixed
+- Voice works from the Store package. The voices and eSpeak data now ship inside it, the app starts in its own folder instead of System32, and the voice model downloads into the app cache instead of beside the read-only exe.
 - The SSH client config no longer sets `ClearAllForwardings`. That keyword was erasing `LocalForward` after OpenSSH parsed the file, so `ssh -N` could sit with nothing forwarded.
 - When that SSH process exits, the chat comes back to this PC and the banner says so. While the tunnel is up, the banner includes the Ollama version the probe already read.
 - Model Manager and diagnostics talk to the endpoint the banner is naming, not always `localhost:11434`.

@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-Welcome to the InControl handbook. The app version is 2.0.0. Package identity InControl.App 2.0.0.0 is being prepared, and there is no MSIX file in the repo. Tag v0.3.0 is an older source-only release. Chat stays on this PC until you connect a rented GPU.
+Welcome to the InControl handbook. The app version is 2.0.0. Package identity mcp-tool-shop.InControl-Desktop 2.0.0.0 is being prepared, and there is no MSIX file in the repo. Tag v0.3.0 is an older source-only release. Chat stays on this PC until you connect a rented GPU.
 
 ## What's inside
 

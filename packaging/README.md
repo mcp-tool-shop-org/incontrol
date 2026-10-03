@@ -2,61 +2,64 @@
 
 Nothing in this directory is an upload. Current main is app 2.0.0. Tag v0.3.0 is an older source-only release and is not this tree. Install the current tree from `docs/INSTALLATION.md`.
 
-Partner Center already has this product through package 1.4.0. The newest upload file is `InControl.App_1.4.0_x64.msixupload`. The next package is accepted only when both of these are true:
+## Store identity
 
-- Identity `Name` is exactly `InControl.App`. `InControl.Desktop` is a different package and is rejected.
-- Identity `Version` is four numbers and higher than `1.4.0.0`. The prepared version is `2.0.0.0`.
+The Store listing is 9N1FG39JWF83, and its newest package is 1.4.0.0. The next package is accepted only when all of these match the Product Identity page in Partner Center, case-sensitive:
 
-The name on the repo, and the display name in the manifest, stay InControl. Display name is not the package identity.
+- Identity `Name` is `mcp-tool-shop.InControl-Desktop`. The 1.4.0 upload file was named `InControl.App_1.4.0_x64.msixupload`, but a file name is not the identity.
+- Identity `Publisher` is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`.
+- `PublisherDisplayName` is `mcp-tool-shop`.
+- `DisplayName` is a name reserved for this product. Today that is `InControl-Desktop`.
+- Identity `Version` is four numbers, ends in `0`, and is higher than `1.4.0.0`. The prepared version is `2.0.0.0`.
 
-`Publisher` is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. A package signed with a different subject is rejected even when the name and version are right. A local test certificate is not that publisher.
+Application `Id` stays `App`, as in 1.3.0, so Start and taskbar pins survive the update. The tile and Start menu say InControl. That is the `VisualElements` display name, which Partner Center does not check.
+
+`TargetPlatformMinVersion` in `src/InControl.App/InControl.App.csproj` is `10.0.19041.0`, Windows 10 version 2004. Without it the build writes the SDK version, 22621, as `MinVersion`, and Windows 10 cannot install the package.
 
 ## Structure
 
 ```
 packaging/
-├── AppxManifest.template.xml    # MSIX manifest template
-├── Assets/                       # Package assets (icons, splash)
-│   └── .gitkeep                 # Placeholder
+├── AppxManifest.template.xml    # Manifest for the signed workflow
+├── Assets/                       # Unused. The package assets live in src/InControl.App/Assets
 └── README.md                    # This file
 ```
 
-## Required Assets
+`src/InControl.App/Package.appxmanifest` is the manifest a local MSBuild package uses. Keep its identity the same as the template.
 
-Before first release, add the following PNG files to `Assets/`:
+## Icons
 
-| File | Size | Purpose |
-|------|------|---------|
-| StoreLogo.png | 50x50 | Store listing |
-| Square44x44Logo.png | 44x44 | Taskbar icon |
-| Square150x150Logo.png | 150x150 | Start menu tile |
-| Wide310x150Logo.png | 310x150 | Wide tile |
-| SplashScreen.png | 620x300 | App loading |
+The tiles, taskbar icon, Store logo and splash screen are all drawn from `logo.png`: the llama mark, without the wordmark, on a transparent background. Regenerate every file in `src/InControl.App/Assets` at its current size with:
+
+```powershell
+py -3 scripts/generate-icons.py
+```
 
 ## Version Substitution
 
-The manifest template uses these placeholders:
+The manifest template uses one placeholder:
 
 | Placeholder | Replaced With |
 |-------------|---------------|
 | `${VERSION}` | Four-part package version. The prepared value is `2.0.0.0`. |
-| Publisher | `CN=5305D976-6952-4F00-9C21-3A5DB090359F` |
 
 ## Building Locally
 
-`dotnet publish` on the .NET 9 SDK stops at MSB4062. That SDK does not ship `Microsoft.Build.AppxPackage.dll`, so `RemovePayloadDuplicates` cannot load. The package is produced by MSBuild from a Visual Studio install that includes the Windows App SDK packaging targets. Signing stays off for a local build. The Store re-signs the upload.
+`dotnet publish` on the .NET 9 SDK stops at MSB4062. That SDK does not ship `Microsoft.Build.AppxPackage.dll`, so `RemovePayloadDuplicates` cannot load. The package is produced by MSBuild from a Visual Studio install that includes the Windows App SDK packaging targets. Signing stays off. The Store re-signs the upload.
 
 ```powershell
-msbuild src\InControl.App\InControl.App.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=true
+msbuild src\InControl.App\InControl.App.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=StoreUpload
 ```
 
-The unsigned package lands under `AppPackages\`, which is gitignored. Pack `InControl.App_2.0.0.0_x64.msix` and its `.msixsym` at the root of a zip named `InControl.App_2.0.0.0_x64.msixupload`. Identity inside the manifest must already say `Name="InControl.App"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, and `Version="2.0.0.0"`.
+The unsigned package and its `.msixupload` land under `AppPackages\`, which is gitignored. Check the manifest inside before uploading: `Name="mcp-tool-shop.InControl-Desktop"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, `PublisherDisplayName` `mcp-tool-shop`, `Version="2.0.0.0"`, and `MinVersion="10.0.19041.0"`.
+
+KokoroSharp copies its voices and eSpeak data with an after-build step that never reaches the package. `InControl.App.csproj` adds that folder as package content. A package without `voices\` and `espeak\` at its root cannot speak.
 
 ## Signing
 
-A tag does not build or sign an MSIX. `.github/workflows/release.yml` runs the library tests. `.github/workflows/release-signed.yml` is `workflow_dispatch` only, and it refuses to run until a signing certificate is configured. That certificate's subject has to be `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. Do not create a stand-in subject and upload the result.
+A tag does not build or sign an MSIX. `.github/workflows/release.yml` runs the library tests. `.github/workflows/release-signed.yml` is `workflow_dispatch` only, and it refuses to run until a signing certificate is configured. That is for a sideloaded package. Its certificate subject has to be `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. Do not create a stand-in subject and upload the result.
 
-The signed workflow writes `InControl.App_<version>_x64.msix`. It rejects a package version below `2.0.0.0`, and it rejects a manifest whose identity name is not `InControl.App`.
+The signed workflow writes `mcp-tool-shop.InControl-Desktop_<version>_x64.msix`. It rejects a package version below `2.0.0.0`, and it rejects a manifest whose identity name is not `mcp-tool-shop.InControl-Desktop`.
 
 ## Version Policy
 

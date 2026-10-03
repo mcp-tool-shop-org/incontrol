@@ -14,6 +14,9 @@ public partial class App : Application
 
     public App()
     {
+        // An MSIX launch starts in System32. appsettings.json and the voice data are beside the exe.
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
         InitializeComponent();
 
         // Set up global exception handling

@@ -2,7 +2,7 @@
 
 ## This charter is not the current ship
 
-The app version in this tree is 2.0.0 at [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). There is no MSIX in this repository. A later package identity `InControl.App` `2.0.0.0` is being prepared. Its publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. Tag `v0.3.0` is an older source-only release, and that tag has no MSIX. Install and uninstall the current tree from source. See `docs/INSTALLATION.md` and `docs/UNINSTALL.md`.
+The app version in this tree is 2.0.0 at [mcp-tool-shop-org/incontrol](https://github.com/mcp-tool-shop-org/incontrol). There is no MSIX in this repository. A later package identity `mcp-tool-shop.InControl-Desktop` `2.0.0.0` is being prepared. Its publisher is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`. Tag `v0.3.0` is an older source-only release, and that tag has no MSIX. Install and uninstall the current tree from source. See `docs/INSTALLATION.md` and `docs/UNINSTALL.md`.
 
 Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
 

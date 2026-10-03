@@ -32,7 +32,7 @@ You should see a line containing `Microsoft.NETCore.App 9.0` or later.
 
 ### Build from source
 
-App version 2.0.0 does not ship an MSIX in this repo. Package identity InControl.App 2.0.0.0 is being prepared. Tag v0.3.0 is an older source-only release. Clone the repository and run the tests.
+App version 2.0.0 does not ship an MSIX in this repo. Package identity mcp-tool-shop.InControl-Desktop 2.0.0.0 is being prepared. Tag v0.3.0 is an older source-only release. Clone the repository and run the tests.
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git

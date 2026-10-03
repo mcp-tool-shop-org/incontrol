@@ -1,7 +1,7 @@
 # InControl signed package. workflow_dispatch only. A tag does not start this.
 # No signing certificate is stored in this repository, and no MSIX is committed.
 #
-# Partner Center already has identity Name InControl.App through version 1.4.0.
+# The Store already has identity Name mcp-tool-shop.InControl-Desktop through version 1.4.0.0.
 # This workflow packs that same name. The package version is four numbers,
 # starting at 2.0.0.0. Publisher is the signing certificate subject and has
 # to match the 1.4.0 upload. Run this only when that certificate is configured.
@@ -119,7 +119,7 @@ jobs:
 
           $msix = ($nums[0..3] -join '.')
           if ([version]$msix -lt [version]'2.0.0.0') {
-            Write-Error "Package version $msix is below 2.0.0.0. Partner Center already has InControl.App through 1.4.0.0, so this package starts at 2.0.0.0."
+            Write-Error "Package version $msix is below 2.0.0.0. The Store already has mcp-tool-shop.InControl-Desktop through 1.4.0.0, so this package starts at 2.0.0.0."
             exit 1
           }
 
@@ -262,8 +262,8 @@ jobs:
           }
 
           $manifest = Get-Content -Path packaging/AppxManifest.template.xml -Raw
-          if ($manifest -notmatch 'Name="InControl\.App"') {
-            Write-Error "MSIX identity Name must stay InControl.App. Partner Center rejects a different package name."
+          if ($manifest -notmatch 'Name="mcp-tool-shop\.InControl-Desktop"') {
+            Write-Error "MSIX identity Name must stay mcp-tool-shop.InControl-Desktop. Partner Center rejects a different package name."
             exit 1
           }
           if ($manifest -notmatch [regex]::Escape("Publisher=`"$expectedPublisher`"")) {
@@ -272,7 +272,7 @@ jobs:
           }
           $manifest = $manifest -replace '\$\{VERSION\}', $msixVersion
           if ($manifest -match '\$\{PUBLISHER\}' -or $manifest -notmatch "Version=`"$msixVersion`"") {
-            Write-Error "Manifest identity was not filled. Name InControl.App, version $msixVersion, and publisher $expectedPublisher are all required."
+            Write-Error "Manifest identity was not filled. Name mcp-tool-shop.InControl-Desktop, version $msixVersion, and publisher $expectedPublisher are all required."
             exit 1
           }
           $manifest | Out-File -FilePath ./publish/AppxManifest.xml -Encoding utf8
@@ -286,7 +286,7 @@ jobs:
             Select-Object -First 1
 
           New-Item -ItemType Directory -Force -Path ./artifacts | Out-Null
-          $outputPath = "./artifacts/InControl.App_${msixVersion}_x64.msix"
+          $outputPath = "./artifacts/mcp-tool-shop.InControl-Desktop_${msixVersion}_x64.msix"
 
           & $makeappx.FullName pack /d ./publish /p $outputPath /nv
 
@@ -364,7 +364,7 @@ jobs:
             signedAt = (Get-Date -Format 'o')
             algorithm = 'SHA256'
             timestampServer = 'http://timestamp.digicert.com'
-            packageFile = "InControl.App_${msixVersion}_x64.msix"
+            packageFile = "mcp-tool-shop.InControl-Desktop_${msixVersion}_x64.msix"
           }
 
           $sigInfo | ConvertTo-Json | Out-File -FilePath "./artifacts/signature-info-$version.json" -Encoding utf8
@@ -417,11 +417,11 @@ jobs:
           body: |
             ## InControl v${{ needs.build.outputs.version }}
 
-            Package identity `InControl.App`, version `${{ needs.build.outputs.msix_version }}`. That file is the Partner Center upload. It is not a Store listing by itself.
+            Package identity `mcp-tool-shop.InControl-Desktop`, version `${{ needs.build.outputs.msix_version }}`. That file is the Partner Center upload. It is not a Store listing by itself.
 
             ### Installation
 
-            1. Download `InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix`
+            1. Download `mcp-tool-shop.InControl-Desktop_${{ needs.build.outputs.msix_version }}_x64.msix`
             2. Verify the SHA256 checksum (see `checksums-${{ needs.build.outputs.version }}.txt`)
             3. Double-click to install
 
@@ -429,14 +429,14 @@ jobs:
 
             #### Verify Checksum
             ```powershell
-            $expected = (Get-Content checksums-${{ needs.build.outputs.version }}.txt | Select-String 'InControl.App_').ToString().Split(' ')[0]
-            $actual = (Get-FileHash InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix -Algorithm SHA256).Hash.ToLower()
+            $expected = (Get-Content checksums-${{ needs.build.outputs.version }}.txt | Select-String 'mcp-tool-shop.InControl-Desktop_').ToString().Split(' ')[0]
+            $actual = (Get-FileHash mcp-tool-shop.InControl-Desktop_${{ needs.build.outputs.msix_version }}_x64.msix -Algorithm SHA256).Hash.ToLower()
             if ($expected -eq $actual) { Write-Host "Checksum verified" } else { Write-Host "Checksum mismatch" }
             ```
 
             #### Verify Signature
             ```powershell
-            signtool verify /pa InControl.App_${{ needs.build.outputs.msix_version }}_x64.msix
+            signtool verify /pa mcp-tool-shop.InControl-Desktop_${{ needs.build.outputs.msix_version }}_x64.msix
             ```
 
             ### Build Information

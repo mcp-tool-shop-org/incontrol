@@ -29,7 +29,7 @@ InControl is a WinUI 3 chat app. Ollama on this PC is the default. A GPU rental 
 
 - **Data accessed:** Ollama on this PC, or Ollama on a machine you connect over SSH. Chat history and settings in local storage.
 - **Data NOT accessed:** No InControl account, no cloud sync, and no telemetry. Inference stays on this PC until you connect a rental. Then the prompts you send go to that machine.
-- **Permissions:** Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. This tree's build (app 2.0.0) is not an MSIX and is not sandboxed by AppContainer. It does not ask for elevation. A later package identity `InControl.App` `2.0.0.0` is being prepared. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release.
+- **Permissions:** Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. This tree's build (app 2.0.0) is not an MSIX and is not sandboxed by AppContainer. It does not ask for elevation. A later package identity `mcp-tool-shop.InControl-Desktop` `2.0.0.0` is being prepared. There is no MSIX file in the repo. Tag v0.3.0 is an older source-only release.
 - **No telemetry** is collected or sent
 
 ### Out of Scope

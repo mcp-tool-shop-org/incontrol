@@ -219,7 +219,7 @@ Les contributions sont les bienvenues ! Veuillez :
 
 ## Version
 
-Current version: **2.0.0**. The package identity is `InControl.App` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
 
 See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
 

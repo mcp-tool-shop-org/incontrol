@@ -4,17 +4,18 @@
 
 ## Overview
 
-InControl is an Ollama chat app for Windows. The chat runs on this PC until you connect a GPU you rented over SSH. That choice is shown on the chat, and it is separate from any tool-URL permission.
+InControl is an Ollama chat app for Windows, published in the Microsoft Store as InControl-Desktop by mcp-tool-shop. The chat runs on this PC until you connect a GPU you rented over SSH. That choice is shown on the chat, and it is separate from any tool-URL permission.
 
 ## Data Collection
 
-**InControl does not run an account service and does not collect telemetry.** A chat on this PC stays on this PC. If you connect a GPU rental, the prompts you send are transmitted to Ollama on that machine through SSH.
+**InControl does not run an account service and does not collect telemetry.** A chat on this PC stays on this PC. If you connect a GPU rental, what InControl sends to the model goes to Ollama on that machine through SSH.
 
 ### What stays on your device:
 - Conversations and chat history, until you connect a rental
+- Projects, project instructions, and notes you ask InControl to remember
 - Your settings and preferences
 - The private key file you choose (it is not uploaded)
-- Session data
+- Logs and the voice model cache
 
 ### What we do NOT collect:
 - Personal information
@@ -24,39 +25,44 @@ InControl is an Ollama chat app for Windows. The chat runs on this PC until you 
 - Location data
 - Device identifiers
 
-## Local Processing
+## What a Prompt Contains
 
-By default, inference is Ollama on this PC and the conversation stays here. If you connect a rental, the prompts you send go to Ollama on that machine through an SSH port forward. InControl does not run its own cloud, does not require an account, and does not sync a profile.
+Each message to the model carries the conversation so far. It can also carry the project's instructions and a few of your remembered notes that match the message. On this PC, all of that goes only to your local Ollama. While a rental is connected, all of that goes to Ollama on the rented machine. InControl does not get anything back from that machine except the replies.
 
 ## Network Connections
 
-When you ask it to, InControl may also:
+InControl does not run its own cloud, does not require an account, and does not sync a profile. Apart from Ollama on this PC, it connects to the network only for these things:
 
-1. **Pull a model** through Ollama's registry. That happens only when you start a pull, and it uses the Ollama the banner is naming.
-2. **Look up RunPod pods** that are already running, if `RUNPOD_API_KEY` is in the environment. Lookup does not start a pod and does not store the key.
+1. **A rental you connect.** Prompts go through an SSH port forward to the machine you chose.
+2. **Pulling a model.** Ollama downloads it from its registry when you start a pull. The request goes through the Ollama the banner is naming.
+3. **RunPod lookup.** If `RUNPOD_API_KEY` is in your environment, InControl can list pods that are already running. Lookup does not start a pod and does not store the key.
+4. **The voice model.** The first time InControl speaks a reply, it downloads the Kokoro voice model (about 300 MB) from GitHub (`github.com/taylorchu/kokoro-onnx`) into the app's cache. Speech itself runs on this PC. Turn off auto-speak in Settings if you don't want that download.
+5. **Diagnostics.** When you run diagnostics on the Help page, InControl checks that `https://ollama.com` is reachable.
 
-There is no Microsoft Store update check in 0.3.0. The offline switch turns off a rental, RunPod lookup, and model download. It does not claim to block every socket. Chat on this PC still works while it is on.
+Links on the Model Manager page, such as the Ollama download page, open in your browser.
 
-The chat itself is transmitted only while a rental is connected, and then only to that machine.
+The offline switch turns off a rental, RunPod lookup, and model pulls. It does not stop the voice model download, and it does not claim to block every socket. Chat on this PC still works while it is on.
+
+InControl does not check for updates itself. When it is installed from the Microsoft Store, the Store handles updates.
 
 ## Data Storage
 
-All application data is stored locally in:
-- `%LOCALAPPDATA%\InControl\` - Application settings and logs
-- Ollama's default model storage location
+Application data is stored on this PC in `%LOCALAPPDATA%\InControl\`: conversations, projects, remembered notes, settings, logs, and the voice model cache. Models pulled through Ollama stay in Ollama's own storage.
 
-You can delete application data on this PC by removing that folder. See `docs/UNINSTALL.md`. There is no MSIX to uninstall.
+When InControl is installed from the Microsoft Store, Windows may keep that folder inside the app's own storage, under `%LOCALAPPDATA%\Packages\mcp-tool-shop.InControl-Desktop_yn6b8xqrexa5j\`. Uninstalling the app from Windows Settings removes that storage. If the folder is at `%LOCALAPPDATA%\InControl\` instead, delete it yourself after uninstalling. See `docs/UNINSTALL.md`.
 
 ## Third-Party Services
 
-InControl-Desktop integrates with:
+InControl talks to:
 - **Ollama** on this PC, or Ollama on a machine you reach over SSH
+- **RunPod's API**, only for pod lookup and only if you supplied a key
+- **GitHub**, only to download the voice model
 
-InControl does not add an analytics service. A GPU rental is a machine you chose, not an InControl account.
+The Microsoft Store installs and updates the app under Microsoft's own privacy statement. InControl does not add an analytics service. A GPU rental is a machine you chose, not an InControl account.
 
 ## Children's Privacy
 
-InControl-Desktop does not knowingly collect any information from children under 13 years of age.
+InControl does not knowingly collect any information from children under 13 years of age.
 
 ## Changes to This Policy
 
@@ -69,7 +75,7 @@ https://github.com/mcp-tool-shop-org/incontrol/issues
 
 ## Your Rights
 
-InControl does not keep an account. Chat history on this PC is yours to delete. Prompts you send while a rental is connected go to that machine, and InControl does not get them back from it.
+InControl does not keep an account. Chat history and notes on this PC are yours to delete. Prompts you send while a rental is connected go to that machine, and InControl does not get them back from it.
 
 ---
 

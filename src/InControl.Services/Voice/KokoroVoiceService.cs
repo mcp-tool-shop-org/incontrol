@@ -36,6 +36,11 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
     /// </summary>
     private const string WorkingDirectoryModelFileName = "kokoro.onnx";
 
+    /// <summary>
+    /// The float32 model KokoroSharp 0.6.2 itself downloads for <see cref="KModel.float32"/>.
+    /// </summary>
+    private const string ModelDownloadUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx";
+
     private VoiceConnectionState _connectionState = VoiceConnectionState.Disconnected;
     private bool _isSpeaking;
     private List<string> _availableVoices = [];
@@ -419,8 +424,8 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
 
             _logger.LogInformation("Loading voice engine (CPU)...");
 
-            // Load voices from the bundled voices directory
-            KokoroVoiceManager.LoadVoicesFromPath("voices");
+            // Voices ship beside the exe. A packaged launch starts in System32, so never use a relative path.
+            KokoroVoiceManager.LoadVoicesFromPath(Path.Combine(AppContext.BaseDirectory, "voices"));
 
             _engine = await LoadModelAsync(opts);
 
@@ -453,48 +458,27 @@ public sealed class KokoroVoiceService : IVoiceService, IDisposable
             return KokoroTTS.LoadModel(cachePath);
         }
 
-        // KokoroSharp 0.6.2 only downloads the float32 model beside the process.
-        // Move that file into the app cache and load the absolute path.
-        KokoroTTS? downloaded = null;
-        try
-        {
-            downloaded = await KokoroTTS.LoadModelAsync(
-                KModel.float32,
-                progress => _logger.LogDebug("Model download progress: {Progress:P0}", progress));
-        }
-        finally
-        {
-            try
-            {
-                downloaded?.Dispose();
-            }
-            finally
-            {
-                MoveModelOutOfWorkingDirectory(cachePath);
-            }
-        }
-
-        if (!File.Exists(cachePath))
-            throw new FileNotFoundException("Kokoro model was not stored in the application cache.", cachePath);
-
+        // KokoroSharp 0.6.2 downloads beside the process, which is read-only in an MSIX install.
+        // Fetch the same float32 file straight into the app cache instead.
+        await DownloadModelAsync(cachePath);
         return KokoroTTS.LoadModel(cachePath);
     }
 
-    private static void MoveModelOutOfWorkingDirectory(string cachePath)
+    private async Task DownloadModelAsync(string cachePath)
     {
-        var downloaded = Path.GetFullPath(WorkingDirectoryModelFileName);
-        if (!File.Exists(downloaded))
-            return;
+        var partial = cachePath + ".part";
+        _logger.LogInformation("Downloading voice model from {Url}", ModelDownloadUrl);
 
-        if (string.Equals(downloaded, cachePath, StringComparison.OrdinalIgnoreCase))
-            return;
+        using (var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan })
+        using (var response = await http.GetAsync(ModelDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
+        {
+            response.EnsureSuccessStatusCode();
+            await using var source = await response.Content.ReadAsStreamAsync();
+            await using var target = File.Create(partial);
+            await source.CopyToAsync(target);
+        }
 
-        var cacheDirectory = Path.GetDirectoryName(cachePath);
-        if (!string.IsNullOrEmpty(cacheDirectory))
-            Directory.CreateDirectory(cacheDirectory);
-
-        File.Move(downloaded, cachePath, overwrite: true);
-        DeleteWorkingDirectoryCopy(cachePath);
+        File.Move(partial, cachePath, overwrite: true);
     }
 
     private static void DeleteWorkingDirectoryCopy(string cachePath)
