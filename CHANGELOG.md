@@ -16,6 +16,25 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 - PRIVACY.md lists every network connection, including the one-time voice model download and the diagnostics check, says that project instructions and remembered notes go to a connected rental, and describes Store storage and updates.
 
 ### Fixed
+- The status strip says Online when Ollama answers and Offline when it does not. It had the two the wrong way round.
+- A long reply or model pull is no longer cut off at 100 seconds. The inference timeout is now how long a stream may go quiet, not how long it may run.
+- Changing the endpoint no longer drops a reply that is still streaming. The old connection is closed after its last call ends.
+- `localhost` in the Ollama address is used as 127.0.0.1, so an IPv4-only Ollama is found.
+- Session, project and note files are written to a temporary file and then swapped in, so a crash during a save cannot leave half a file.
+- A session deleted while its reply is being saved stays deleted. A session whose file cannot be deleted stays in the list with its notes, and the window says so.
+- When a chat cannot be saved, the window says so instead of only logging it. Failures to load, rename, delete, remember, export or speak are shown too.
+- A cancelled load is no longer reported as corrupt session files, and the next load tries again.
+- Stop never throws when a reply is ending at the same moment.
+- Switching sessions, renaming, or starting a new session while a reply is streaming keeps the reply running. Going back to that session shows the reply so far and the Cancel button.
+- Remember for this session files the note under that session's project. Right-clicking a row no longer changes which session the memory list shows.
+- Duplicate stores a real copy with its messages and project. Before, the copy existed only in the sidebar.
+- Model Manager keeps the selected default model when it refreshes.
+- Connect, Stay on this PC, RunPod lookup and the Help page diagnostics handlers catch their errors, and an unhandled UI exception no longer closes the app.
+- After an unclean exit, the next launch says so and that saved chats are intact. Code that claimed to recover an unsent prompt, but never did, is removed.
+- Clear All Memory clears the remembered notes. Controls that did nothing are removed or relabelled: Change Storage, Settings Export Diagnostics, Clear activity, plugin install, policy Configure and audit Export, and the composer's Attach file. Reset to Defaults is now Reset appearance.
+- A message card stops listening to a message it no longer shows, so tokens cannot paint into the wrong card.
+- Restoring a backup extracts it to a staging folder first. A corrupt or empty backup no longer deletes the current sessions.
+- Exporting all sessions reads the list once. Clearing session notes clears only that session's notes.
 - Voice works from the Store package. The voices and eSpeak data now ship inside it, the app starts in its own folder instead of System32, and the voice model downloads into the app cache instead of beside the read-only exe.
 - The SSH client config no longer sets `ClearAllForwardings`. That keyword was erasing `LocalForward` after OpenSSH parsed the file, so `ssh -N` could sit with nothing forwarded.
 - When that SSH process exits, the chat comes back to this PC and the banner says so. While the tunnel is up, the banner includes the Ollama version the probe already read.
