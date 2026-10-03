@@ -91,7 +91,8 @@
 
   <!-- KokoroSharp copies its voices and eSpeak data with an after-build Copy, which never reaches publish or the MSIX. -->
   <ItemGroup Condition="'$(PkgKokoroSharp)' != ''">
-    <Content Include="$(PkgKokoroSharp)\content\**\*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The package is x64 Windows. The Linux, macOS and Arm64 eSpeak libraries stay out. -->
+    <Content Include="$(PkgKokoroSharp)\content\**\*" Exclude="$(PkgKokoroSharp)\content\espeak\espeak-ng-linux-*;$(PkgKokoroSharp)\content\espeak\espeak-ng-macos-*;$(PkgKokoroSharp)\content\espeak\espeak-ng-win-arm64*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
