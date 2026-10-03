@@ -9,24 +9,25 @@
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
   <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://apps.microsoft.com/detail/9N1FG39JWF83"><img src="https://img.shields.io/badge/Microsoft_Store-InControl--Desktop-0078D4?style=flat-square&logo=microsoft" alt="Microsoft Store"></a>
   <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
 
 **Ollama pour le chat sur Windows.** Par défaut, sur cet ordinateur. Une GPU que vous avez louée, via SSH, si vous le souhaitez.
 
-InControl utilise l’API HTTP d’Ollama. Rien n’est envoyé à une instance louée tant que vous n’en avez pas connecté une. La barre en haut affiche alors le nom de cette machine et indique que le chat quitte cet ordinateur.
+InControl utilise l’API HTTP d’Ollama. Rien n’est envoyé à une instance louée tant que vous n’en avez pas connecté une. La barre en haut affiche alors le nom de cette machine et indique que le chat se déroule sur cet ordinateur.
 
 ## Pourquoi InControl ?
 
-- **Cet ordinateur en premier.** Les requêtes restent ici jusqu’à ce que vous connectiez une GPU louée.
-- **Le même Ollama, quelle que soit la configuration.** Une instance louée exécute Ollama sur `127.0.0.1:11434`. InControl y accède via un transfert local SSH. Le client HTTP ne communique jamais avec un port public.
-- **Pas de liste blanche d’outils.** La connectivité contrôle les URL des outils d’assistance. Elle ne décide pas de l’endroit où le chat s’exécute.
+- **Cet ordinateur d’abord.** Les invites restent affichées jusqu’à ce que vous connectiez une GPU louée.
+- **Même Ollama, quelle que soit la méthode.** Une instance louée exécute Ollama sur `127.0.0.1:11434`. InControl y accède via un transfert SSH local. Le client HTTP ne communique jamais avec un port public.
+- **Pas la liste blanche d’outils.** La connectivité contrôle les URL des outils d’assistance. Elle ne détermine pas où la conversation a lieu.
+- **Projets et notes.** Enregistrez les sessions dans les projets avec leurs propres instructions. Demandez-lui de se souvenir d’une note pour un projet ou une session, et les notes correspondantes seront incluses dans le message suivant.
+- **Voix sur cet ordinateur.** Les réponses peuvent être lues à voix haute par Kokoro, qui s’exécute sur cet ordinateur. Le modèle vocal est téléchargé une seule fois, la première fois qu’il est utilisé.
 - **WinUI 3.** Une application Windows, avec du markdown dans le fil de discussion.
-- **Profils d’assistance** : personnalité configurable, niveau de détail et tolérance au risque.
-- **Système de plugins** : étendez les fonctionnalités avec des plugins isolés et un SDK basé sur un manifeste.
-- **Moteur de stratégie** : les couches de stratégie d’organisation/équipe/utilisateur régissent les outils, les plugins, la mémoire et la connectivité.
-- **Modes de connectivité** : uniquement hors ligne, assisté ou connecté avec un enregistrement complet.
+- **Moteur de stratégie.** Les documents de stratégie de l’organisation, de l’équipe et de l’utilisateur régissent les outils, la mémoire et la connectivité.
+- **Modes de connectivité.** Uniquement hors ligne, assisté ou connecté, avec un journal d’audit.
 
 ## Packages NuGet
 
@@ -58,12 +59,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8 Go) | RTX 4080/5080 (16 Go) |
 | RAM | 16 Go | 32 Go |
-| OS | Windows 10 1809+ | Windows 11 |
+| OS | Windows 10 version 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## Installation
 
-Compilation à partir du code source. Il n’existe pas encore de version MSIX de ce dépôt.
+**Microsoft Store :** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83). Le package du Store contient ses propres environnements d’exécution .NET et Windows App SDK, et le Store assure sa mise à jour.
+
+**À partir du code source :**
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
@@ -167,11 +170,14 @@ Toutes les données sont stockées localement :
 | Données | Emplacement |
 |------|----------|
 | Sessions | `%LOCALAPPDATA%\InControl\sessions\` |
+| Projets et notes | `%LOCALAPPDATA%\InControl\` |
 | Journaux | `%LOCALAPPDATA%\InControl\logs\` |
-| Cache | `%LOCALAPPDATA%\InControl\cache\` |
+| Cache (modèle vocal) | `%LOCALAPPDATA%\InControl\cache\` |
 | Exportations | `%USERPROFILE%\Documents\InControl\exports\` |
 
-Consultez [PRIVACY.md](./docs/PRIVACY.md) pour obtenir une documentation complète sur la gestion des données.
+Une installation à partir du Store peut conserver ce dossier dans le stockage propre de l’application, que Windows supprime lors de la désinstallation.
+
+La politique de confidentialité est disponible à l’adresse [PRIVACY.md](./PRIVACY.md). Les détails sur le traitement des données se trouvent dans [docs/PRIVACY.md](./docs/PRIVACY.md).
 
 ## Résolution des problèmes
 
@@ -179,17 +185,17 @@ Les problèmes courants et leurs solutions sont documentés dans [TROUBLESHOOTIN
 
 ### Corrections rapides
 
-**L’application ne démarre pas :**
-- Vérifiez que .NET 9.0 Runtime est installé.
-- Exécutez `dotnet --list-runtimes` pour vérifier.
+**L’application ne démarre pas (version compilée à partir du code source) :**
+- Vérifiez que le SDK .NET 9 est installé : `dotnet --list-sdks`
+- Le package du Store n’a pas besoin d’un environnement d’exécution distinct
 
 **Aucun modèle disponible :**
 - Assurez-vous qu’Ollama est en cours d’exécution : `ollama serve`.
 - Téléchargez un modèle : `ollama pull llama3.2`.
 
-**GPU non détectée :**
-- Mettez à jour les pilotes NVIDIA vers la dernière version.
-- Vérifiez l’installation du kit d’outils CUDA.
+**Les réponses sont lentes :**
+- Ollama détermine si le modèle s’exécute sur la GPU. `ollama ps` indique la quantité de données traitées par la GPU
+- Mettez à jour le pilote de la GPU ou téléchargez un modèle plus petit
 
 ## Contribution
 
@@ -219,17 +225,17 @@ Les contributions sont les bienvenues ! Veuillez :
 
 ## Version
 
-Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+Version actuelle : **2.0.0**. Dans le Microsoft Store, il s’agit d’InControl-Desktop, l’ID du package étant `mcp-tool-shop.InControl-Desktop` à `2.0.0.0`. Le Store proposait déjà cette application en version 1.4.0, de sorte que la version du package commence au-dessus de cette valeur. Le nom dans le dépôt, dans la fenêtre et sur la vignette du menu Démarrer est InControl.
 
-See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
+Consultez [CHANGELOG.md](./CHANGELOG.md) pour savoir pourquoi la version a augmenté et pour connaître l’historique de la version 0.3.0.
 
 ## Sécurité et portée des données
 
 InControl est une application de chat WinUI 3 pour Ollama.
 
-- **Données auxquelles on accède :** Ollama sur cet ordinateur, historique des conversations dans le stockage local et, uniquement après la connexion, Ollama sur une machine accessible via SSH.
-- **Données auxquelles on n’accède pas :** Aucun compte InControl, aucune télémétrie, aucune analyse.
-- **Autorisations :** Accès HTTP en boucle à Ollama, un client SSH sur cet ordinateur lorsque vous connectez une machine distante et le système de fichiers pour l’historique des conversations.
+- **Données auxquelles on accède :** Ollama sur cet ordinateur, historique des conversations, projets et notes dans le stockage local et, uniquement après avoir connecté une GPU, Ollama sur une machine accessible via SSH
+- **Données auxquelles on n’accède pas :** Aucun compte InControl, aucune télémétrie, aucune analyse
+- **Autorisations :** HTTP en boucle vers Ollama, un client SSH sur cet ordinateur lorsque vous connectez une GPU et le système de fichiers pour l’historique des conversations
 
 Politique complète : [SECURITY.md](SECURITY.md)
 

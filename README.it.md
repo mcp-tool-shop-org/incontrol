@@ -9,24 +9,25 @@
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
   <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://apps.microsoft.com/detail/9N1FG39JWF83"><img src="https://img.shields.io/badge/Microsoft_Store-InControl--Desktop-0078D4?style=flat-square&logo=microsoft" alt="Microsoft Store"></a>
   <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
 
 **Ollama chat per Windows.** Su questo PC, per impostazione predefinita. Una GPU che hai affittato, tramite SSH, quando lo richiedi.
 
-InControl utilizza l'API HTTP di Ollama. Nessun dato viene inviato a un server affittato finché non ne connetti uno. La barra nella parte superiore visualizza quindi il nome di tale macchina e dice che la chat lascia questo PC.
+InControl utilizza l'API HTTP di Ollama. Nessun dato viene inviato a un server affittato finché non ne connetti uno. La barra nella parte superiore visualizza quindi il nome di tale macchina e indica che la chat viene eseguita su questo PC.
 
 ## Perché InControl?
 
-- **Prima questo PC.** Le richieste rimangono qui finché non connetti una GPU affittata.
-- **Lo stesso Ollama in entrambi i casi.** Un server affittato esegue Ollama su `127.0.0.1:11434`. InControl vi accede tramite un inoltro SSH locale. Il client HTTP non comunica mai con una porta pubblica.
-- **Non è una lista di controllo degli strumenti consentiti.** La connettività controlla gli URL degli strumenti di assistenza. Non decide dove viene eseguita la chat.
+- **Prima su questo PC.** I messaggi di istruzione rimangono qui finché non si connette una GPU in affitto.
+- **Stessa versione di Ollama in entrambi i casi.** L'esecuzione in affitto utilizza Ollama su `127.0.0.1:11434`. InControl vi accede tramite un inoltro SSH locale. Il client HTTP non comunica mai con una porta pubblica.
+- **Non è la lista di strumenti consentiti.** La connettività controlla gli URL degli strumenti di assistenza. Non determina dove viene eseguita la chat.
+- **Progetti e note.** Salva le sessioni all'interno dei progetti, con le relative istruzioni. Chiedi di ricordare una nota per un progetto o una sessione e le note corrispondenti verranno incluse nel messaggio successivo.
+- **Voce su questo PC.** Le risposte possono essere lette ad alta voce da Kokoro, che viene eseguito su questo PC. Il modello vocale viene scaricato una sola volta, la prima volta che viene utilizzato.
 - **WinUI 3.** Un'app per Windows, con markdown nel thread.
-- **Profili assistente:** personalità, livello di dettaglio e tolleranza al rischio configurabili.
-- **Sistema di plugin:** estende le funzionalità con plugin isolati e un SDK basato su manifest.
-- **Motore di policy:** i livelli di policy dell'organizzazione/team/utente regolano gli strumenti, i plugin, la memoria e la connettività.
-- **Modalità di connettività:** solo offline, assistita o connessa con registrazione completa degli eventi.
+- **Motore di policy.** I documenti di policy dell'organizzazione, del team e dell'utente regolano gli strumenti, la memoria e la connettività.
+- **Modalità di connettività.** Solo offline, assistita o connessa, con un registro di controllo.
 
 ## Pacchetti NuGet
 
@@ -58,12 +59,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8 GB) | RTX 4080/5080 (16 GB) |
 | RAM | 16 GB | 32 GB |
-| OS | Windows 10 1809+ | Windows 11 |
+| OS | Windows 10 versione 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## Installazione
 
-Compila dal codice sorgente. Al momento non è disponibile una versione MSIX di questo repository.
+**Microsoft Store:** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83). Il pacchetto dello Store include i propri runtime .NET e Windows App SDK e lo Store mantiene l'app aggiornata.
+
+**Da codice sorgente:**
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
@@ -97,7 +100,7 @@ L'inoltro ascolta sulla porta `127.0.0.1:11436` su questo PC, non sulla porta `1
 
 Lascia Ollama in esecuzione sulla porta `127.0.0.1:11434` sul server affittato. Non impostare la porta `OLLAMA_HOST=0.0.0.0` e non pubblicare la porta 11434. La porta SSH è la porta sshd mappata, non 11434.
 
-Il proxy `ssh.runpod.io` di RunPod è solo uno shell. Non può inoltrare una porta. **Cerca i miei pod RunPod** usa `RUNPOD_API_KEY` dall'ambiente e compila il comando SSH sull'indirizzo IP pubblico del pod. La chiave non viene memorizzata. La ricerca non avvia un pod e non invia la chat. Vast documenta l'inoltro sull'indirizzo diretto. L'indirizzo smette di funzionare quando il server affittato viene riavviato. Cerca di nuovo il pod o incolla il nuovo comando. La chiave privata rimane su questo PC.
+Il proxy `ssh.runpod.io` di RunPod è solo uno shell. Non può inoltrare una porta. **Cerca i miei pod RunPod** utilizza la porta `RUNPOD_API_KEY` dall'ambiente e compila l'indirizzo IP pubblico diretto del pod SSH. La chiave non viene memorizzata. La ricerca non avvia un pod e non invia la chat. Vast documenta l'inoltro sull'indirizzo diretto. L'indirizzo smette di funzionare quando il server affittato viene riavviato. Cerca di nuovo il pod o incolla il nuovo comando. La chiave privata rimane su questo PC.
 
 Le regole complete sono disponibili in [docs/COMPUTE.md](docs/COMPUTE.md).
 
@@ -167,11 +170,14 @@ Tutti i dati vengono archiviati localmente:
 | Dati | Posizione |
 |------|----------|
 | Sessioni | `%LOCALAPPDATA%\InControl\sessions\` |
+| Progetti e note | `%LOCALAPPDATA%\InControl\` |
 | Log | `%LOCALAPPDATA%\InControl\logs\` |
-| Cache | `%LOCALAPPDATA%\InControl\cache\` |
+| Cache (modello vocale) | `%LOCALAPPDATA%\InControl\cache\` |
 | Esportazioni | `%USERPROFILE%\Documents\InControl\exports\` |
 
-Consulta [PRIVACY.md](./docs/PRIVACY.md) per la documentazione completa sulla gestione dei dati.
+Un'installazione dallo Store potrebbe mantenere tale cartella all'interno dell'area di archiviazione dell'app, che Windows elimina durante la disinstallazione.
+
+L'informativa sulla privacy è disponibile all'indirizzo [PRIVACY.md](./PRIVACY.md). I dettagli sulla gestione dei dati sono disponibili all'indirizzo [docs/PRIVACY.md](./docs/PRIVACY.md).
 
 ## Risoluzione dei problemi
 
@@ -179,17 +185,17 @@ I problemi comuni e le relative soluzioni sono documentati in [TROUBLESHOOTING.m
 
 ### Soluzioni rapide
 
-**L'app non si avvia:**
-- Verifica che sia installato .NET 9.0 Runtime
-- Esegui `dotnet --list-runtimes` per verificare
+**L'app non si avvia (build da codice sorgente):**
+- Verifica che sia installato l'SDK .NET 9: `dotnet --list-sdks`
+- Il pacchetto dello Store non richiede un runtime separato
 
 **Nessun modello disponibile:**
 - Assicurati che Ollama sia in esecuzione: `ollama serve`
 - Scarica un modello: `ollama pull llama3.2`
 
-**GPU non rilevata:**
-- Aggiorna i driver NVIDIA all'ultima versione
-- Verifica l'installazione del toolkit CUDA
+**Le risposte sono lente:**
+- Ollama decide se il modello deve essere eseguito sulla GPU. `ollama ps` mostra quanta parte del modello viene eseguita sulla GPU
+- Aggiorna il driver della GPU o scarica un modello più piccolo
 
 ## Contributi
 
@@ -217,19 +223,19 @@ I contributi sono benvenuti! Si prega di:
 | Configurazione | Microsoft.Extensions.Configuration |
 | Registrazione eventi | Microsoft.Extensions.Logging + Serilog |
 
-## Version
+## Versione
 
-Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+Versione corrente: **2.0.0**. Nel Microsoft Store è InControl-Desktop, con ID pacchetto `mcp-tool-shop.InControl-Desktop` all'indirizzo `2.0.0.0`. Lo Store aveva già questa app nella versione 1.4.0, quindi la versione del pacchetto inizia da un numero superiore. Il nome nel repository, nella finestra e sulla tile del menu Start è InControl.
 
-See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
+Consulta [CHANGELOG.md](./CHANGELOG.md) per capire perché la versione è aumentata e per la cronologia della versione 0.3.0.
 
 ## Sicurezza e ambito dei dati
 
 InControl è un'applicazione di chat WinUI 3 per Ollama.
 
-- **Dati accessibili:** Ollama su questo PC, cronologia delle chat nell'archiviazione locale e, solo dopo averne connesso uno, Ollama su una macchina accessibile tramite SSH.
-- **Dati non accessibili:** Nessun account InControl, nessun dato di telemetria, nessuna analisi.
-- **Autorizzazioni:** Accesso HTTP in loopback a Ollama, un client SSH su questo PC quando si connette una macchina remota e il file system per la cronologia delle chat.
+- **Dati a cui si accede:** Ollama su questo PC, cronologia della chat, progetti e note nell'archiviazione locale e, solo dopo averne connesso uno, Ollama su una macchina a cui si accede tramite SSH
+- **Dati a cui non si accede:** Nessun account InControl, nessun telemetria, nessuna analisi
+- **Autorizzazioni:** HTTP loopback per Ollama, un client SSH su questo PC quando si connette un'istanza in affitto e il file system per la cronologia della chat
 
 Politica completa: [SECURITY.md](SECURITY.md)
 

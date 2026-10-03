@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
   <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://apps.microsoft.com/detail/9N1FG39JWF83"><img src="https://img.shields.io/badge/Microsoft_Store-InControl--Desktop-0078D4?style=flat-square&logo=microsoft" alt="Microsoft Store"></a>
   <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
@@ -19,14 +20,14 @@ InControlはOllama HTTP APIを使用します。レンタル環境に接続す�
 
 ## なぜInControlを使うのか？
 
-- **まずこのPC。** プロンプトは、レンタルしたGPUに接続するまで、ここに保存されます。
-- **どちらの場合も同じOllama。** レンタル環境でOllamaが`127.0.0.1:11434`上で実行されます。InControlはSSHローカルフォワードを使用してアクセスします。HTTPクライアントはパブリックポートに直接アクセスしません。
+- **まずはこのPCで。** レンタルGPUを接続するまで、この画面に表示されます。
+- **どちらの方法でも同じOllamaを使用します。** レンタル環境では、Ollamaが`127.0.0.1:11434`上で実行されます。InControlはSSHローカルフォワードを使用してアクセスします。HTTPクライアントはパブリックポートに直接アクセスすることはありません。
 - **ツール許可リストではありません。** 接続性は、アシスタントツールのURLを制御します。チャットがどこで実行されるかを決定するものではありません。
-- **WinUI 3。** Windowsアプリで、スレッド内にマークダウンを使用します。
-- **アシスタントプロファイル** - 構成可能な個性、詳細度、リスク許容度
-- **プラグインシステム** - サンドボックス化されたプラグインとマニフェストベースのSDKを使用して、機能を拡張します。
-- **ポリシーエンジン** - 組織/チーム/ユーザーのポリシーレイヤーが、ツール、プラグイン、メモリ、および接続を管理します。
-- **接続モード** - オフライン専用、アシスト付き、または完全な監査ログ付きの接続
+- **プロジェクトとメモ。** 各プロジェクトに独自の指示とともにセッションファイルを保存します。プロジェクトまたはセッションのメモを記憶させ、関連するメモが次のメッセージに添付されます。
+- **このPCで音声を使用。** 返信は、このPC上で実行されるKokoroによって読み上げられます。音声モデルは、最初に話すときに1回ダウンロードされます。
+- **WinUI 3。** Windowsアプリで、スレッドにマークダウンが含まれています。
+- **ポリシーエンジン。** 組織、チーム、およびユーザーのポリシー文書が、ツール、メモリ、および接続性を管理します。
+- **接続モード。** オフラインのみ、アシストあり、または接続あり。監査ログも記録されます。
 
 ## NuGetパッケージ
 
@@ -58,12 +59,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8GB) | RTX 4080/5080 (16GB) |
 | RAM | 16GB | 32GB |
-| OS | Windows 10 1809+ | Windows 11 |
+| OS | Windows 10 バージョン 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## インストール
 
-ソースからビルドします。このリポジトリのMSIXリリースはまだありません。
+**Microsoft Store:** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83)。ストアパッケージには、独自の.NETおよびWindows App SDKランタイムが含まれており、ストアによって自動的に更新されます。
+
+**ソースからのビルド:**
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
@@ -167,11 +170,14 @@ InControlは、クリーンで階層化されたアーキテクチャに従い�
 | データ | 場所 |
 |------|----------|
 | セッション | `%LOCALAPPDATA%\InControl\sessions\` |
+| プロジェクトとメモ | `%LOCALAPPDATA%\InControl\` |
 | ログ | `%LOCALAPPDATA%\InControl\logs\` |
-| キャッシュ | `%LOCALAPPDATA%\InControl\cache\` |
+| キャッシュ（音声モデル） | `%LOCALAPPDATA%\InControl\cache\` |
 | エクスポート | `%USERPROFILE%\Documents\InControl\exports\` |
 
-完全なデータ処理ドキュメントについては、[PRIVACY.md](./docs/PRIVACY.md)を参照してください。
+ストアからのインストールでは、そのフォルダーがアプリ独自のストレージ内に保存され、Windowsがアンインストール時に削除します。
+
+プライバシーポリシーは[PRIVACY.md](./PRIVACY.md)にあります。データ処理の詳細については、[docs/PRIVACY.md](./docs/PRIVACY.md)を参照してください。
 
 ## トラブルシューティング
 
@@ -179,17 +185,17 @@ InControlは、クリーンで階層化されたアーキテクチャに従い�
 
 ### クイックフィックス
 
-**アプリが起動しない:**
-- .NET 9.0 Runtimeがインストールされていることを確認します。
-- `dotnet --list-runtimes`を実行して確認します。
+**アプリが起動しない（ソースビルド）：**
+- .NET 9 SDKがインストールされていることを確認してください：`dotnet --list-sdks`
+- ストアパッケージには、個別のランタイムは必要ありません
 
 **モデルが利用できない:**
 - Ollamaが実行されていることを確認します: `ollama serve`
 - モデルをプルします: `ollama pull llama3.2`
 
-**GPUが検出されない:**
-- NVIDIAドライバを最新バージョンに更新します。
-- CUDAツールキットのインストールを確認します。
+**応答が遅い：**
+- OllamaがモデルをGPUで実行するかどうかを決定します。`ollama ps`は、GPU上で実行されている割合を示します。
+- GPUドライバーを更新するか、より小さいモデルをダウンロードしてください。
 
 ## 貢献
 
@@ -217,19 +223,19 @@ InControlは、クリーンで階層化されたアーキテクチャに従い�
 | 構成 | Microsoft.Extensions.Configuration |
 | ログ記録 | Microsoft.Extensions.Logging + Serilog |
 
-## Version
+## バージョン
 
-Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+現在のバージョン：**2.0.0**。Microsoft Storeでは、InControl-Desktopという名前で、パッケージIDは`mcp-tool-shop.InControl-Desktop`、バージョンは`2.0.0.0`です。ストアにはすでにバージョン1.4.0のアプリが存在するため、パッケージバージョンはそれよりも大きい値から始まります。リポジトリ、ウィンドウ、およびスタートタイルに表示される名前はInControlです。
 
-See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
+バージョンが変更された理由と、バージョン0.3.0の履歴については、[CHANGELOG.md](./CHANGELOG.md)を参照してください。
 
 ## セキュリティとデータ範囲
 
 InControlは、Ollama用のWinUI 3チャットアプリケーションです。
 
-- **アクセスされるデータ：** このPC上のOllama、ローカルストレージ内のチャット履歴、および（SSH経由で接続した場合のみ）接続先のPC上のOllama
+- **アクセスされるデータ：** このPC上のOllama、チャット履歴、ローカルストレージ内のプロジェクトとメモ、および（レンタルGPUを接続した場合のみ）SSH経由でアクセスするマシンのOllama
 - **アクセスされないデータ：** InControlアカウント、テレメトリ、分析
-- **必要な権限：** OllamaへのループバックHTTP、レンタル環境に接続する際のこのPC上のSSHクライアント、およびチャット履歴用のファイルシステム
+- **必要な権限：** OllamaへのループバックHTTP、レンタルGPUを接続した場合のこのPC上のSSHクライアント、およびチャット履歴用のファイルシステム
 
 完全なポリシー：[SECURITY.md](SECURITY.md)
 

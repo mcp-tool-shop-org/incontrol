@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
   <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://apps.microsoft.com/detail/9N1FG39JWF83"><img src="https://img.shields.io/badge/Microsoft_Store-InControl--Desktop-0078D4?style=flat-square&logo=microsoft" alt="Microsoft Store"></a>
   <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
@@ -22,11 +23,11 @@ InControl speaks the Ollama HTTP API. Nothing is sent to a rental until you conn
 - **This PC first.** Prompts stay here until you connect a rented GPU.
 - **Same Ollama either way.** A rental runs Ollama on `127.0.0.1:11434`. InControl reaches it with an SSH local forward. The HTTP client never talks to a public port.
 - **Not the tool allowlist.** Connectivity controls assistant tool URLs. It does not decide where the chat runs.
+- **Projects and notes.** File sessions under projects with their own instructions. Ask it to remember a note for a project or a session, and matching notes ride along with the next message.
+- **Voice on this PC.** Replies can be read aloud by Kokoro, which runs on this PC. The voice model downloads once, the first time it speaks.
 - **WinUI 3.** A Windows app, with markdown in the thread.
-- **Assistant profiles** - Configurable personality, verbosity, and risk tolerance
-- **Plugin system** - Extend functionality with sandboxed plugins and a manifest-based SDK
-- **Policy engine** - Org/team/user policy layers govern tools, plugins, memory, and connectivity
-- **Connectivity modes** - Offline-only, assisted, or connected with full audit logging
+- **Policy engine.** Org, team and user policy documents govern tools, memory, and connectivity.
+- **Connectivity modes.** Offline-only, assisted, or connected, with an audit log.
 
 ## NuGet Packages
 
@@ -58,12 +59,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8GB) | RTX 4080/5080 (16GB) |
 | RAM | 16GB | 32GB |
-| OS | Windows 10 1809+ | Windows 11 |
+| OS | Windows 10 version 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## Installation
 
-Build from source. There is no MSIX release of this repository yet.
+**Microsoft Store:** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83). The Store package carries its own .NET and Windows App SDK runtimes, and the Store keeps it updated.
+
+**From source:**
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
@@ -167,11 +170,14 @@ All data is stored locally:
 | Data | Location |
 |------|----------|
 | Sessions | `%LOCALAPPDATA%\InControl\sessions\` |
+| Projects and notes | `%LOCALAPPDATA%\InControl\` |
 | Logs | `%LOCALAPPDATA%\InControl\logs\` |
-| Cache | `%LOCALAPPDATA%\InControl\cache\` |
+| Cache (voice model) | `%LOCALAPPDATA%\InControl\cache\` |
 | Exports | `%USERPROFILE%\Documents\InControl\exports\` |
 
-See [PRIVACY.md](./docs/PRIVACY.md) for complete data handling documentation.
+A Store install may keep that folder inside the app's own storage, which Windows removes on uninstall.
+
+The privacy policy is [PRIVACY.md](./PRIVACY.md). Data handling details are in [docs/PRIVACY.md](./docs/PRIVACY.md).
 
 ## Troubleshooting
 
@@ -179,17 +185,17 @@ Common issues and solutions are documented in [TROUBLESHOOTING.md](./docs/TROUBL
 
 ### Quick Fixes
 
-**App won't start:**
-- Check that .NET 9.0 Runtime is installed
-- Run `dotnet --list-runtimes` to verify
+**App won't start (source build):**
+- Check that the .NET 9 SDK is installed: `dotnet --list-sdks`
+- The Store package needs no separate runtime
 
 **No models available:**
 - Ensure Ollama is running: `ollama serve`
 - Pull a model: `ollama pull llama3.2`
 
-**GPU not detected:**
-- Update NVIDIA drivers to latest version
-- Check CUDA toolkit installation
+**Replies are slow:**
+- Ollama decides whether the model runs on the GPU. `ollama ps` shows how much of it is on the GPU
+- Update the GPU driver, or pull a smaller model
 
 ## Contributing
 
@@ -219,7 +225,7 @@ Contributions welcome! Please:
 
 ## Version
 
-Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+Current version: **2.0.0**. In the Microsoft Store it is InControl-Desktop, package identity `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`. The Store already had this app through 1.4.0, so the package version starts above it. The name on the repo, in the window and on the Start tile is InControl.
 
 See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
 
@@ -227,7 +233,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0
 
 InControl is a WinUI 3 chat application for Ollama.
 
-- **Data accessed:** Ollama on this PC, chat history in local storage, and, only after you connect one, Ollama on a machine you reach over SSH
+- **Data accessed:** Ollama on this PC, chat history, projects and notes in local storage, and, only after you connect one, Ollama on a machine you reach over SSH
 - **Data not accessed:** No InControl account, no telemetry, no analytics
 - **Permissions:** Loopback HTTP to Ollama, an SSH client on this PC when you connect a rental, and the file system for chat history
 

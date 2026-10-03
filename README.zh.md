@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/WinUI-3-blue?style=flat-square" alt="WinUI 3">
   <a href="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/incontrol/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/mcp-tool-shop-org/incontrol"><img src="https://codecov.io/gh/mcp-tool-shop-org/incontrol/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://apps.microsoft.com/detail/9N1FG39JWF83"><img src="https://img.shields.io/badge/Microsoft_Store-InControl--Desktop-0078D4?style=flat-square&logo=microsoft" alt="Microsoft Store"></a>
   <a href="https://mcp-tool-shop-org.github.io/incontrol/"><img src="https://img.shields.io/badge/docs-handbook-blue?style=flat-square" alt="Handbook"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
@@ -19,14 +20,14 @@ InControl 使用 Ollama HTTP API。在您连接到租用的 GPU 之前，不会�
 
 ## 为什么选择 InControl？
 
-- **首先使用本地 PC。** 提示信息会保留在本地，直到您连接到租用的 GPU。
-- **无论如何都使用相同的 Ollama。** 租用服务器运行 Ollama `127.0.0.1:11434`。InControl 通过 SSH 本地转发连接到它。HTTP 客户端不会与公共端口通信。
-- **不使用工具白名单。** 连接性控制助手工具的 URL。它不会决定聊天在何处运行。
-- **WinUI 3。** 一个 Windows 应用程序，在聊天线程中使用 Markdown 格式。
-- **助手配置文件** - 可配置的个性、详细程度和风险承受能力。
-- **插件系统** - 通过沙盒插件和基于清单的 SDK 扩展功能。
-- **策略引擎** - 组织/团队/用户策略层控制工具、插件、内存和连接性。
-- **连接模式** - 仅限离线、辅助或具有完整审计日志的连接模式。
+- **首先在此电脑上。** 提示将在此处显示，直到您连接到租用的 GPU。
+- **无论哪种方式，都使用相同的 Ollama。** 租用服务在 `127.0.0.1:11434` 上运行 Ollama。InControl 通过 SSH 本地转发连接到它。HTTP 客户端不会与公共端口通信。
+- **这不是工具允许列表。** 连接控制助手工具的 URL。它不决定聊天在何处运行。
+- **项目和笔记。** 将会话文件归类到具有各自指令的项目中。要求它记住某个项目或会话的笔记，并匹配的笔记将与下一条消息一起发送。
+- **在此电脑上启用语音。** 回复可以由 Kokoro 朗读，Kokoro 在此电脑上运行。语音模型只需下载一次，即第一次说话时。
+- **WinUI 3。** 一个 Windows 应用程序，聊天线程中包含 Markdown 格式。
+- **策略引擎。** 组织、团队和用户策略文档控制工具、内存和连接。
+- **连接模式。** 仅限离线、辅助或连接，并带有审计日志。
 
 ## NuGet 包
 
@@ -58,12 +59,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8GB) | RTX 4080/5080 (16GB) |
 | RAM | 16GB | 32GB |
-| OS | Windows 10 1809+ | Windows 11 |
+| OS | Windows 10 版本 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## 安装
 
-从源代码构建。目前还没有此仓库的 MSIX 发布版本。
+**Microsoft Store：**[InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83)。Store 包包含其自身的 .NET 和 Windows App SDK 运行时，并且 Store 会对其进行更新。
+
+**从源代码构建：**
 
 ```bash
 git clone https://github.com/mcp-tool-shop-org/incontrol.git
@@ -167,11 +170,14 @@ InControl 遵循清晰的分层架构：
 | 数据 | 位置 |
 |------|----------|
 | 会话 | `%LOCALAPPDATA%\InControl\sessions\` |
+| 项目和笔记 | `%LOCALAPPDATA%\InControl\` |
 | 日志 | `%LOCALAPPDATA%\InControl\logs\` |
-| 缓存 | `%LOCALAPPDATA%\InControl\cache\` |
+| 缓存（语音模型） | `%LOCALAPPDATA%\InControl\cache\` |
 | 导出 | `%USERPROFILE%\Documents\InControl\exports\` |
 
-有关完整的数据处理文档，请参阅 [PRIVACY.md](./docs/PRIVACY.md)。
+Store 安装可能会将该文件夹保存在应用程序自己的存储中，Windows 在卸载时会删除该文件夹。
+
+隐私政策为 [PRIVACY.md](./PRIVACY.md)。数据处理详情请参见 [docs/PRIVACY.md](./docs/PRIVACY.md)。
 
 ## 故障排除
 
@@ -179,17 +185,17 @@ InControl 遵循清晰的分层架构：
 
 ### 快速修复
 
-**应用程序无法启动：**
-- 检查是否已安装 .NET 9.0 运行时
-- 运行 `dotnet --list-runtimes` 进行验证
+**应用程序无法启动（源代码构建）：**
+- 检查是否已安装 .NET 9 SDK：`dotnet --list-sdks`
+- Store 包不需要单独的运行时
 
 **没有可用的模型：**
 - 确保 Ollama 正在运行：`ollama serve`
 - 拉取一个模型：`ollama pull llama3.2`
 
-**未检测到 GPU：**
-- 将 NVIDIA 驱动程序更新到最新版本
-- 检查 CUDA 工具包的安装
+**回复速度慢：**
+- Ollama 决定模型是否在 GPU 上运行。`ollama ps` 显示有多少模型在 GPU 上运行
+- 更新 GPU 驱动程序，或下载较小的模型
 
 ## 贡献
 
@@ -217,19 +223,19 @@ InControl 遵循清晰的分层架构：
 | 配置 | Microsoft.Extensions.Configuration |
 | 日志记录 | Microsoft.Extensions.Logging + Serilog |
 
-## Version
+## 版本
 
-Current version: **2.0.0**. The package identity is `mcp-tool-shop.InControl-Desktop` at `2.0.0.0`, because Partner Center already has this app through 1.4.0. The name on the repo stays InControl.
+当前版本：**2.0.0**。在 Microsoft Store 中，它为 InControl-Desktop，包标识为 `mcp-tool-shop.InControl-Desktop`，版本为 `2.0.0.0`。Store 已经拥有此应用程序，版本为 1.4.0，因此包版本从该版本开始。在仓库中、窗口中和“开始”磁贴上的名称均为 InControl。
 
-See [CHANGELOG.md](./CHANGELOG.md) for why the version jumped, and for the 0.3.0 history.
+请参阅 [CHANGELOG.md](./CHANGELOG.md)，了解版本为何跳跃，以及 0.3.0 版本的历史记录。
 
 ## 安全与数据范围
 
 InControl 是一款用于 Ollama 的 WinUI 3 聊天应用程序。
 
-- **访问的数据：** 本 PC 上的 Ollama、本地存储中的聊天记录，以及在您连接后，通过 SSH 访问的机器上的 Ollama。
-- **未访问的数据：** 没有 InControl 帐户，没有遥测数据，没有分析数据。
-- **权限：** 回环 HTTP 连接到 Ollama，当您连接到远程服务器时，本 PC 上的 SSH 客户端，以及用于聊天记录的文件系统。
+- **访问的数据：** 此电脑上的 Ollama、聊天历史记录、本地存储中的项目和笔记，以及在您连接到某个设备后，通过 SSH 连接到的设备上的 Ollama
+- **未访问的数据：** 没有 InControl 帐户、没有遥测数据、没有分析数据
+- **权限：** 循环 HTTP 连接到 Ollama，当您连接到租用服务时，此电脑上的 SSH 客户端，以及用于存储聊天历史记录的文件系统
 
 完整策略：[SECURITY.md](SECURITY.md)
 
