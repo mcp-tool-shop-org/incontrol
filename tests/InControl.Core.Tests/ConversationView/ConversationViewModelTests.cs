@@ -266,4 +266,62 @@ public class ConversationViewStateTests
         changed.Should().Contain(nameof(vm.IsExecuting));
         changed.Should().Contain(nameof(vm.ShowExecutionIndicator));
     }
+    [Fact]
+    public void LoadConversation_DropsTheStreamingMessage()
+    {
+        var vm = new ConversationViewModel();
+        var conversation = Core.Models.Conversation.Create("Test");
+        vm.LoadConversation(conversation);
+        vm.BeginModelOutput("m");
+
+        vm.LoadConversation(conversation);
+
+        vm.IsStreamingModelOutput.Should().BeFalse();
+        vm.AppendToModelOutput("lost");
+        vm.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReattachModelOutput_ShowsTextSoFar_AndKeepsPainting()
+    {
+        var vm = new ConversationViewModel();
+        var conversation = Core.Models.Conversation.Create("Test");
+        vm.LoadConversation(conversation);
+
+        vm.ReattachModelOutput("m", "Hello");
+        vm.AppendToModelOutput(" there");
+
+        vm.IsStreamingModelOutput.Should().BeTrue();
+        vm.Messages.Should().ContainSingle();
+        vm.Messages[0].Content.Should().Be("Hello there");
+        vm.Messages[0].IsStreaming.Should().BeTrue();
+        vm.ShowMessages.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ReattachModelOutput_DoesNothing_WhenAlreadyStreaming()
+    {
+        var vm = new ConversationViewModel();
+        vm.LoadConversation(Core.Models.Conversation.Create("Test"));
+        vm.BeginModelOutput("m");
+        vm.AppendToModelOutput("abc");
+
+        vm.ReattachModelOutput("m", "abc");
+
+        vm.Messages.Should().ContainSingle();
+        vm.Messages[0].Content.Should().Be("abc");
+    }
+
+    [Fact]
+    public void FinalizeModelOutput_EndsAReattachedReply()
+    {
+        var vm = new ConversationViewModel();
+        vm.LoadConversation(Core.Models.Conversation.Create("Test"));
+        vm.ReattachModelOutput("m", "partial");
+
+        vm.FinalizeModelOutput();
+
+        vm.IsStreamingModelOutput.Should().BeFalse();
+        vm.Messages[0].IsStreaming.Should().BeFalse();
+    }
 }

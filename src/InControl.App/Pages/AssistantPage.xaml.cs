@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using InControl.Services.Interfaces;
+using InControl.ViewModels.Sessions;
 
 namespace InControl.App.Pages;
 
@@ -20,6 +22,11 @@ public sealed partial class AssistantPage : UserControl
     /// </summary>
     public event EventHandler? BackRequested;
 
+    /// <summary>
+    /// Event raised after every remembered note was cleared.
+    /// </summary>
+    public event EventHandler? MemoryCleared;
+
     private void SetupEventHandlers()
     {
         BackButton.Click += (s, e) => BackRequested?.Invoke(this, EventArgs.Empty);
@@ -31,7 +38,6 @@ public sealed partial class AssistantPage : UserControl
 
         // Actions
         ClearMemoryButton.Click += OnClearMemoryClick;
-        ClearActivityButton.Click += OnClearActivityClick;
         AssistantEnabledToggle.Toggled += OnAssistantEnabledToggled;
     }
 
@@ -47,22 +53,57 @@ public sealed partial class AssistantPage : UserControl
         var dialog = new ContentDialog
         {
             Title = "Clear Memory",
-            Content = "Are you sure you want to clear all stored memories? This cannot be undone.",
+            Content = "This permanently deletes every note you asked InControl to remember, in every project and session. Your chats are not deleted. This cannot be undone.",
             PrimaryButtonText = "Clear",
             CloseButtonText = "Cancel",
             XamlRoot = this.XamlRoot
         };
 
         var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        if (result != ContentDialogResult.Primary)
         {
-            // Clear memories
+            return;
+        }
+
+        try
+        {
+            await SessionMemoryClearer.ClearAllAsync(
+                App.GetService<ISessionMemory>(),
+                App.GetService<IProjectLibrary>(),
+                App.GetService<IChatService>());
+            MemoryCountText.Text = "0 items";
+            MemoryCleared?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            var text = ex.Message.Trim();
+            var cut = text.IndexOfAny(['\r', '\n']);
+            if (cut >= 0)
+            {
+                text = text[..cut];
+            }
+
+            await ShowMessageAsync("Could not clear memory", text.Length == 0 ? ex.GetType().Name : text);
         }
     }
 
-    private void OnClearActivityClick(object sender, RoutedEventArgs e)
+    private async Task ShowMessageAsync(string title, string message)
     {
-        // Clear activity log
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // A dialog is already open. The message has nowhere else to go.
+        }
     }
 
     private void OnAssistantEnabledToggled(object sender, RoutedEventArgs e)

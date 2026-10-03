@@ -366,11 +366,6 @@ public sealed partial class SessionSidebar : UserControl
         rename.DataContext = session;
         menu.Items.Add(rename);
 
-        var duplicate = new MenuFlyoutItem { Text = "Duplicate", Icon = new SymbolIcon(Symbol.Copy) };
-        duplicate.Click += OnDuplicateClick;
-        duplicate.DataContext = session;
-        menu.Items.Add(duplicate);
-
         menu.Items.Add(new MenuFlyoutSeparator());
 
         var pin = new MenuFlyoutItem
@@ -409,9 +404,7 @@ public sealed partial class SessionSidebar : UserControl
 
         if (element?.DataContext is SessionItemViewModel session)
         {
-            if (_viewModel is not null)
-                _viewModel.SelectedSession = session;
-
+            // The menu acts on this row. The open session does not change.
             var menu = CreateContextMenu(session);
             menu.ShowAt(element, e.GetPosition(element));
         }
@@ -489,15 +482,6 @@ public sealed partial class SessionSidebar : UserControl
         {
             SessionRenamed?.Invoke(this, (session.Id, inputBox.Text.Trim()));
         }
-    }
-
-    private void OnDuplicateClick(object sender, RoutedEventArgs e)
-    {
-        var session = GetContextSession(sender);
-        if (session is null || _viewModel is null) return;
-
-        _viewModel.DuplicateSession(session);
-        RefreshVisualState();
     }
 
     private void OnPinClick(object sender, RoutedEventArgs e)

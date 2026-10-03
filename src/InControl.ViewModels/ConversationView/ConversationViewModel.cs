@@ -212,6 +212,31 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Whether a reply is being painted into the transcript right now.
+    /// </summary>
+    public bool IsStreamingModelOutput => _streamingMessage is not null;
+
+    /// <summary>
+    /// Picks up a reply that is still running after the transcript was reloaded.
+    /// Shows the text that has arrived so far and keeps painting new tokens.
+    /// Does nothing when a streaming message is already attached.
+    /// </summary>
+    public void ReattachModelOutput(string? model, string contentSoFar)
+    {
+        if (_streamingMessage is not null)
+            return;
+
+        var message = new MessageViewModel(Message.Assistant(string.Empty, model)) { IsStreaming = true };
+        if (contentSoFar.Length > 0)
+            message.AppendContent(contentSoFar);
+
+        _streamingMessage = message;
+        Messages.Add(message);
+        UpdateViewState();
+        OnPropertyChanged(nameof(HasMessages));
+    }
+
+    /// <summary>
     /// Appends content to the streaming output.
     /// </summary>
     public void AppendToModelOutput(string chunk)

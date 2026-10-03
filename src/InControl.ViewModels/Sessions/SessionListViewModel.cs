@@ -347,8 +347,7 @@ public sealed class SessionListViewModel : INotifyPropertyChanged
 
     private bool MatchesProject(SessionItemViewModel session)
     {
-        var projectId = session.ProjectId ?? ChatProject.GeneralId;
-        return projectId == _selectedProjectId;
+        return session.EffectiveProjectId == _selectedProjectId;
     }
 
     private void MarkSelectedProject()

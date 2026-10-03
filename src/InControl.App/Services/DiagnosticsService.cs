@@ -124,6 +124,13 @@ public sealed class DiagnosticsService
             check.Message = "Ollama connection timed out";
             check.Details = "Ollama may be overloaded or unresponsive";
         }
+        catch (Exception ex)
+        {
+            // A bad address or any other fault must not stop the whole report.
+            check.Status = DiagnosticStatus.Fail;
+            check.Message = "Could not check Ollama";
+            check.Details = $"Endpoint: {baseUrl}. {ex.Message}";
+        }
 
         report.Checks.Add(check);
     }

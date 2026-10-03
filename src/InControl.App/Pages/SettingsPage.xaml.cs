@@ -9,6 +9,7 @@ using InControl.Core.Compute;
 using InControl.Core.Configuration;
 using InControl.Services.Interfaces;
 using InControl.Services.Voice;
+using InControl.ViewModels.Sessions;
 
 namespace InControl.App.Pages;
 
@@ -94,6 +95,11 @@ public sealed partial class SettingsPage : UserControl
 
     public event EventHandler<bool>? OfflineModeChanged;
 
+    /// <summary>
+    /// Event raised after every remembered note was cleared.
+    /// </summary>
+    public event EventHandler? MemoryCleared;
+
     public bool IsOffline
     {
         get => OfflineModeToggle.IsOn;
@@ -120,7 +126,6 @@ public sealed partial class SettingsPage : UserControl
         SettingsSearch.TextChanged += OnSearchTextChanged;
 
         // Memory section buttons
-        ChangeStorageButton.Click += OnChangeStorageClick;
         ClearMemoryButton.Click += OnClearMemoryClick;
 
         // Updates section buttons
@@ -134,7 +139,6 @@ public sealed partial class SettingsPage : UserControl
         OfflineModeToggle.Toggled += (_, _) => OfflineModeChanged?.Invoke(this, OfflineModeToggle.IsOn);
 
         // Diagnostics section buttons
-        ExportDiagnosticsButton.Click += OnExportDiagnosticsClick;
         OpenLogsButton.Click += OnOpenLogsClick;
         ResetSettingsButton.Click += OnResetSettingsClick;
     }
@@ -198,6 +202,11 @@ public sealed partial class SettingsPage : UserControl
             }
 
             ComputeMessageText.Text = lookup.Message;
+        }
+        catch (Exception ex)
+        {
+            _fillingPods = false;
+            ComputeMessageText.Text = "Could not look up pods: " + Brief(ex);
         }
         finally
         {
@@ -268,6 +277,10 @@ public sealed partial class SettingsPage : UserControl
             ComputeStatusText.Text = App.GetService<ComputeSession>().Notice;
             ComputeMessageText.Text = result.Message;
         }
+        catch (Exception ex)
+        {
+            ComputeMessageText.Text = "Could not connect: " + Brief(ex);
+        }
         finally
         {
             ConnectComputeButton.IsEnabled = true;
@@ -276,10 +289,34 @@ public sealed partial class SettingsPage : UserControl
 
     private async void OnStayLocalClick(object sender, RoutedEventArgs e)
     {
-        var session = App.GetService<ComputeSession>();
-        await session.UseThisPcAsync();
-        ComputeStatusText.Text = session.Notice;
-        ComputeMessageText.Text = ComputeNotice.OnThisPc;
+        try
+        {
+            var session = App.GetService<ComputeSession>();
+            await session.UseThisPcAsync();
+            ComputeStatusText.Text = session.Notice;
+            ComputeMessageText.Text = ComputeNotice.OnThisPc;
+        }
+        catch (Exception ex)
+        {
+            ComputeMessageText.Text = "Could not switch back to this PC: " + Brief(ex);
+        }
+    }
+
+    private static string Brief(Exception ex)
+    {
+        var text = ex.Message.Trim();
+        var cut = text.IndexOfAny(['\r', '\n']);
+        if (cut >= 0)
+        {
+            text = text[..cut];
+        }
+
+        if (text.Length > 160)
+        {
+            text = text[..160] + "...";
+        }
+
+        return text.Length == 0 ? ex.GetType().Name : text;
     }
 
     private void OnForgetHostKeyClick(object sender, RoutedEventArgs e)
@@ -494,24 +531,12 @@ public sealed partial class SettingsPage : UserControl
         }
     }
 
-    private async void OnChangeStorageClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = "Change Storage Location",
-            Content = "This feature will be available in a future update.",
-            CloseButtonText = "OK",
-            XamlRoot = this.XamlRoot
-        };
-        await dialog.ShowAsync();
-    }
-
     private async void OnClearMemoryClick(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog
         {
             Title = "Clear All Memory",
-            Content = "This will permanently delete all stored context and conversation history. This action cannot be undone.",
+            Content = "This permanently deletes every note you asked InControl to remember, in every project and session. Your chats are not deleted. This cannot be undone.",
             PrimaryButtonText = "Clear All",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
@@ -519,9 +544,42 @@ public sealed partial class SettingsPage : UserControl
         };
 
         var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        if (result != ContentDialogResult.Primary)
         {
-            // TODO: Clear memory implementation
+            return;
+        }
+
+        try
+        {
+            await SessionMemoryClearer.ClearAllAsync(
+                App.GetService<ISessionMemory>(),
+                App.GetService<IProjectLibrary>(),
+                App.GetService<IChatService>());
+            MemoryCleared?.Invoke(this, EventArgs.Empty);
+            await ShowMessageAsync("Memory cleared", "Every remembered note was deleted.");
+        }
+        catch (Exception ex)
+        {
+            await ShowMessageAsync("Could not clear memory", Brief(ex));
+        }
+    }
+
+    private async Task ShowMessageAsync(string title, string message)
+    {
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // A dialog is already open. The message has nowhere else to go.
         }
     }
 
@@ -531,18 +589,6 @@ public sealed partial class SettingsPage : UserControl
         {
             Title = "Check for Updates",
             Content = $"This build does not check for updates. The version is {InformationalVersion()}.",
-            CloseButtonText = "OK",
-            XamlRoot = this.XamlRoot
-        };
-        await dialog.ShowAsync();
-    }
-
-    private async void OnExportDiagnosticsClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = "Export Diagnostics",
-            Content = "This feature will be available in a future update.",
             CloseButtonText = "OK",
             XamlRoot = this.XamlRoot
         };
@@ -567,9 +613,9 @@ public sealed partial class SettingsPage : UserControl
     {
         var dialog = new ContentDialog
         {
-            Title = "Reset to Defaults",
-            Content = "This will restore all settings to their default values. Your models, extensions, and session data will not be affected.",
-            PrimaryButtonText = "Reset Settings",
+            Title = "Reset appearance",
+            Content = "This switches the theme back to follow Windows. Your chats and notes are not affected.",
+            PrimaryButtonText = "Reset theme",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = this.XamlRoot
@@ -581,8 +627,6 @@ public sealed partial class SettingsPage : UserControl
             // Reset theme to system
             ThemeComboBox.SelectedIndex = 2;
             ThemeService.Instance.SetThemeFromIndex(2);
-
-            // TODO: Reset other settings
         }
     }
 }

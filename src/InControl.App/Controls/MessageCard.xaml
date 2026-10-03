@@ -20,11 +20,6 @@
                             Text="Copy as Markdown"
                             AutomationProperties.Name="Copy as Markdown format" />
             <MenuFlyoutSeparator />
-            <MenuFlyoutItem x:Name="AddToContextMenuItem"
-                            Text="Add to context"
-                            Icon="Attach"
-                            AutomationProperties.Name="Add message to context" />
-            <MenuFlyoutSeparator />
             <MenuFlyoutItem x:Name="DeleteMenuItem"
                             Text="Delete message"
                             Icon="Delete"
@@ -44,11 +39,6 @@
             <MenuFlyoutItem x:Name="AssistantCopyAsMarkdownMenuItem"
                             Text="Copy as Markdown"
                             AutomationProperties.Name="Copy as Markdown format" />
-            <MenuFlyoutSeparator />
-            <MenuFlyoutItem x:Name="AssistantAddToContextMenuItem"
-                            Text="Add to context"
-                            Icon="Attach"
-                            AutomationProperties.Name="Add message to context" />
             <MenuFlyoutSeparator />
             <MenuFlyoutItem x:Name="ReportInappropriateMenuItem"
                             Text="Report inappropriate content"

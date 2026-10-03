@@ -10,7 +10,6 @@ namespace InControl.App.Services;
 public sealed class CrashRecoveryService
 {
     private const string CrashMarkerFileName = "crash-marker.json";
-    private const string LastSessionFileName = "last-session.json";
 
     private static CrashRecoveryService? _instance;
     private static readonly object _lock = new();
@@ -69,11 +68,6 @@ public sealed class CrashRecoveryService
     public bool IsRecoveryMode => _isRecoveryMode;
 
     /// <summary>
-    /// Information about the last session, if recovered.
-    /// </summary>
-    public LastSessionInfo? RecoveredSession { get; private set; }
-
-    /// <summary>
     /// Check for crash markers and prepare recovery if needed.
     /// Call this at app startup before main window is created.
     /// </summary>
@@ -83,6 +77,10 @@ public sealed class CrashRecoveryService
 
         if (File.Exists(crashMarkerPath))
         {
+            // A marker left behind means the last run did not exit cleanly,
+            // even when the marker itself cannot be read.
+            _isRecoveryMode = true;
+
             try
             {
                 var json = File.ReadAllText(crashMarkerPath);
@@ -90,10 +88,6 @@ public sealed class CrashRecoveryService
 
                 if (crashInfo != null)
                 {
-                    _isRecoveryMode = true;
-                    LoadLastSession();
-
-                    // Log recovery
                     Debug.WriteLine($"Recovery mode: Previous session ended unexpectedly at {crashInfo.Timestamp}");
                 }
             }
@@ -103,7 +97,7 @@ public sealed class CrashRecoveryService
             }
             finally
             {
-                // Remove crash marker regardless
+                // The notice is raised from IsRecoveryMode, so the marker can go now.
                 try { File.Delete(crashMarkerPath); } catch { }
             }
         }
@@ -156,65 +150,11 @@ public sealed class CrashRecoveryService
     }
 
     /// <summary>
-    /// Save current session state for potential recovery.
-    /// Call this periodically during normal operation.
-    /// </summary>
-    public void SaveSessionState(string? activeSessionId, string? lastPrompt, string? selectedModel)
-    {
-        var sessionPath = Path.Combine(_dataPath, LastSessionFileName);
-
-        var sessionInfo = new LastSessionInfo
-        {
-            Timestamp = DateTime.UtcNow,
-            ActiveSessionId = activeSessionId,
-            LastPrompt = lastPrompt,
-            SelectedModel = selectedModel,
-            Version = GetAppVersion()
-        };
-
-        try
-        {
-            var json = JsonSerializer.Serialize(sessionInfo, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(sessionPath, json);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to save session state: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Load last session info for recovery.
-    /// </summary>
-    private void LoadLastSession()
-    {
-        var sessionPath = Path.Combine(_dataPath, LastSessionFileName);
-
-        if (File.Exists(sessionPath))
-        {
-            try
-            {
-                var json = File.ReadAllText(sessionPath);
-                RecoveredSession = JsonSerializer.Deserialize<LastSessionInfo>(json);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to load last session: {ex.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Clear recovery mode after user acknowledges.
+    /// Clear recovery mode after the notice has been shown.
     /// </summary>
     public void AcknowledgeRecovery()
     {
         _isRecoveryMode = false;
-        RecoveredSession = null;
-
-        // Clean up last session file
-        var sessionPath = Path.Combine(_dataPath, LastSessionFileName);
-        try { if (File.Exists(sessionPath)) File.Delete(sessionPath); } catch { }
     }
 
     /// <summary>
@@ -223,32 +163,15 @@ public sealed class CrashRecoveryService
     /// </summary>
     public string GetRecoveryMessage()
     {
-        return "InControl was restored after an unexpected stop.";
+        return "InControl closed unexpectedly last time. Your saved chats are intact.";
     }
 
     /// <summary>
-    /// Get details about what can be recovered.
+    /// Get details about what was kept.
     /// </summary>
     public string GetRecoveryDetails()
     {
-        if (RecoveredSession == null)
-        {
-            return "Your sessions and settings are safe.";
-        }
-
-        var details = "Your sessions and settings are safe.";
-
-        if (!string.IsNullOrEmpty(RecoveredSession.ActiveSessionId))
-        {
-            details += "\n• Last active session is available";
-        }
-
-        if (!string.IsNullOrEmpty(RecoveredSession.LastPrompt))
-        {
-            details += "\n• Unsent prompt was recovered";
-        }
-
-        return details;
+        return "Saved chats and settings were not changed.";
     }
 
     private static string GetAppVersion()
@@ -274,16 +197,4 @@ public class CrashMarkerInfo
     public DateTime Timestamp { get; set; }
     public string Version { get; set; } = "";
     public int ProcessId { get; set; }
-}
-
-/// <summary>
-/// Information about the last session for recovery.
-/// </summary>
-public class LastSessionInfo
-{
-    public DateTime Timestamp { get; set; }
-    public string? ActiveSessionId { get; set; }
-    public string? LastPrompt { get; set; }
-    public string? SelectedModel { get; set; }
-    public string Version { get; set; } = "";
 }

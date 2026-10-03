@@ -111,4 +111,21 @@ public class SessionItemViewModelTests
 
         vm.GetConversation().Should().BeSameAs(conversation);
     }
+    [Fact]
+    public void EffectiveProjectId_IsGeneral_WhenTheSessionHasNoProject()
+    {
+        var vm = new SessionItemViewModel(Conversation.Create("Old session"));
+
+        vm.ProjectId.Should().BeNull();
+        vm.EffectiveProjectId.Should().Be(ChatProject.GeneralId);
+    }
+
+    [Fact]
+    public void EffectiveProjectId_IsTheSessionsOwnProject()
+    {
+        var project = Guid.NewGuid();
+        var vm = new SessionItemViewModel(Conversation.Create("Away", projectId: project));
+
+        vm.EffectiveProjectId.Should().Be(project);
+    }
 }
