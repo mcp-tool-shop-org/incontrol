@@ -227,16 +227,31 @@ public sealed class StateRecovery
                     $"Failed to backup current state before restore: {currentBackupResult.Error.Message}");
             }
 
-            // Clear current sessions
+            // Extract beside the sessions folder first. A corrupt or unreadable archive must fail
+            // here, while the current sessions are still on disk.
             var sessionsPath = DataPaths.Sessions;
-            if (Directory.Exists(sessionsPath))
-            {
-                Directory.Delete(sessionsPath, recursive: true);
-            }
-            Directory.CreateDirectory(sessionsPath);
+            var stagingPath = sessionsPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + ".restore-" + Guid.NewGuid().ToString("N");
 
-            // Extract backup
-            System.IO.Compression.ZipFile.ExtractToDirectory(backupPath, sessionsPath);
+            try
+            {
+                System.IO.Compression.ZipFile.ExtractToDirectory(backupPath, stagingPath);
+                Directory.CreateDirectory(stagingPath); // an empty archive extracts nothing
+
+                if (Directory.Exists(sessionsPath))
+                {
+                    Directory.Delete(sessionsPath, recursive: true);
+                }
+
+                Directory.Move(stagingPath, sessionsPath);
+            }
+            finally
+            {
+                if (Directory.Exists(stagingPath))
+                {
+                    Directory.Delete(stagingPath, recursive: true);
+                }
+            }
 
             return Unit.Value;
         }
