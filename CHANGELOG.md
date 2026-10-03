@@ -9,6 +9,8 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-02
+
 ### Changed
 - The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. The package identity is `mcp-tool-shop.InControl-Desktop`, publisher display name `mcp-tool-shop`, as on the Partner Center Product Identity page. An earlier draft used `InControl.App`, which was the 1.4.0 upload's file name and would have been rejected. The application id is `App` again, as in 1.3.0, so Start and taskbar pins survive the update. NuGet library versions are unchanged.
 - The package runs on Windows 10 version 2004 and later. The build had been writing Windows 11 22H2 as the minimum.
