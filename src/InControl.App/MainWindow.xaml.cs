@@ -15,6 +15,7 @@ using InControl.Core.UX;
 using InControl.Inference.Interfaces;
 using InControl.Services.Interfaces;
 using InControl.Services.Voice;
+using InControl.Services.Web;
 using InControl.ViewModels.ConversationView;
 using InControl.ViewModels.Sessions;
 
@@ -282,6 +283,8 @@ public sealed partial class MainWindow : Window
         ConversationView.Composer.RunRequested += OnRunRequested;
         ConversationView.Composer.CancelRequested += OnCancelRequested;
         ConversationView.Composer.AttachmentFailed += (_, message) => ShowNotice(message, InfoBarSeverity.Warning);
+        ConversationView.Composer.WebSearchEnabled = WebSearchPreference.Load(App.GetService<IOptions<InferenceOptions>>().Value.WebSearch);
+        ConversationView.Composer.WebSearchChanged += OnWebSearchChanged;
 
         // ConversationView speak events
         ConversationView.SpeakRequested += OnSpeakRequested;
@@ -463,6 +466,11 @@ public sealed partial class MainWindow : Window
 
         ConversationView.Composer.ClearAttachments();
 
+        // Web search follows the toggle, and offline mode wins.
+        var useWeb = ConversationView.Composer.WebSearchEnabled && !_isOffline;
+        if (ConversationView.Composer.WebSearchEnabled && _isOffline)
+            ShowNotice("Offline mode is on, so this reply can't search the web.", InfoBarSeverity.Informational);
+
         var runCts = new CancellationTokenSource();
         _runCts = runCts;
         _answerText.Clear();
@@ -547,14 +555,24 @@ public sealed partial class MainWindow : Window
 
             var yieldCounter = 0;
 
-            void OnThinking(string chunk) => DispatcherQueue.TryEnqueue(() =>
+            var options = new SendOptions
             {
-                if (Viewing())
-                    _conversationVm.AppendThinking(chunk);
-            });
+                Images = images,
+                Tools = useWeb ? App.GetService<WebTools>().Tools : null,
+                OnThinking = chunk => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (Viewing())
+                        _conversationVm.AppendThinking(chunk);
+                }),
+                OnActivity = line => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (Viewing())
+                        _conversationVm.AddActivity(line);
+                })
+            };
 
             await foreach (var token in chatService.SendMessageAsync(
-                conversation.Id, content, images, OnThinking, runCts.Token))
+                conversation.Id, content, options, runCts.Token))
             {
                 _answerText.Append(token);
                 if (!Viewing())
@@ -575,7 +593,7 @@ public sealed partial class MainWindow : Window
                 var updated = await chatService.GetConversationAsync(conversation.Id);
                 if (updated is not null && Viewing())
                 {
-                    _conversationVm.LoadConversation(updated);
+                    _conversationVm.LoadConversationKeepingReplyExtras(updated);
                     ConversationView.ShowMessages();
                     ConversationView.ScrollToBottom();
                 }
@@ -833,6 +851,19 @@ public sealed partial class MainWindow : Window
         {
             ShowFailure("Could not rename the chat", ex);
         }
+    }
+
+    /// <summary>
+    /// Remembers the web search toggle, in the live options and in saved settings.
+    /// </summary>
+    private void OnWebSearchChanged(object? sender, bool enabled)
+    {
+        App.GetService<IOptions<InferenceOptions>>().Value.WebSearch = enabled;
+        if (!WebSearchPreference.Save(enabled))
+            ShowNotice("The web search setting could not be saved. It applies until InControl closes.", InfoBarSeverity.Warning);
+
+        if (enabled)
+            ShowNotice("Web search is on. When the model searches, its query goes to DuckDuckGo. The reply lists each search.", InfoBarSeverity.Informational);
     }
 
     /// <summary>

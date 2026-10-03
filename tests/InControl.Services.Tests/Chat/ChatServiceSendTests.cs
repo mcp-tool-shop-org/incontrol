@@ -4,6 +4,7 @@ using Moq;
 using InControl.Core.Models;
 using InControl.Inference.Fakes;
 using InControl.Services.Chat;
+using InControl.Services.Interfaces;
 using InControl.Services.Storage;
 using Xunit;
 
@@ -89,7 +90,7 @@ public class ChatServiceSendTests : IDisposable
         var chat = new ChatService(fake, storage, new Mock<ILogger<ChatService>>().Object);
         var session = await chat.CreateConversationAsync(model: "vision");
 
-        await foreach (var _ in chat.SendMessageAsync(session.Id, "What is in this image?", ["QUJD"]))
+        await foreach (var _ in chat.SendMessageAsync(session.Id, "What is in this image?", new SendOptions { Images = ["QUJD"] }))
         {
         }
 
@@ -110,7 +111,7 @@ public class ChatServiceSendTests : IDisposable
         var chat = new ChatService(fake, storage, new Mock<ILogger<ChatService>>().Object);
         var session = await chat.CreateConversationAsync(model: "text");
 
-        await foreach (var _ in chat.SendMessageAsync(session.Id, "Hello", images: []))
+        await foreach (var _ in chat.SendMessageAsync(session.Id, "Hello", new SendOptions { Images = [] }))
         {
         }
 

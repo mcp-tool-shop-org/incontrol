@@ -81,6 +81,17 @@
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
                             Spacing="4">
+                    <!-- Web search: off until turned on, because a query leaves this PC -->
+                    <ToggleButton x:Name="WebSearchToggle"
+                                  Padding="8"
+                                  ToolTipService.ToolTip="Web search is off. Turn it on to let the model search DuckDuckGo. Search queries leave this PC."
+                                  AutomationProperties.Name="Web search">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE774;" FontSize="14" />
+                            <TextBlock Text="Web" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ToggleButton>
+
                     <!-- Attach File Button -->
                     <Button x:Name="AttachFileButton"
                             ToolTipService.ToolTip="Attach files: text, code, or images for vision models (Ctrl+Shift+O)"

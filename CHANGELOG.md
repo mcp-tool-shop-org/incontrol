@@ -12,6 +12,9 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 ## [2.0.0] - 2026-10-02
 
 ### Added
+- Web search, off until you turn it on with the Web button next to the paperclip. A model that can use tools may search DuckDuckGo and read public pages; pages on this PC or a private network are refused. Each reply lists its searches, offline mode turns it off, and the choice is remembered.
+- Replies render markdown: bold and italic, inline code, code blocks, headings, lists, quotes, tables and links.
+- A reasoning model's thinking streams into a Thinking section on the reply, which folds away when the answer starts.
 - Attach files to a message with the paperclip, Ctrl+Shift+O, or by dropping them on the composer. Text and code files (up to 256 KB) go into the message in a fenced block. PNG, JPEG and WebP images (up to 10 MB) go to vision models through Ollama. Each file shows as a chip that can be removed before sending, and attachments are saved with the chat.
 - Before images are sent, InControl asks Ollama whether the model can read them. A text-only model gets a plain message instead, and the files stay attached. Images from earlier in a chat are left out of the request for a text-only model, so the chat keeps working.
 

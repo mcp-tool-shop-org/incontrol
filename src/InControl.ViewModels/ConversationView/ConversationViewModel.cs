@@ -157,6 +157,24 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     /// <summary>
     /// Loads a conversation into the view.
     /// </summary>
+    /// <summary>
+    /// Reloads the stored conversation after a reply, keeping the reply's tool lines and
+    /// thinking on the last answer. Those are shown, not saved, so the reload would drop them.
+    /// </summary>
+    public void LoadConversationKeepingReplyExtras(Core.Models.Conversation conversation)
+    {
+        var activity = _streamingMessage?.Activity ?? string.Empty;
+        var thinking = _streamingMessage?.Thinking ?? string.Empty;
+        LoadConversation(conversation);
+
+        var last = Messages.LastOrDefault(m => m.IsAssistant);
+        if (last is null)
+            return;
+
+        last.Activity = activity;
+        last.Thinking = thinking;
+    }
+
     public void LoadConversation(Core.Models.Conversation conversation)
     {
         _conversation = conversation;
@@ -250,6 +268,14 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
     public void AppendThinking(string chunk)
     {
         _streamingMessage?.AppendThinking(chunk);
+    }
+
+    /// <summary>
+    /// Adds a line of tool activity, such as a web search, to the streaming output.
+    /// </summary>
+    public void AddActivity(string line)
+    {
+        _streamingMessage?.AddActivity(line);
     }
 
     /// <summary>

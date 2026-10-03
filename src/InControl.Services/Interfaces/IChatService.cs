@@ -112,19 +112,17 @@ public interface IChatService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Sends a message with base64 images beside it, for vision models, and streams the response.
+    /// Sends a message with images, tools and progress callbacks, and streams the response.
     /// </summary>
     /// <param name="conversationId">The conversation ID.</param>
     /// <param name="message">The user message, with any attached text files already in it.</param>
-    /// <param name="images">Base64 images, or null.</param>
-    /// <param name="onThinking">Receives a reasoning model's thinking as it streams, or null.</param>
+    /// <param name="options">Images, tools and callbacks for this reply, or null.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Async stream of response tokens.</returns>
     IAsyncEnumerable<string> SendMessageAsync(
         Guid conversationId,
         string message,
-        IReadOnlyList<string>? images,
-        Action<string>? onThinking = null,
+        SendOptions? options,
         CancellationToken ct = default);
 
     /// <summary>
@@ -168,6 +166,24 @@ public enum ConversationPersistenceOperation
 /// <summary>
 /// Event args for a failed save or delete.
 /// </summary>
+/// <summary>
+/// What goes with one message besides its text.
+/// </summary>
+public sealed record SendOptions
+{
+    /// <summary>Base64 images, for vision models.</summary>
+    public IReadOnlyList<string>? Images { get; init; }
+
+    /// <summary>Tools the model may call during the reply, such as web search.</summary>
+    public IReadOnlyList<ChatTool>? Tools { get; init; }
+
+    /// <summary>Receives a reasoning model's thinking as it streams.</summary>
+    public Action<string>? OnThinking { get; init; }
+
+    /// <summary>Receives one line per tool the model uses.</summary>
+    public Action<string>? OnActivity { get; init; }
+}
+
 public sealed class ConversationPersistenceFailedEventArgs : EventArgs
 {
     /// <summary>

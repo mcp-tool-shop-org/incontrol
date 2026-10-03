@@ -19,6 +19,7 @@ public sealed class OllamaInferenceClient : IInferenceClient
     private readonly ILogger<OllamaInferenceClient> _logger;
     private readonly OllamaClientCache _clients;
     private readonly TimeSpan _timeout;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlySet<string>> _capabilities = new();
 
     public OllamaInferenceClient(
         IOptions<OllamaOptions> options,
@@ -112,14 +113,30 @@ public sealed class OllamaInferenceClient : IInferenceClient
 
     public async Task<bool?> SupportsImagesAsync(string modelId, CancellationToken ct = default)
     {
+        var capabilities = await CapabilitiesAsync(modelId, ct);
+        return capabilities is null ? null : capabilities.Contains("vision");
+    }
+
+    /// <summary>
+    /// What Ollama says the model can do ("vision", "tools", "thinking"...), or null when it will not say.
+    /// Answers are kept per endpoint, since a rental may hold a different build of the same name.
+    /// </summary>
+    private async Task<IReadOnlySet<string>?> CapabilitiesAsync(string modelId, CancellationToken ct)
+    {
         try
         {
             using var lease = _clients.Acquire();
+            var key = lease.Client.Uri + "|" + modelId;
+            if (_capabilities.TryGetValue(key, out var cached))
+                return cached;
+
             var info = await lease.Client.ShowModelAsync(modelId, ct);
-            if (info?.Capabilities is not { } capabilities)
+            if (info?.Capabilities is not { } list)
                 return null;
 
-            return capabilities.Any(c => string.Equals(c, "vision", StringComparison.OrdinalIgnoreCase));
+            var set = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
+            _capabilities[key] = set;
+            return set;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -187,21 +204,96 @@ public sealed class OllamaInferenceClient : IInferenceClient
             };
         }
 
+        // Tools only go to a model that says it can call them. Others answer without.
+        Dictionary<string, ChatTool>? tools = null;
+        if (request.Tools is { Count: > 0 })
+        {
+            var capabilities = await CapabilitiesAsync(request.Model, ct);
+            if (capabilities is null || capabilities.Contains("tools"))
+            {
+                tools = request.Tools.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+                chatRequest.Tools = ToOllamaTools(request.Tools);
+            }
+            else
+            {
+                request.OnActivity?.Invoke($"{request.Model} can't use tools, so it answers without searching the web.");
+            }
+        }
+
         _logger.LogDebug("Starting streaming chat with model {Model}", request.Model);
 
-        var replies = OllamaTimeouts.StreamAsync(token => client.ChatAsync(chatRequest, token), _timeout, ct);
         var received = false;
-        await foreach (var response in replies.WithCancellation(ct))
+        for (var round = 0; ; round++)
         {
-            // Reasoning models stream their thinking before the answer, in its own field.
-            if (response?.Message?.Thinking is { Length: > 0 } thinking)
-                request.OnThinking?.Invoke(thinking);
+            var calls = new List<OllamaSharp.Models.Chat.Message.ToolCall>();
+            var said = new System.Text.StringBuilder();
 
-            if (response?.Message?.Content is { } content && content.Length > 0)
+            var replies = OllamaTimeouts.StreamAsync(token => client.ChatAsync(chatRequest, token), _timeout, ct);
+            await foreach (var response in replies.WithCancellation(ct))
             {
-                received = true;
-                yield return content;
+                // Reasoning models stream their thinking before the answer, in its own field.
+                if (response?.Message?.Thinking is { Length: > 0 } thinking)
+                    request.OnThinking?.Invoke(thinking);
+
+                if (response?.Message?.ToolCalls is { } toolCalls)
+                    calls.AddRange(toolCalls);
+
+                if (response?.Message?.Content is { } content && content.Length > 0)
+                {
+                    received = true;
+                    said.Append(content);
+                    yield return content;
+                }
             }
+
+            if (calls.Count == 0 || tools is null)
+                break;
+
+            // The model asked for tools. Run them, hand back the results, and let it continue.
+            messages.Add(new OllamaSharp.Models.Chat.Message
+            {
+                Role = OllamaSharp.Models.Chat.ChatRole.Assistant,
+                Content = said.ToString(),
+                ToolCalls = calls
+            });
+
+            foreach (var call in calls)
+            {
+                var name = call.Function?.Name ?? string.Empty;
+                var args = ToStringArguments(call.Function?.Arguments);
+                string result;
+                if (!tools.TryGetValue(name, out var tool))
+                {
+                    result = $"There is no tool named {name}.";
+                }
+                else
+                {
+                    request.OnActivity?.Invoke(tool.Describe(args));
+                    try
+                    {
+                        result = await tool.Run(args, ct);
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        result = $"The {name} tool failed: {ex.Message}";
+                    }
+                }
+
+                messages.Add(new OllamaSharp.Models.Chat.Message
+                {
+                    Role = OllamaSharp.Models.Chat.ChatRole.Tool,
+                    Content = result,
+                    ToolName = name
+                });
+            }
+
+            // The last round leaves the tools off so the model has to answer.
+            if (round + 1 >= MaxToolRounds)
+                chatRequest.Tools = null;
         }
 
         // Ollama reports some refusals, such as images sent to a text-only model, as a
@@ -213,6 +305,55 @@ public sealed class OllamaInferenceClient : IInferenceClient
                     ? $"{request.Model} sent back no reply. It may not read images. Pick a vision model, or remove the image."
                     : $"{request.Model} sent back no reply.");
         }
+    }
+
+    /// <summary>
+    /// Most rounds of tool calls in one reply before the model must answer.
+    /// </summary>
+    internal const int MaxToolRounds = 4;
+
+    /// <summary>
+    /// Maps app tools to Ollama's function-tool shape. Every parameter is a string.
+    /// </summary>
+    internal static List<OllamaSharp.Models.Chat.Tool> ToOllamaTools(IEnumerable<ChatTool> tools) =>
+        tools.Select(t => new OllamaSharp.Models.Chat.Tool
+        {
+            Function = new OllamaSharp.Models.Chat.Function
+            {
+                Name = t.Name,
+                Description = t.Description,
+                Parameters = new OllamaSharp.Models.Chat.Parameters
+                {
+                    Properties = t.Parameters.ToDictionary(
+                        p => p.Name,
+                        p => new OllamaSharp.Models.Chat.Property { Type = "string", Description = p.Description }),
+                    Required = t.Parameters.Where(p => p.Required).Select(p => p.Name).ToList()
+                }
+            }
+        }).ToList();
+
+    /// <summary>
+    /// The model's arguments as plain strings. Numbers and booleans become their text.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, string> ToStringArguments(IDictionary<string, object?>? arguments)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (arguments is null)
+            return result;
+
+        foreach (var (key, value) in arguments)
+        {
+            result[key] = value switch
+            {
+                null => string.Empty,
+                string text => text,
+                System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } element => element.GetString() ?? string.Empty,
+                System.Text.Json.JsonElement element => element.GetRawText(),
+                _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty
+            };
+        }
+
+        return result;
     }
 
     /// <summary>

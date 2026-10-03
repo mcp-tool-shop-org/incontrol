@@ -14,4 +14,8 @@
     <PackageReference Include="Moq" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Web\duckduckgo-sample.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

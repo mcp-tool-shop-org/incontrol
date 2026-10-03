@@ -319,4 +319,89 @@ public class OllamaClientTests
         tokens.Should().Equal("Answer");
         thinking.ToString().Should().Be("Let me check.");
     }
+
+    [Fact]
+    public async Task Stream_RunsAToolTheModelCalls_AndStreamsTheAnswerThatFollows()
+    {
+        var chatCalls = 0;
+        using var server = new FakeOllamaServer(async (path, write) =>
+        {
+            if (path.StartsWith("/api/show", StringComparison.Ordinal))
+            {
+                await write("{\"capabilities\":[\"completion\",\"tools\"]}");
+                return;
+            }
+
+            if (Interlocked.Increment(ref chatCalls) == 1)
+            {
+                await write("{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"web_search\",\"arguments\":{\"query\":\"incontrol github\"}}}]},\"done\":false}");
+                await write(FakeOllamaServer.ChatLine("", done: true));
+                return;
+            }
+
+            await write(FakeOllamaServer.ChatLine("It is at github.com/mcp-tool-shop-org/incontrol."));
+            await write(FakeOllamaServer.ChatLine("", done: true));
+        });
+        var client = NewClient(new TestEndpoint(server.Url));
+
+        var queries = new List<string>();
+        var activity = new List<string>();
+        var search = new ChatTool(
+            "web_search",
+            "Search the web.",
+            [new ChatToolParameter("query", "What to search for.")],
+            (args, _) =>
+            {
+                queries.Add(args["query"]);
+                return Task.FromResult("1. GitHub - mcp-tool-shop-org/incontrol\nhttps://github.com/mcp-tool-shop-org/incontrol");
+            },
+            args => $"Searched the web: {args["query"]}");
+        var request = Request() with { Tools = [search], OnActivity = activity.Add };
+
+        var tokens = await ReadAll(client.StreamChatAsync(request)).WaitAsync(Wait);
+
+        queries.Should().Equal("incontrol github");
+        activity.Should().Equal("Searched the web: incontrol github");
+        tokens.Should().Equal("It is at github.com/mcp-tool-shop-org/incontrol.");
+        chatCalls.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Stream_ToAModelWithoutTools_AnswersWithoutThem_AndSaysSo()
+    {
+        using var server = new FakeOllamaServer(async (path, write) =>
+        {
+            if (path.StartsWith("/api/show", StringComparison.Ordinal))
+            {
+                await write("{\"capabilities\":[\"completion\"]}");
+                return;
+            }
+
+            await write(FakeOllamaServer.ChatLine("Plain answer."));
+            await write(FakeOllamaServer.ChatLine("", done: true));
+        });
+        var client = NewClient(new TestEndpoint(server.Url));
+        var activity = new List<string>();
+        var tool = new ChatTool("web_search", "Search.", [], (_, _) => Task.FromResult(""), _ => "searched");
+        var request = Request() with { Tools = [tool], OnActivity = activity.Add };
+
+        var tokens = await ReadAll(client.StreamChatAsync(request)).WaitAsync(Wait);
+
+        tokens.Should().Equal("Plain answer.");
+        activity.Should().ContainSingle().Which.Should().Contain("can't use tools");
+    }
+
+    [Fact]
+    public void ToStringArguments_TurnsJsonValuesIntoText()
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse("{\"n\":3,\"s\":\"x\",\"b\":true}");
+        var args = doc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => (object?)p.Value.Clone());
+
+        var text = OllamaInferenceClient.ToStringArguments(args);
+
+        text["n"].Should().Be("3");
+        text["s"].Should().Be("x");
+        text["b"].Should().Be("true");
+        OllamaInferenceClient.ToStringArguments(null).Should().BeEmpty();
+    }
 }

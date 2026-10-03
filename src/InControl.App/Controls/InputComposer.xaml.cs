@@ -105,6 +105,24 @@ public sealed partial class InputComposer : UserControl
     public IReadOnlyList<ChatAttachment> Attachments => _attachments;
 
     /// <summary>
+    /// Event raised when the person turns web search on or off.
+    /// </summary>
+    public event EventHandler<bool>? WebSearchChanged;
+
+    /// <summary>
+    /// Whether the model may search the web for the next message.
+    /// </summary>
+    public bool WebSearchEnabled
+    {
+        get => WebSearchToggle.IsChecked == true;
+        set
+        {
+            WebSearchToggle.IsChecked = value;
+            UpdateWebSearchTooltip();
+        }
+    }
+
+    /// <summary>
     /// Event raised when Model Manager should open (from disabled banner).
     /// </summary>
     public event EventHandler? ModelManagerRequested;
@@ -205,6 +223,11 @@ public sealed partial class InputComposer : UserControl
         ActionButton.Click += OnActionButtonClick;
         AttachFileButton.Click += OnAttachFileButtonClick;
         ComposerRoot.DragOver += OnComposerDragOver;
+        WebSearchToggle.Click += (_, _) =>
+        {
+            UpdateWebSearchTooltip();
+            WebSearchChanged?.Invoke(this, WebSearchEnabled);
+        };
         ComposerRoot.Drop += OnComposerDrop;
         ModelSelector.SelectionChanged += OnModelSelectionChanged;
         DisabledActionButton.Click += OnDisabledActionClick;
@@ -370,6 +393,13 @@ public sealed partial class InputComposer : UserControl
 
         _attachments.Add(attachment);
         RenderAttachments();
+    }
+
+    private void UpdateWebSearchTooltip()
+    {
+        ToolTipService.SetToolTip(WebSearchToggle, WebSearchEnabled
+            ? "Web search is on. The model may search DuckDuckGo and read public pages. Search queries leave this PC."
+            : "Web search is off. Turn it on to let the model search DuckDuckGo. Search queries leave this PC.");
     }
 
     private void RenderAttachments()

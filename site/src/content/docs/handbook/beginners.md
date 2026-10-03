@@ -61,6 +61,10 @@ Sessions live in projects. **General** is where a session goes by default. A pro
 
 InControl can read replies aloud with Kokoro, which runs on this PC. The first time voice is needed, when a reply is spoken or you open Settings, it downloads the voice model, about 300 MB. Turn off auto-speak in Settings if you don't want replies read aloud.
 
+### Web search
+
+The **Web** button next to the paperclip lets the model search the web. It is off until you turn it on, and the choice is remembered. While it is on, a model that can use tools (gemma3, qwen3, llama3.1 and others) can search DuckDuckGo and read public pages, and each reply lists what it searched. A model without tool support answers without searching, and the reply says so. Offline mode turns web search off. Search queries leave this PC, so leave Web off for anything private.
+
 ### Attaching files
 
 Click the paperclip next to the model picker, press Ctrl+Shift+O, or drop files on the composer. Each file shows as a chip; click it to remove it before sending.

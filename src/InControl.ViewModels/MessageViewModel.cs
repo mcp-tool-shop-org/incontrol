@@ -60,6 +60,17 @@ public partial class MessageViewModel : ObservableObject
     public void AppendThinking(string chunk) => Thinking += chunk;
 
     /// <summary>
+    /// One line per tool the model used for this reply, such as a web search. Shown, not saved.
+    /// </summary>
+    [ObservableProperty]
+    private string _activity = string.Empty;
+
+    /// <summary>
+    /// Adds a line of tool activity.
+    /// </summary>
+    public void AddActivity(string line) => Activity = Activity.Length == 0 ? line : Activity + Environment.NewLine + line;
+
+    /// <summary>
     /// Whether this message is currently being spoken aloud.
     /// </summary>
     [ObservableProperty]

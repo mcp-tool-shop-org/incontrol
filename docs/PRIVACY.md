@@ -50,8 +50,9 @@ The app talks to Ollama. Chat stays on this PC until a rented GPU is connected. 
 | RunPod API | You press **Look up my RunPod pods** with `RUNPOD_API_KEY` set | The key, to list pods. The key is not stored, and the chat is not sent |
 | GitHub | The first time voice is needed: a reply is spoken, or you open Settings | A download request for the Kokoro voice model (about 300 MB). Speech runs on this PC |
 | ollama.com | You run diagnostics on the Help page | A reachability check |
+| DuckDuckGo and public web pages | Web search is on and the model searches or reads a page | The model's search query, or a request for the page. Private and local addresses are refused. Each search is listed on the reply |
 
-Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model pull. Chat on this PC still works. It does not stop the voice model download, and it is not a kill switch for every socket.
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, a model pull, and web search. Chat on this PC still works. It does not stop the voice model download, and it is not a kill switch for every socket.
 
 There is no llama.cpp backend.
 

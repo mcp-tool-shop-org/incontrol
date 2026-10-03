@@ -14,6 +14,8 @@ namespace InControl.App.Controls;
 public sealed partial class MessageCard : UserControl
 {
     private bool _foldedThinking;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _renderTimer;
+    private string _pendingContent = string.Empty;
     /// <summary>
     /// Raised when the user clicks the speak button on an assistant message.
     /// </summary>
@@ -310,7 +312,8 @@ public sealed partial class MessageCard : UserControl
     {
         HideAllCards();
         ModelOutputCard.Visibility = Visibility.Visible;
-        ModelContent.Text = message.Content;
+        RenderContent(message.Content, immediately: true);
+        ShowActivity(message);
         ModelTimestamp.Text = message.TimestampDisplay;
 
         // A recycled card starts over: open while thinking, folded once there is an answer.
@@ -351,6 +354,41 @@ public sealed partial class MessageCard : UserControl
 
         // Subscribe to property changes for streaming updates
         Subscribe(message);
+    }
+
+    /// <summary>
+    /// Renders the reply as markdown. While it streams, renders are spaced out so a long
+    /// answer does not re-lay out on every token.
+    /// </summary>
+    private void RenderContent(string content, bool immediately)
+    {
+        _pendingContent = content;
+        if (immediately)
+        {
+            _renderTimer?.Stop();
+            MarkdownRenderer.Render(ModelContent, content);
+            return;
+        }
+
+        if (_renderTimer is null)
+        {
+            _renderTimer = DispatcherQueue.CreateTimer();
+            _renderTimer.Interval = TimeSpan.FromMilliseconds(150);
+            _renderTimer.IsRepeating = false;
+            _renderTimer.Tick += (_, _) => MarkdownRenderer.Render(ModelContent, _pendingContent);
+        }
+
+        if (!_renderTimer.IsRunning)
+            _renderTimer.Start();
+    }
+
+    /// <summary>
+    /// One line per tool the model used, such as a web search.
+    /// </summary>
+    private void ShowActivity(MessageViewModel message)
+    {
+        ActivityText.Text = message.Activity;
+        ActivityText.Visibility = string.IsNullOrEmpty(message.Activity) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>
@@ -407,7 +445,7 @@ public sealed partial class MessageCard : UserControl
                 case nameof(MessageViewModel.Content):
                     if (message.IsAssistant)
                     {
-                        ModelContent.Text = message.Content;
+                        RenderContent(message.Content, immediately: !message.IsStreaming);
                         ShowThinking(message);
                     }
                     break;
@@ -417,9 +455,15 @@ public sealed partial class MessageCard : UserControl
                         ShowThinking(message);
                     break;
 
+                case nameof(MessageViewModel.Activity):
+                    if (message.IsAssistant)
+                        ShowActivity(message);
+                    break;
+
                 case nameof(MessageViewModel.IsStreaming):
                     if (!message.IsStreaming)
                     {
+                        RenderContent(message.Content, immediately: true);
                         StreamingIndicator.Visibility = Visibility.Collapsed;
                         ModelFooter.Visibility = Visibility.Visible;
                         UpdateSpeakButton(message);

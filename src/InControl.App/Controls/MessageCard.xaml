@@ -159,9 +159,15 @@
                                    Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </Expander>
-                    <TextBlock x:Name="ModelContent"
+                    <TextBlock x:Name="ActivityText"
+                               Visibility="Collapsed"
                                TextWrapping="Wrap"
-                               IsTextSelectionEnabled="True" />
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               AutomationProperties.Name="Tools the model used" />
+                    <RichTextBlock x:Name="ModelContent"
+                                   TextWrapping="Wrap"
+                                   IsTextSelectionEnabled="True" />
                 </StackPanel>
 
                 <!-- Footer (Token count, speak button) -->

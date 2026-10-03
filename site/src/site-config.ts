@@ -35,6 +35,7 @@ export const config: SiteConfig = {
         { title: 'Ollama', desc: 'One HTTP API, on this PC or at the near end of the tunnel. The tool-URL allowlist is a different screen.' },
         { title: 'Projects and notes', desc: 'File sessions under projects with their own instructions. Notes you ask it to remember come along with the next message that matches them.' },
         { title: 'Voice on this PC', desc: 'Kokoro reads replies aloud on this PC. The voice model downloads once, the first time voice is needed.' },
+        { title: 'Web search, when you want it', desc: 'Turn on Web and a model that can use tools searches DuckDuckGo and reads public pages. Each reply lists its searches.' },
         { title: 'Attach files', desc: 'Add text and code files to a message, or images for a vision model. Use the paperclip or drop files on the composer.' },
         { title: 'NuGet libraries', desc: 'Core and Inference packages available on NuGet for building your own local AI integrations.' },
       ],

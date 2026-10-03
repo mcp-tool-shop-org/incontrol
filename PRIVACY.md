@@ -39,10 +39,11 @@ InControl does not run its own cloud, does not require an account, and does not 
 3. **RunPod lookup.** If `RUNPOD_API_KEY` is in your environment, InControl can list pods that are already running. Lookup does not start a pod and does not store the key.
 4. **The voice model.** The first time voice is needed, when a reply is spoken or when you open Settings, InControl downloads the Kokoro voice model (about 300 MB) from GitHub (`github.com/taylorchu/kokoro-onnx`) into the app's cache. Speech itself runs on this PC. With auto-speak off and Settings unopened, it is not downloaded.
 5. **Diagnostics.** When you run diagnostics on the Help page, InControl checks that `https://ollama.com` is reachable.
+6. **Web search, only when you turn it on.** The **Web** button next to the paperclip is off until you turn it on. While it is on, a model that can use tools may search the web. InControl sends the model's search query to DuckDuckGo (`html.duckduckgo.com`) and may fetch public pages the model asks to read. Pages on this PC or on a private network are refused. The reply lists every search and page. Offline mode turns web search off.
 
 Links on the Model Manager page, such as the Ollama download page, open in your browser.
 
-The offline switch turns off a rental, RunPod lookup, and model pulls. It does not stop the voice model download, and it does not claim to block every socket. Chat on this PC still works while it is on.
+The offline switch turns off a rental, RunPod lookup, model pulls, and web search. It does not stop the voice model download, and it does not claim to block every socket. Chat on this PC still works while it is on.
 
 InControl does not check for updates itself. When it is installed from the Microsoft Store, the Store handles updates.
 
@@ -58,6 +59,7 @@ InControl talks to:
 - **Ollama** on this PC, or Ollama on a machine you reach over SSH
 - **RunPod's API**, only for pod lookup and only if you supplied a key
 - **GitHub**, only to download the voice model
+- **DuckDuckGo**, and the public pages a model asks to read, only while web search is on
 
 The Microsoft Store installs and updates the app under Microsoft's own privacy statement. InControl does not add an analytics service. A GPU rental is a machine you chose, not an InControl account.
 

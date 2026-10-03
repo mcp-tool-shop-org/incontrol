@@ -46,6 +46,16 @@ public sealed record ChatRequest
     public Action<string>? OnThinking { get; init; }
 
     /// <summary>
+    /// Tools the model may call during this reply. Null or empty means none.
+    /// </summary>
+    public IReadOnlyList<ChatTool>? Tools { get; init; }
+
+    /// <summary>
+    /// Receives one line per tool the model uses, for the person watching the reply.
+    /// </summary>
+    public Action<string>? OnActivity { get; init; }
+
+    /// <summary>
     /// Creates a simple chat request with a single user message.
     /// </summary>
     public static ChatRequest Simple(string model, string userMessage) => new()

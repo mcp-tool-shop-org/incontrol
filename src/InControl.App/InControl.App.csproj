@@ -82,6 +82,7 @@
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="OllamaSharp" />
     <PackageReference Include="KokoroSharp" GeneratePathProperty="true" />
+    <PackageReference Include="Markdig" />
   </ItemGroup>
 
   <ItemGroup>

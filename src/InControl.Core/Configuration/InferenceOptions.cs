@@ -36,6 +36,12 @@ public sealed class InferenceOptions
     public int TimeoutSeconds { get; set; } = 300;
 
     /// <summary>
+    /// Whether models may search the web through DuckDuckGo. Off until the person turns it on,
+    /// because a search query leaves this PC.
+    /// </summary>
+    public bool WebSearch { get; set; }
+
+    /// <summary>
     /// Number of retry attempts for failed requests.
     /// </summary>
     public int RetryCount { get; set; } = 3;
