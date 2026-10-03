@@ -10,7 +10,7 @@
   "name": "incontrol",
   "title": "InControl",
   "description": "Ollama chat for Windows, on this PC or over SSH to a GPU you rented",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "MIT",
   "datePublished": "2026-04-20",
   "dateModified": "2026-10-02",

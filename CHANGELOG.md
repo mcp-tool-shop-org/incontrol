@@ -5,11 +5,11 @@ All notable changes to InControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The app version is **2.0.0**. The Microsoft Store already has this product, Store ID 9N1FG39JWF83, through package 1.4.0.0. An upload is accepted only when its identity matches the Product Identity page in Partner Center: Name `mcp-tool-shop.InControl-Desktop`, Publisher `CN=5305D976-6952-4F00-9C21-3A5DB090359F`, PublisherDisplayName `mcp-tool-shop`, and a higher version. The MSIX version is **2.0.0.0**. The name in the window and on the Start tile stays InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. No MSIX file is committed in this repository.
+The app version is **2.0.1**. The Microsoft Store already has this product, Store ID 9N1FG39JWF83, through package 1.4.0.0. An upload is accepted only when its identity matches the Product Identity page in Partner Center: Name `mcp-tool-shop.InControl-Desktop`, Publisher `CN=5305D976-6952-4F00-9C21-3A5DB090359F`, PublisherDisplayName `mcp-tool-shop`, and a higher version. The MSIX version is **2.0.1.0**. The name in the window and on the Start tile stays InControl. This is not a rewrite, and it is not a retag of 0.3.0. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2. Those NuGet packages are not republished. No MSIX file is committed in this repository.
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-10-02
+## [2.0.1] - 2026-10-02
 
 ### Added
 - Web search, off until you turn it on with the Web button next to the paperclip. A model that can use tools may search DuckDuckGo and read public pages; pages on this PC or a private network are refused. Each reply lists its searches, offline mode turns it off, and the choice is remembered.
@@ -17,6 +17,20 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 - A reasoning model's thinking streams into a Thinking section on the reply, which folds away when the answer starts.
 - Attach files to a message with the paperclip, Ctrl+Shift+O, or by dropping them on the composer. Text and code files (up to 256 KB) go into the message in a fenced block. PNG, JPEG and WebP images (up to 10 MB) go to vision models through Ollama. Each file shows as a chip that can be removed before sending, and attachments are saved with the chat.
 - Before images are sent, InControl asks Ollama whether the model can read them. A text-only model gets a plain message instead, and the files stay attached. Images from earlier in a chat are left out of the request for a text-only model, so the chat keeps working.
+- Settings are saved between launches: theme, voice, auto-speak, volume and speed, the default model, web search, and minimize to tray. They live in `%LOCALAPPDATA%\InControl\config\settings.json`, and only settings you changed are written.
+- Launch at startup works, through a Windows startup task. Windows keeps that choice and shows it under Settings, Apps, Startup.
+- Minimize to system tray works: minimizing hides InControl to an icon by the clock, and clicking it brings the window back. Its menu can also close the app.
+
+### Fixed
+- A reply that Ollama refuses, or that comes back empty, is shown as an error with Ollama's own sentence instead of a blank reply. The empty card is removed.
+- The voice model downloads the first time voice is needed, when a reply is spoken or Settings opens, not at every first launch.
+- Screen readers announce each session by its title.
+- Theme, voice choice, and the Launch at startup and Minimize to tray switches looked live but were never saved or did nothing. They are now saved or working.
+
+### Changed
+- The Windows SDK projection is 10.0.22621.57, which the tray icon library needs.
+
+## [2.0.0] - 2026-10-02
 
 ### Changed
 - The app version is 2.0.0, and the MSIX identity version is 2.0.0.0. The package identity is `mcp-tool-shop.InControl-Desktop`, publisher display name `mcp-tool-shop`, as on the Partner Center Product Identity page. An earlier draft used `InControl.App`, which was the 1.4.0 upload's file name and would have been rejected. The application id is `App` again, as in 1.3.0, so Start and taskbar pins survive the update. NuGet library versions are unchanged.
@@ -25,9 +39,6 @@ The app version is **2.0.0**. The Microsoft Store already has this product, Stor
 - PRIVACY.md lists every network connection, including the one-time voice model download and the diagnostics check, says that project instructions and remembered notes go to a connected rental, and describes Store storage and updates.
 
 ### Fixed
-- A reply that Ollama refuses, or that comes back empty, is shown as an error with Ollama's own sentence instead of a blank reply. The empty card is removed.
-- The voice model downloads the first time voice is needed, when a reply is spoken or Settings opens, not at every first launch.
-- Screen readers announce each session by its title.
 - The status strip says Online when Ollama answers and Offline when it does not. It had the two the wrong way round.
 - A long reply or model pull is no longer cut off at 100 seconds. The inference timeout is now how long a stream may go quiet, not how long it may run.
 - Changing the endpoint no longer drops a reply that is still streaming. The old connection is closed after its last call ends.

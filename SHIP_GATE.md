@@ -43,7 +43,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-02-27)
-- [x] `[all]` Version matches the tag: app 2.0.0, git tag v2.0.0, MSIX identity mcp-tool-shop.InControl-Desktop 2.0.0.0. NuGet ids InControl.Core 1.2.2 and InControl.Inference 1.0.2 stay at the versions already on the feed. (2026-10-02)
+- [x] `[all]` Version matches the tag: app 2.0.1, git tag v2.0.1, MSIX identity mcp-tool-shop.InControl-Desktop 2.0.1.0. NuGet ids InControl.Core 1.2.2 and InControl.Inference 1.0.2 stay at the versions already on the feed. (2026-10-02)
 - [x] `[all]` Dependency scanning runs in CI (`dotnet list package --vulnerable` in ci.yml) (2026-10-02)
 - [x] `[all]` Automated dependency update mechanism exists (Dependabot for NuGet, npm, and GitHub Actions) (2026-10-02)
 - [ ] `[npm]` SKIP: not an npm package

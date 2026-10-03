@@ -36,6 +36,80 @@ public sealed partial class SettingsPage : UserControl
         InitializeStoragePath();
         InitializeVoiceSection();
         InitializeComputeSection();
+        InitializeGeneralToggles();
+    }
+
+    private const string StartupTaskId = "InControlStartup";
+
+    /// <summary>
+    /// Launch at startup is a Windows startup task, so Windows keeps that choice. Minimize to
+    /// tray is a saved setting.
+    /// </summary>
+    private async void InitializeGeneralToggles()
+    {
+        TrayToggle.IsOn = App.GetService<IOptions<AppOptions>>().Value.MinimizeToTray;
+        TrayToggle.Toggled += (_, _) => WriteApp(options => options.MinimizeToTray = TrayToggle.IsOn);
+
+        try
+        {
+            var task = await Windows.ApplicationModel.StartupTask.GetAsync(StartupTaskId);
+            ShowStartupState(task.State);
+            StartupToggle.Toggled += OnStartupToggled;
+        }
+        catch (Exception)
+        {
+            // Only the installed package has a startup task. A source build does not.
+            StartupToggle.IsEnabled = false;
+            StartupCaption.Text = "Available when InControl is installed from the Microsoft Store";
+        }
+    }
+
+    private bool _settingStartup;
+
+    private async void OnStartupToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingStartup)
+            return;
+
+        try
+        {
+            var task = await Windows.ApplicationModel.StartupTask.GetAsync(StartupTaskId);
+            if (StartupToggle.IsOn)
+            {
+                ShowStartupState(await task.RequestEnableAsync());
+            }
+            else
+            {
+                task.Disable();
+                ShowStartupState(task.State);
+            }
+        }
+        catch (Exception ex)
+        {
+            StartupCaption.Text = $"Windows did not change the startup setting: {ex.Message}";
+        }
+    }
+
+    private void ShowStartupState(Windows.ApplicationModel.StartupTaskState state)
+    {
+        _settingStartup = true;
+        StartupToggle.IsOn = state is Windows.ApplicationModel.StartupTaskState.Enabled
+            or Windows.ApplicationModel.StartupTaskState.EnabledByPolicy;
+        _settingStartup = false;
+
+        StartupToggle.IsEnabled = state is not (Windows.ApplicationModel.StartupTaskState.DisabledByPolicy
+            or Windows.ApplicationModel.StartupTaskState.EnabledByPolicy);
+
+        StartupCaption.Text = state switch
+        {
+            Windows.ApplicationModel.StartupTaskState.DisabledByUser =>
+                "Turned off in Windows Settings, Apps, Startup. Turn it back on there.",
+            Windows.ApplicationModel.StartupTaskState.DisabledByPolicy =>
+                "Your organization does not allow apps to start with Windows.",
+            Windows.ApplicationModel.StartupTaskState.EnabledByPolicy =>
+                "Your organization starts InControl with Windows.",
+            _ => "Start InControl when Windows starts"
+        };
     }
 
     private void CollectSections()
@@ -399,9 +473,8 @@ public sealed partial class SettingsPage : UserControl
     {
         if (VoiceComboBox.SelectedItem is string selectedVoice)
         {
-            // Update the voice option in-memory — takes effect on next SpeakAsync call
-            var voiceOpts = App.GetService<IOptions<VoiceOptions>>();
-            voiceOpts.Value.DefaultVoice = selectedVoice;
+            // Takes effect on the next SpeakAsync call, and is saved for next time.
+            WriteVoice(options => options.DefaultVoice = selectedVoice);
         }
     }
 
@@ -421,15 +494,46 @@ public sealed partial class SettingsPage : UserControl
     }
 
     /// <summary>
-    /// Writes the live options SpeakAsync and auto-speak already read, then the same change through settings when that service is registered.
+    /// Changes the voice options SpeakAsync and auto-speak read, through the settings service so the change is saved.
     /// </summary>
     private static void WriteVoice(Action<VoiceOptions> configure)
     {
-        configure(App.GetService<IOptions<VoiceOptions>>().Value);
-
+        // The settings service changes the live options and records the change. Changing them
+        // first would leave it nothing to record.
         if (App.Services.GetService(typeof(ISettingsService)) is ISettingsService settings)
         {
             _ = PersistVoiceAsync(settings, configure);
+        }
+        else
+        {
+            configure(App.GetService<IOptions<VoiceOptions>>().Value);
+        }
+    }
+
+    /// <summary>
+    /// Changes an app option now and saves it.
+    /// </summary>
+    private static void WriteApp(Action<AppOptions> configure)
+    {
+        if (App.Services.GetService(typeof(ISettingsService)) is ISettingsService settings)
+        {
+            _ = SaveQuietlyAsync(() => settings.UpdateAppOptionsAsync(configure));
+        }
+        else
+        {
+            configure(App.GetService<IOptions<AppOptions>>().Value);
+        }
+    }
+
+    private static async Task SaveQuietlyAsync(Func<Task> save)
+    {
+        try
+        {
+            await save();
+        }
+        catch
+        {
+            // The live option already changed. A failed save must not break the page.
         }
     }
 
@@ -452,12 +556,12 @@ public sealed partial class SettingsPage : UserControl
             ?.InformationalVersion;
         if (string.IsNullOrWhiteSpace(informational))
         {
-            return "2.0.0";
+            return "2.0.1";
         }
 
         var plus = informational.IndexOf('+');
         var version = plus >= 0 ? informational[..plus] : informational;
-        return string.IsNullOrWhiteSpace(version) ? "2.0.0" : version.Trim();
+        return string.IsNullOrWhiteSpace(version) ? "2.0.1" : version.Trim();
     }
 
     private async void OnTestVoiceClick(object sender, RoutedEventArgs e)
@@ -487,6 +591,7 @@ public sealed partial class SettingsPage : UserControl
     {
         ThemeService.Instance.SetThemeFromIndex(ThemeComboBox.SelectedIndex);
         ThemeChanged?.Invoke(this, ThemeService.Instance.CurrentThemeString);
+        WriteApp(options => options.Theme = ThemeService.Instance.CurrentThemeString);
     }
 
     private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)

@@ -161,8 +161,8 @@ public sealed partial class MainWindow : Window
         // Initialize theme service with the root content element
         if (this.Content is FrameworkElement rootElement)
         {
-            // Load saved theme preference (default to System)
-            ThemeService.Instance.Initialize(rootElement, "System");
+            // Start from the saved theme, or follow Windows.
+            ThemeService.Instance.Initialize(rootElement, App.GetService<IOptions<AppOptions>>().Value.Theme);
         }
     }
 
@@ -171,6 +171,25 @@ public sealed partial class MainWindow : Window
         var appWindow = this.AppWindow;
         appWindow.Title = "InControl - Local AI Chat";
         appWindow.Resize(new Windows.Graphics.SizeInt32(1200, 800));
+
+        // Minimize to tray, when that setting is on.
+        _tray = new TrayIcon(this);
+        appWindow.Changed += OnAppWindowChanged;
+        Closed += (_, _) => _tray?.Dispose();
+    }
+
+    private TrayIcon? _tray;
+
+    private void OnAppWindowChanged(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
+    {
+        if (_tray is null || _tray.IsHidden || !args.DidPresenterChange && !args.DidSizeChange)
+            return;
+
+        if (sender.Presenter is Microsoft.UI.Windowing.OverlappedPresenter { State: Microsoft.UI.Windowing.OverlappedPresenterState.Minimized }
+            && App.GetService<IOptions<AppOptions>>().Value.MinimizeToTray)
+        {
+            _tray.HideToTray();
+        }
     }
 
     private void SetupNavigation()
@@ -283,7 +302,7 @@ public sealed partial class MainWindow : Window
         ConversationView.Composer.RunRequested += OnRunRequested;
         ConversationView.Composer.CancelRequested += OnCancelRequested;
         ConversationView.Composer.AttachmentFailed += (_, message) => ShowNotice(message, InfoBarSeverity.Warning);
-        ConversationView.Composer.WebSearchEnabled = WebSearchPreference.Load(App.GetService<IOptions<InferenceOptions>>().Value.WebSearch);
+        ConversationView.Composer.WebSearchEnabled = App.GetService<IOptions<InferenceOptions>>().Value.WebSearch;
         ConversationView.Composer.WebSearchChanged += OnWebSearchChanged;
 
         // ConversationView speak events
@@ -465,6 +484,8 @@ public sealed partial class MainWindow : Window
         }
 
         ConversationView.Composer.ClearAttachments();
+
+        RememberDefaultModel(e.Model);
 
         // Web search follows the toggle, and offline mode wins.
         var useWeb = ConversationView.Composer.WebSearchEnabled && !_isOffline;
@@ -858,9 +879,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void OnWebSearchChanged(object? sender, bool enabled)
     {
-        App.GetService<IOptions<InferenceOptions>>().Value.WebSearch = enabled;
-        if (!WebSearchPreference.Save(enabled))
-            ShowNotice("The web search setting could not be saved. It applies until InControl closes.", InfoBarSeverity.Warning);
+        SaveSetting(s => s.UpdateInferenceOptionsAsync(o => o.WebSearch = enabled), "web search");
 
         if (enabled)
             ShowNotice("Web search is on. When the model searches, its query goes to DuckDuckGo. The reply lists each search.", InfoBarSeverity.Informational);
@@ -1242,6 +1261,40 @@ public sealed partial class MainWindow : Window
         AppBar.SetSelectedModel(modelName);
         ConversationView.Composer.SelectModel(modelName);
         StatusStrip.SetModelStatus(modelName, true);
+        RememberDefaultModel(modelName);
+    }
+
+    private void RememberDefaultModel(string? modelName)
+    {
+        if (string.IsNullOrWhiteSpace(modelName)
+            || string.Equals(App.GetService<IOptions<InferenceOptions>>().Value.DefaultModel, modelName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        SaveSetting(s => s.UpdateInferenceOptionsAsync(o => o.DefaultModel = modelName), "default model");
+    }
+
+    /// <summary>
+    /// Saves a setting in the background. A failed save is reported, and the change still
+    /// applies until InControl closes.
+    /// </summary>
+    private void SaveSetting(Func<ISettingsService, Task> save, string what)
+    {
+        if (App.Services.GetService(typeof(ISettingsService)) is not ISettingsService settings)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await save(settings);
+            }
+            catch (Exception ex)
+            {
+                ShowNotice($"The {what} setting could not be saved: {Brief(ex)}", InfoBarSeverity.Warning);
+            }
+        });
     }
 
     private void OnNewSessionRequested(object? sender, EventArgs e)

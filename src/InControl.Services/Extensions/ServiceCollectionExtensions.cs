@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionMemory, JsonSessionMemory>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddSingleton<Web.WebTools>();
+        services.AddSingleton<ISettingsService, Configuration.JsonSettingsService>();
         services.AddSingleton<ITcpProbe, LoopbackTcpProbe>();
         services.AddSingleton<IOllamaReadyProbe, HttpOllamaReadyProbe>();
         services.AddSingleton<IRunPodPods, RunPodPodClient>();

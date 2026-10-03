@@ -54,6 +54,9 @@ public partial class App : Application
             _host = CreateHostBuilder().Build();
             await _host.StartAsync();
 
+            // Lay saved settings over the defaults before any page reads them.
+            _ = _host.Services.GetService<InControl.Services.Interfaces.ISettingsService>();
+
             MainWindow = new MainWindow();
             MainWindow.Closed += OnMainWindowClosed;
             MainWindow.Activate();

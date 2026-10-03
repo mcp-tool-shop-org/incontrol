@@ -89,6 +89,14 @@ All data is stored locally on your machine:
 | Exports | `%USERPROFILE%\Documents\InControl\exports\` |
 | Support bundles | `%LOCALAPPDATA%\InControl\support\` |
 
+## Saved settings
+
+Changes you make in the app are saved in `%LOCALAPPDATA%\InControl\config\settings.json` and laid over `appsettings.json` when InControl starts: theme, voice, auto-speak, volume and speed, the default model, web search, and minimize to tray. Only settings you changed are written, so the rest keep following the defaults. Delete the file to go back to every default.
+
+**Launch at startup** is a Windows startup task, so Windows keeps that choice. You can also turn it off in Windows Settings, under Apps, Startup. It is available in the Store package, not a source build.
+
+**Minimize to system tray** hides InControl to an icon by the clock when you minimize it. Click the icon to bring the window back, or right-click it to close the app.
+
 ## Target hardware
 
 | Component | Minimum | Recommended |

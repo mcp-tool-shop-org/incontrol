@@ -6,7 +6,7 @@
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <!-- Without this the package MinVersion becomes the SDK version, 22621, and Windows 10 cannot install it. -->
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-    <WindowsSdkPackageVersion>10.0.22621.48</WindowsSdkPackageVersion>
+    <WindowsSdkPackageVersion>10.0.22621.57</WindowsSdkPackageVersion>
     <RootNamespace>InControl.App</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -17,11 +17,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>InControl - Ollama chat for Windows, on this PC or over SSH to a GPU you rented</Description>
 
-    <!-- Store package is 2.0.0.0. The Store already has mcp-tool-shop.InControl-Desktop 1.4.0.0. -->
-    <Version>2.0.0</Version>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
-    <InformationalVersion>2.0.0</InformationalVersion>
+    <!-- Store package is 2.0.1.0. The Store already has mcp-tool-shop.InControl-Desktop 1.4.0.0. -->
+    <Version>2.0.1</Version>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
+    <FileVersion>2.0.1.0</FileVersion>
+    <InformationalVersion>2.0.1</InformationalVersion>
   </PropertyGroup>
 
   <!-- Debug: Unpackaged deployment (framework-dependent for faster dev iteration) -->
@@ -46,7 +46,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
-    <!-- Leave the fourth part at 0. A build must not walk 2.0.0.0 forward on its own. -->
+    <!-- Leave the fourth part at 0. A build must not walk 2.0.1.0 forward on its own. -->
     <AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>
     <AppxBundle>Never</AppxBundle>
     <AppxPackageDir>..\..\AppPackages\</AppxPackageDir>
@@ -83,6 +83,7 @@
     <PackageReference Include="OllamaSharp" />
     <PackageReference Include="KokoroSharp" GeneratePathProperty="true" />
     <PackageReference Include="Markdig" />
+    <PackageReference Include="H.NotifyIcon.WinUI" />
   </ItemGroup>
 
   <ItemGroup>

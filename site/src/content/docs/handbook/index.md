@@ -5,7 +5,7 @@ sidebar:
   order: 0
 ---
 
-Welcome to the InControl handbook. InControl is Ollama chat for Windows, version 2.0.0. Get it from the [Microsoft Store](https://apps.microsoft.com/detail/9N1FG39JWF83), where it is listed as InControl-Desktop, or build it from source. Chat stays on this PC until you connect a rented GPU.
+Welcome to the InControl handbook. InControl is Ollama chat for Windows, version 2.0.1. Get it from the [Microsoft Store](https://apps.microsoft.com/detail/9N1FG39JWF83), where it is listed as InControl-Desktop, or build it from source. Chat stays on this PC until you connect a rented GPU.
 
 ## What's inside
 

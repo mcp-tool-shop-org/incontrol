@@ -4,7 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.0.0 (this tree) | :white_check_mark: Current tree. Source build. No MSIX in the repo. Not AppContainer-sandboxed. Does not ask for elevation. |
+| 2.0.1 (this tree) | :white_check_mark: Current. Microsoft Store package InControl-Desktop, or a source build. A full-trust desktop app, not AppContainer-sandboxed. Does not ask for elevation. |
 | 0.3.x (tag v0.3.0) | Older published source-only GitHub release. That tag has no MSIX. Not the app version in this tree. |
 
 ## Reporting a Vulnerability

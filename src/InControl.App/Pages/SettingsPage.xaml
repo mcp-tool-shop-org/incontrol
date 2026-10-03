@@ -84,11 +84,16 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Launch at startup" />
-                                    <TextBlock Text="Start InControl when Windows starts"
+                                    <TextBlock x:Name="StartupCaption"
+                                               Text="Start InControl when Windows starts"
+                                               TextWrapping="Wrap"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <ToggleSwitch Grid.Column="1" IsOn="False" />
+                                <ToggleSwitch Grid.Column="1"
+                                              x:Name="StartupToggle"
+                                              IsOn="False"
+                                              AutomationProperties.Name="Launch at startup" />
                             </Grid>
 
                             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -101,11 +106,15 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Minimize to system tray" />
-                                    <TextBlock Text="Keep InControl running in the background"
+                                    <TextBlock Text="Minimizing hides InControl to an icon by the clock. Click the icon to bring it back."
+                                               TextWrapping="Wrap"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <ToggleSwitch Grid.Column="1" IsOn="True" />
+                                <ToggleSwitch Grid.Column="1"
+                                              x:Name="TrayToggle"
+                                              IsOn="True"
+                                              AutomationProperties.Name="Minimize to system tray" />
                             </Grid>
                         </StackPanel>
                     </Border>

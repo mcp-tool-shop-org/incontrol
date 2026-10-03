@@ -34,6 +34,7 @@
   <ItemGroup Label="Voice">
     <PackageVersion Include="KokoroSharp" Version="0.6.2" />
     <PackageVersion Include="Markdig" Version="1.4.0" />
+    <PackageVersion Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <PackageVersion Include="KokoroSharp.CPU" Version="0.6.2" />
     <PackageVersion Include="System.Speech" Version="8.0.0" />
   </ItemGroup>

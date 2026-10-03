@@ -10,7 +10,7 @@ The Store listing is 9N1FG39JWF83, and its newest package is 1.4.0.0. The next p
 - Identity `Publisher` is `CN=5305D976-6952-4F00-9C21-3A5DB090359F`.
 - `PublisherDisplayName` is `mcp-tool-shop`.
 - `DisplayName` is a name reserved for this product. Today that is `InControl-Desktop`.
-- Identity `Version` is four numbers, ends in `0`, and is higher than `1.4.0.0`. The prepared version is `2.0.0.0`.
+- Identity `Version` is four numbers, ends in `0`, and is higher than `1.4.0.0`. The prepared version is `2.0.1.0`.
 
 Application `Id` stays `App`, as in 1.3.0, so Start and taskbar pins survive the update. The tile and Start menu say InControl. That is the `VisualElements` display name, which Partner Center does not check.
 
@@ -41,7 +41,7 @@ The manifest template uses one placeholder:
 
 | Placeholder | Replaced With |
 |-------------|---------------|
-| `${VERSION}` | Four-part package version. The prepared value is `2.0.0.0`. |
+| `${VERSION}` | Four-part package version. The prepared value is `2.0.1.0`. |
 
 ## Building Locally
 
@@ -51,7 +51,7 @@ The manifest template uses one placeholder:
 msbuild src\InControl.App\InControl.App.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=StoreUpload
 ```
 
-The unsigned package and its `.msixsym` land under `AppPackages\`, which is gitignored. If no `.msixupload` is written, zip one yourself: the `.msix` and the symbols at the root of the zip, with the symbols renamed to `.appxsym`. Partner Center rejects a `.msixsym` inside an upload. Check the manifest inside before uploading: `Name="mcp-tool-shop.InControl-Desktop"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, `PublisherDisplayName` `mcp-tool-shop`, `Version="2.0.0.0"`, and `MinVersion="10.0.19041.0"`.
+The unsigned package and its `.msixsym` land under `AppPackages\`, which is gitignored. If no `.msixupload` is written, zip one yourself: the `.msix` and the symbols at the root of the zip, with the symbols renamed to `.appxsym`. Partner Center rejects a `.msixsym` inside an upload. Check the manifest inside before uploading: `Name="mcp-tool-shop.InControl-Desktop"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, `PublisherDisplayName` `mcp-tool-shop`, `Version="2.0.1.0"`, and `MinVersion="10.0.19041.0"`.
 
 KokoroSharp copies its voices and eSpeak data with an after-build step that never reaches the package. `InControl.App.csproj` adds that folder as package content. A package without `voices\` and `espeak\` at its root cannot speak.
 
@@ -63,4 +63,4 @@ The signed workflow writes `mcp-tool-shop.InControl-Desktop_<version>_x64.msix`.
 
 ## Version Policy
 
-The app version is `2.0.0` in `src/InControl.App/InControl.App.csproj`. The MSIX identity version is `2.0.0.0` in `src/InControl.App/Package.appxmanifest`. `AppxAutoIncrementPackageRevision` is off, so a rebuild does not move the fourth part. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2.
+The app version is `2.0.1` in `src/InControl.App/InControl.App.csproj`. The MSIX identity version is `2.0.1.0` in `src/InControl.App/Package.appxmanifest`. `AppxAutoIncrementPackageRevision` is off, so a rebuild does not move the fourth part. `InControl.Core` stays 1.2.2 and `InControl.Inference` stays 1.0.2.

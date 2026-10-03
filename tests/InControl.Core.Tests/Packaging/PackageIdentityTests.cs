@@ -33,7 +33,7 @@ public class PackageIdentityTests
         var root = RepoRoot();
 
         File.ReadAllText(Path.Combine(root, "src", "InControl.App", "Package.appxmanifest"))
-            .Should().Contain("Version=\"2.0.0.0\"");
+            .Should().Contain("Version=\"2.0.1.0\"");
         File.ReadAllText(Path.Combine(root, "packaging", "AppxManifest.template.xml"))
             .Should().Contain("${VERSION}");
 
@@ -43,10 +43,10 @@ public class PackageIdentityTests
             .Should().Contain("<Version>1.0.2</Version>");
 
         var csproj = File.ReadAllText(Path.Combine(root, "src", "InControl.App", "InControl.App.csproj"));
-        csproj.Should().Contain("<Version>2.0.0</Version>");
-        csproj.Should().Contain("<AssemblyVersion>2.0.0.0</AssemblyVersion>");
-        csproj.Should().Contain("<FileVersion>2.0.0.0</FileVersion>");
-        csproj.Should().Contain("<InformationalVersion>2.0.0</InformationalVersion>");
+        csproj.Should().Contain("<Version>2.0.1</Version>");
+        csproj.Should().Contain("<AssemblyVersion>2.0.1.0</AssemblyVersion>");
+        csproj.Should().Contain("<FileVersion>2.0.1.0</FileVersion>");
+        csproj.Should().Contain("<InformationalVersion>2.0.1</InformationalVersion>");
         csproj.Should().Contain("<AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>");
         // Without this the build writes the SDK version, 22621, as the package MinVersion.
         csproj.Should().Contain("<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>");
