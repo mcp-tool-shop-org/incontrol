@@ -394,7 +394,7 @@
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <Button Grid.Column="1" x:Name="ChangeStorageButton" Content="Change..." />
+                                <Button Grid.Column="1" x:Name="ChangeStorageButton" Content="Change..." Visibility="Collapsed" />
                             </Grid>
 
                             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -407,7 +407,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Clear all memory" />
-                                    <TextBlock Text="Remove all stored context and history"
+                                    <TextBlock Text="Delete every note InControl was asked to remember"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
@@ -538,23 +538,6 @@
 
                     <Border Style="{StaticResource CardBorderStyle}">
                         <StackPanel Spacing="{StaticResource ItemSpacing}">
-                            <!-- Export Logs -->
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Export diagnostics" />
-                                    <TextBlock Text="Create a support bundle for troubleshooting"
-                                               Style="{StaticResource CaptionTextBlockStyle}"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                </StackPanel>
-                                <Button Grid.Column="1" x:Name="ExportDiagnosticsButton" Content="Export..." />
-                            </Grid>
-
-                            <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-
                             <!-- Open Logs Folder -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -579,8 +562,8 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Reset to defaults" />
-                                    <TextBlock Text="Restore all settings to their default values"
+                                    <TextBlock Text="Reset appearance" />
+                                    <TextBlock Text="Switch the theme back to follow Windows"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>

@@ -252,7 +252,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Recent Activity"
                                        Style="{StaticResource SubtitleTextBlockStyle}" />
-                            <Button Grid.Column="1" x:Name="ClearActivityButton" Content="Clear" />
+                            <Button Grid.Column="1" x:Name="ClearActivityButton" Content="Clear" Visibility="Collapsed" />
                         </Grid>
 
                         <ScrollViewer Grid.Row="1">

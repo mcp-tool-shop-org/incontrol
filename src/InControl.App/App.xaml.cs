@@ -72,7 +72,17 @@ public partial class App : Application
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         LogFatalError(e.Exception);
-        // Don't mark as handled - let the app crash but with logging
+
+        // Keep the window open. A bug in one handler should not end the session.
+        e.Handled = true;
+        try
+        {
+            MainWindow?.ShowNotice("Something went wrong, but InControl kept running. Details are in the crash log.");
+        }
+        catch
+        {
+            // The window may be closing. The log has the details.
+        }
     }
 
     private void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)

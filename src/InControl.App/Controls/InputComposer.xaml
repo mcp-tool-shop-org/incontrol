@@ -67,6 +67,7 @@
                             Spacing="4">
                     <!-- Attach File Button -->
                     <Button x:Name="AttachFileButton"
+                            Visibility="Collapsed"
                             ToolTipService.ToolTip="Attach file (Ctrl+Shift+O)"
                             Padding="8"
                             AutomationProperties.Name="Attach file"
@@ -79,6 +80,7 @@
 
                     <!-- Context Menu -->
                     <Button x:Name="ContextMenuButton"
+                            Visibility="Collapsed"
                             ToolTipService.ToolTip="Context options"
                             AutomationProperties.Name="Context options">
                         <StackPanel Orientation="Horizontal" Spacing="4">

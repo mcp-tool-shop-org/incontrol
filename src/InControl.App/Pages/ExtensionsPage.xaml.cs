@@ -26,8 +26,6 @@ public sealed partial class ExtensionsPage : UserControl
     private void SetupEventHandlers()
     {
         BackButton.Click += (s, e) => BackRequested?.Invoke(this, EventArgs.Empty);
-        InstallButton.Click += OnInstallClick;
-        EmptyInstallButton.Click += OnInstallClick;
 
         // Tab navigation
         InstalledTab.Checked += (s, e) => SwitchToTab("Installed");
@@ -41,11 +39,6 @@ public sealed partial class ExtensionsPage : UserControl
     {
         SectionTitle.Text = tabName == "Installed" ? "Installed Extensions" : "Available Extensions";
         // Refresh list based on tab
-    }
-
-    private void OnInstallClick(object sender, RoutedEventArgs e)
-    {
-        // Show extension browser/installer dialog
     }
 
     private void OnExtensionSelected(object sender, SelectionChangedEventArgs e)

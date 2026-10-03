@@ -105,7 +105,7 @@
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <Button Grid.Column="2" x:Name="ConfigureAllowListButton" Content="Configure" />
+                                <Button Grid.Column="2" x:Name="ConfigureAllowListButton" Content="Configure" Visibility="Collapsed" />
                             </Grid>
 
                             <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -126,7 +126,7 @@
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <Button Grid.Column="2" x:Name="ConfigureBlockListButton" Content="Configure" />
+                                <Button Grid.Column="2" x:Name="ConfigureBlockListButton" Content="Configure" Visibility="Collapsed" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -290,7 +290,7 @@
                         <TextBlock Text="Audit Log"
                                    Style="{StaticResource SubtitleTextBlockStyle}"
                                    VerticalAlignment="Center" />
-                        <Button Grid.Column="1" x:Name="ExportAuditLogButton" Content="Export" />
+                        <Button Grid.Column="1" x:Name="ExportAuditLogButton" Content="Export" Visibility="Collapsed" />
                     </Grid>
 
                     <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

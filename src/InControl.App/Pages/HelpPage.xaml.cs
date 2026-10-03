@@ -127,6 +127,18 @@ public sealed partial class HelpPage : UserControl
 
     private async void OnRunDiagnosticsClick(object sender, RoutedEventArgs e)
     {
+        try
+        {
+            await RunDiagnosticsAsync();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync("Could not run diagnostics", ex);
+        }
+    }
+
+    private async Task RunDiagnosticsAsync()
+    {
         // Run diagnostics and show results
         var report = await DiagnosticsService.Instance.RunDiagnosticsAsync();
         _lastDiagnosticsReport = report;
@@ -184,34 +196,84 @@ public sealed partial class HelpPage : UserControl
         if (result == ContentDialogResult.Primary)
         {
             var diagnosticsText = DiagnosticsService.Instance.GenerateTextReport(report);
-            var dataPackage = new DataPackage();
-            dataPackage.SetText(diagnosticsText);
-            Clipboard.SetContent(dataPackage);
+            if (!TryCopyText(diagnosticsText))
+            {
+                await ShowMessageAsync("Copy failed", "The clipboard is busy. Try again.");
+            }
         }
     }
 
     private async void OnCopyDiagnosticsClick(object sender, RoutedEventArgs e)
     {
-        // Run live diagnostics
-        var report = await DiagnosticsService.Instance.RunDiagnosticsAsync();
-        _lastDiagnosticsReport = report;
-
-        var diagnosticsText = DiagnosticsService.Instance.GenerateTextReport(report);
-
-        var dataPackage = new DataPackage();
-        dataPackage.SetText(diagnosticsText);
-        Clipboard.SetContent(dataPackage);
-
-        // Show confirmation via content dialog
-        var dialog = new ContentDialog
+        try
         {
-            Title = "Diagnostics Copied",
-            Content = GetDiagnosticsSummary(report),
-            CloseButtonText = "OK",
-            XamlRoot = this.XamlRoot
-        };
+            // Run live diagnostics
+            var report = await DiagnosticsService.Instance.RunDiagnosticsAsync();
+            _lastDiagnosticsReport = report;
 
-        await dialog.ShowAsync();
+            var diagnosticsText = DiagnosticsService.Instance.GenerateTextReport(report);
+
+            if (!TryCopyText(diagnosticsText))
+            {
+                await ShowMessageAsync("Copy failed", "The clipboard is busy. Try again.");
+                return;
+            }
+
+            // Show confirmation via content dialog
+            await ShowMessageAsync("Diagnostics Copied", GetDiagnosticsSummary(report));
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync("Could not copy diagnostics", ex);
+        }
+    }
+
+    /// <summary>
+    /// A busy clipboard throws out of SetContent, so a failed copy has to stay on this click.
+    /// </summary>
+    private static bool TryCopyText(string text)
+    {
+        try
+        {
+            var dataPackage = new DataPackage();
+            dataPackage.SetText(text);
+            Clipboard.SetContent(dataPackage);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private async Task ShowErrorAsync(string what, Exception ex)
+    {
+        var detail = ex.Message.Trim();
+        var cut = detail.IndexOfAny(['\r', '\n']);
+        if (cut >= 0)
+            detail = detail[..cut];
+
+        await ShowMessageAsync(what, detail.Length == 0 ? ex.GetType().Name : detail);
+    }
+
+    private async Task ShowMessageAsync(string title, string message)
+    {
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+
+            await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // A dialog is already open. Nothing else to show it on.
+        }
     }
 
     private string GetDiagnosticsSummary(DiagnosticsReport report)
@@ -238,6 +300,18 @@ public sealed partial class HelpPage : UserControl
     }
 
     private async void OnExportSupportBundleClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await ExportSupportBundleAsync();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync("Could not export the support bundle", ex);
+        }
+    }
+
+    private async Task ExportSupportBundleAsync()
     {
         var picker = new Windows.Storage.Pickers.FileSavePicker();
         picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
