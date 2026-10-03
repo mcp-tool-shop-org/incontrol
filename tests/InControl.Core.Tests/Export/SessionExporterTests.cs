@@ -184,6 +184,101 @@ public class SessionExporterTests : IDisposable
 
         using var archive = System.IO.Compression.ZipFile.OpenRead(outputPath);
         archive.Entries.Should().Contain(e => e.FullName == "manifest.json");
+
+        var manifest = ReadManifest(archive);
+        manifest.ConversationCount.Should().Be(1);
+        manifest.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_SinglePassSequence_ManifestCountMatchesConversationEntries()
+    {
+        var outputPath = Path.Combine(_testDir, "export-single-pass.zip");
+        var source = new SinglePassSequence(
+        [
+            _testConversation with { Id = Guid.NewGuid(), Title = "One" },
+            _testConversation with { Id = Guid.NewGuid(), Title = "Two" },
+            _testConversation with { Id = Guid.NewGuid(), Title = "Three" }
+        ]);
+
+        var result = await SessionExporter.ExportAllAsync(source, outputPath);
+
+        result.IsSuccess.Should().BeTrue(result.Error?.Message);
+        source.EnumerationCount.Should().Be(1);
+
+        using var archive = System.IO.Compression.ZipFile.OpenRead(outputPath);
+        ReadManifest(archive).ConversationCount.Should().Be(3);
+        archive.Entries.Count(e => e.FullName.StartsWith("conversations/")).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_EmptySequence_WritesManifestWithZeroAndNoConversations()
+    {
+        var outputPath = Path.Combine(_testDir, "export-empty.zip");
+
+        var result = await SessionExporter.ExportAllAsync(Array.Empty<Conversation>(), outputPath);
+
+        result.IsSuccess.Should().BeTrue();
+        using var archive = System.IO.Compression.ZipFile.OpenRead(outputPath);
+        ReadManifest(archive).ConversationCount.Should().Be(0);
+        archive.Entries.Should().NotContain(e => e.FullName.StartsWith("conversations/"));
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_CancelledToken_ReturnsCancelledError()
+    {
+        var outputPath = Path.Combine(_testDir, "export-cancelled.zip");
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var result = await SessionExporter.ExportAllAsync([_testConversation], outputPath, cts.Token);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be(InControl.Core.Errors.ErrorCode.Cancelled);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_UnwritablePath_ReturnsFileOperationFailed()
+    {
+        // The "directory" is a file, so the archive cannot be created beneath it.
+        var blocker = Path.Combine(_testDir, "blocker");
+        await File.WriteAllTextAsync(blocker, "x");
+
+        var result = await SessionExporter.ExportAllAsync(
+            [_testConversation], Path.Combine(blocker, "sub", "export.zip"));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be(InControl.Core.Errors.ErrorCode.FileOperationFailed);
+    }
+
+    private static ExportManifest ReadManifest(System.IO.Compression.ZipArchive archive)
+    {
+        var entry = archive.GetEntry("manifest.json");
+        entry.Should().NotBeNull();
+        using var reader = new StreamReader(entry!.Open());
+        var json = reader.ReadToEnd();
+        return System.Text.Json.JsonSerializer.Deserialize<ExportManifest>(
+            json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+    }
+
+    /// <summary>A sequence that fails the second time it is enumerated.</summary>
+    private sealed class SinglePassSequence(IReadOnlyList<Conversation> items) : IEnumerable<Conversation>
+    {
+        public int EnumerationCount { get; private set; }
+
+        public IEnumerator<Conversation> GetEnumerator()
+        {
+            EnumerationCount++;
+            if (EnumerationCount > 1)
+            {
+                throw new InvalidOperationException("Sequence was enumerated more than once.");
+            }
+
+            return items.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     [Fact]

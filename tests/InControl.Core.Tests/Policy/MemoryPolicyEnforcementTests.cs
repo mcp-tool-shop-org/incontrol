@@ -251,6 +251,56 @@ public class MemoryPolicyEnforcementTests
     }
 
     [Fact]
+    public void RememberExplicit_StoresProjectAndSessionWhenPassed()
+    {
+        var projectId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var (store, _, governed) = CreateGovernedMemory();
+
+        var result = governed.RememberExplicit(
+            MemoryType.Preference,
+            "theme",
+            "dark",
+            scope: MemoryScope.Session,
+            projectId: projectId,
+            sessionId: sessionId);
+
+        Assert.True(result.Success);
+        Assert.Equal(projectId, result.CreatedMemory!.ProjectId);
+        Assert.Equal(sessionId, result.CreatedMemory.SessionId);
+        var stored = Assert.Single(store.All);
+        Assert.Equal(projectId, stored.ProjectId);
+        Assert.Equal(sessionId, stored.SessionId);
+    }
+
+    [Fact]
+    public void RequestRemember_PendingRequestKeepsProjectAndSession()
+    {
+        var projectId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var (store, consent, governed) = CreateGovernedMemory();
+
+        var result = governed.RequestRemember(
+            MemoryType.Fact,
+            "k",
+            "v",
+            "why",
+            source: MemorySource.ExplicitUser,
+            projectId: projectId,
+            sessionId: sessionId);
+
+        Assert.True(result.IsPending);
+        var pending = Assert.Single(consent.PendingRequests);
+        Assert.Equal(projectId, pending.ProjectId);
+        Assert.Equal(sessionId, pending.SessionId);
+
+        consent.Approve(pending.Id);
+        var stored = Assert.Single(store.All);
+        Assert.Equal(projectId, stored.ProjectId);
+        Assert.Equal(sessionId, stored.SessionId);
+    }
+
+    [Fact]
     public void RememberExplicit_BlockedWhenAtCapacity()
     {
         var engine = new PolicyEngine();

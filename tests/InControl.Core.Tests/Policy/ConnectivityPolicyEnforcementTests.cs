@@ -64,6 +64,68 @@ public class ConnectivityPolicyEnforcementTests
         Assert.False(status.TelemetryAllowed);
     }
 
+    [Fact]
+    public async Task NoPolicyLoaded_ManagerStaysOffline_AndPolicyDefaultModeIsOnlyReported()
+    {
+        // The policy engine with no document says DefaultMode "online" (what policy would allow).
+        // Nothing applies that default to the manager: the manager's own saved setting decides,
+        // and a fresh install is OfflineOnly. This pins that no-policy never turns the network on.
+        var governed = CreateGovernedConnectivity();
+
+        Assert.Equal("online", governed.GetCurrentPolicy().DefaultMode);
+        var status = governed.CheckConnectivityPolicy();
+        Assert.Equal(ConnectivityMode.Connected, status.DefaultMode);
+        Assert.Equal(ConnectivityMode.OfflineOnly, status.CurrentMode);
+
+        Assert.Equal(ConnectivityMode.OfflineOnly, governed.Mode);
+        Assert.Equal(ConnectivityStatus.Offline, governed.Status);
+        Assert.False(governed.IsOnline);
+
+        var request = new NetworkRequest("https://example.com/api", "GET", "Test request", null, DateTimeOffset.UtcNow);
+        var check = governed.CheckRequestAllowed(request);
+        Assert.False(check.Allowed);
+        Assert.Contains("Offline", check.Reason);
+
+        var response = await governed.RequestAsync(request);
+        Assert.False(response.IsSuccess);
+    }
+
+    [Fact]
+    public void NoPolicyLoaded_UserCanSwitchOnlineAndBackOffline()
+    {
+        // PRIVACY.md: the offline switch is the user's. With no policy, nothing blocks either direction.
+        var governed = CreateGovernedConnectivity();
+
+        var result = governed.SetMode(ConnectivityMode.Connected);
+        Assert.True(result.IsSuccess);
+        Assert.True(governed.IsOnline);
+
+        governed.GoOfflineNow();
+        Assert.False(governed.IsOnline);
+        Assert.Equal(ConnectivityMode.OfflineOnly, governed.Mode);
+    }
+
+    [Fact]
+    public void PolicyDefaultModeOffline_DoesNotForceAnOnlineManagerOffline()
+    {
+        // Current product behavior: DefaultMode is informational. It is reported to the UI,
+        // but it is never applied to the manager's mode.
+        var engine = new PolicyEngine();
+        engine.SetPolicy(PolicySource.Organization, new PolicyDocument
+        {
+            Version = "1.0",
+            Connectivity = new ConnectivityPolicyRules { DefaultMode = "offline" }
+        });
+        var governed = CreateGovernedConnectivity(engine);
+        governed.SetMode(ConnectivityMode.Connected);
+
+        var status = governed.CheckConnectivityPolicy();
+
+        Assert.Equal(ConnectivityMode.OfflineOnly, status.DefaultMode);
+        Assert.Equal(ConnectivityMode.Connected, status.CurrentMode);
+        Assert.True(governed.IsOnline);
+    }
+
     #endregion
 
     #region Mode Tests

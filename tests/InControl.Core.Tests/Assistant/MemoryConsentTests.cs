@@ -63,6 +63,79 @@ public class MemoryConsentManagerTests
     }
 
     [Fact]
+    public void Approve_CarriesProjectAndSessionOntoTheStoredNote()
+    {
+        var projectId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var store = new AssistantMemoryStore();
+        var manager = new MemoryConsentManager(store);
+
+        var request = manager.RequestRemember(
+            MemoryType.Fact,
+            "stack",
+            "WinUI 3",
+            "Test justification",
+            projectId: projectId,
+            sessionId: sessionId);
+        request.ProjectId.Should().Be(projectId);
+        request.SessionId.Should().Be(sessionId);
+
+        manager.Approve(request.Id, MemoryScope.Session);
+
+        var note = store.All.Single();
+        note.ProjectId.Should().Be(projectId);
+        note.SessionId.Should().Be(sessionId);
+        note.Scope.Should().Be(MemoryScope.Session);
+    }
+
+    [Fact]
+    public void Approve_WithoutProjectOrSession_LeavesBothNull()
+    {
+        var store = new AssistantMemoryStore();
+        var manager = new MemoryConsentManager(store);
+
+        var request = manager.RequestRemember(MemoryType.Fact, "k", "v", "why");
+        manager.Approve(request.Id);
+
+        var note = store.All.Single();
+        note.ProjectId.Should().BeNull();
+        note.SessionId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Approve_NoteWithProject_IsRecalledForThatProjectOnly()
+    {
+        var projectId = Guid.NewGuid();
+        var store = new AssistantMemoryStore();
+        var manager = new MemoryConsentManager(store);
+        var request = manager.RequestRemember(
+            MemoryType.Fact, "stack", "WinUI 3", "why", projectId: projectId);
+        manager.Approve(request.Id);
+
+        MemoryRecall.Select(store.All, projectId, sessionId: null, query: null)
+            .Should().ContainSingle(n => n.Key == "stack");
+        MemoryRecall.Select(store.All, Guid.NewGuid(), sessionId: null, query: null)
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RememberExplicit_CarriesProjectAndSession()
+    {
+        var projectId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var store = new AssistantMemoryStore();
+        var manager = new MemoryConsentManager(store);
+
+        var created = manager.RememberExplicit(
+            MemoryType.Instruction, "tone", "plain", MemoryScope.Session, projectId, sessionId);
+
+        created.ProjectId.Should().Be(projectId);
+        created.SessionId.Should().Be(sessionId);
+        store.Get(created.Id)!.ProjectId.Should().Be(projectId);
+        store.Get(created.Id)!.SessionId.Should().Be(sessionId);
+    }
+
+    [Fact]
     public void Approve_RemovesPendingRequest()
     {
         var store = new AssistantMemoryStore();

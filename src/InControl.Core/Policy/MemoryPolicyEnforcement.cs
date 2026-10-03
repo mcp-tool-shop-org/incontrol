@@ -109,7 +109,9 @@ public sealed class PolicyGovernedMemoryManager
         string justification,
         string? category = null,
         MemorySource source = MemorySource.Inferred,
-        double confidence = 0.8)
+        double confidence = 0.8,
+        Guid? projectId = null,
+        Guid? sessionId = null)
     {
         var policyStatus = CheckMemoryPolicy();
 
@@ -141,7 +143,7 @@ public sealed class PolicyGovernedMemoryManager
         }
 
         // Forward to consent manager
-        var request = _consentManager.RequestRemember(type, key, value, justification, source, confidence);
+        var request = _consentManager.RequestRemember(type, key, value, justification, source, confidence, projectId, sessionId);
 
         return MemoryRequestResult.Pending(request);
     }
@@ -154,7 +156,9 @@ public sealed class PolicyGovernedMemoryManager
         string key,
         string value,
         string? category = null,
-        MemoryScope scope = MemoryScope.User)
+        MemoryScope scope = MemoryScope.User,
+        Guid? projectId = null,
+        Guid? sessionId = null)
     {
         var policyStatus = CheckMemoryPolicy();
 
@@ -174,7 +178,7 @@ public sealed class PolicyGovernedMemoryManager
             return MemoryRequestResult.Blocked($"Memory category '{category}' is excluded by policy");
         }
 
-        var memory = _consentManager.RememberExplicit(type, key, value, scope);
+        var memory = _consentManager.RememberExplicit(type, key, value, scope, projectId, sessionId);
 
         return MemoryRequestResult.Created(memory);
     }

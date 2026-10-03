@@ -158,6 +158,10 @@ public static class SessionExporter
     {
         try
         {
+            // Read the sequence once: a lazy source must not be able to report one
+            // count in the manifest and then yield a different set of conversations.
+            var snapshot = conversations as IReadOnlyCollection<Conversation> ?? conversations.ToList();
+
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             outputPath ??= Path.Combine(DataPaths.Exports, $"incontrol-export-{timestamp}.zip");
 
@@ -175,7 +179,7 @@ public static class SessionExporter
             {
                 Version = 1,
                 ExportedAt = DateTimeOffset.UtcNow,
-                ConversationCount = conversations.Count()
+                ConversationCount = snapshot.Count
             };
             var manifestEntry = archive.CreateEntry("manifest.json");
             await using (var writer = new StreamWriter(manifestEntry.Open()))
@@ -184,7 +188,7 @@ public static class SessionExporter
             }
 
             // Add each conversation
-            foreach (var conversation in conversations)
+            foreach (var conversation in snapshot)
             {
                 ct.ThrowIfCancellationRequested();
 
