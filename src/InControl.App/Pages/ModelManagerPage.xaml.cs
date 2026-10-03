@@ -38,6 +38,18 @@ public sealed partial class ModelManagerPage : UserControl
     /// </summary>
     public event EventHandler<string>? ModelSelected;
 
+    private string? _currentModel;
+    private bool _fillingDefaults;
+
+    /// <summary>
+    /// Tells the page which model the chat is using, so the default-model box starts on it.
+    /// </summary>
+    public void SetCurrentModel(string? modelName)
+    {
+        _currentModel = modelName;
+        SelectCurrentModel();
+    }
+
     private void SetupEventHandlers()
     {
         BackButton.Click += (s, e) => BackRequested?.Invoke(this, EventArgs.Empty);
@@ -216,15 +228,40 @@ public sealed partial class ModelManagerPage : UserControl
 
     private void UpdateDefaultSelector()
     {
-        DefaultModelSelector.Items.Clear();
-        foreach (var model in _models)
+        // Refilling the box must not look like the user picked a model.
+        _fillingDefaults = true;
+        try
         {
-            DefaultModelSelector.Items.Add(model.Name);
+            DefaultModelSelector.Items.Clear();
+            foreach (var model in _models)
+            {
+                DefaultModelSelector.Items.Add(model.Name);
+            }
+        }
+        finally
+        {
+            _fillingDefaults = false;
         }
 
-        if (DefaultModelSelector.Items.Count > 0)
+        SelectCurrentModel();
+    }
+
+    private void SelectCurrentModel()
+    {
+        if (DefaultModelSelector.Items.Count == 0)
         {
-            DefaultModelSelector.SelectedIndex = 0;
+            return;
+        }
+
+        var index = _currentModel is null ? -1 : DefaultModelSelector.Items.IndexOf(_currentModel);
+        _fillingDefaults = true;
+        try
+        {
+            DefaultModelSelector.SelectedIndex = index >= 0 ? index : 0;
+        }
+        finally
+        {
+            _fillingDefaults = false;
         }
     }
 
@@ -391,8 +428,14 @@ public sealed partial class ModelManagerPage : UserControl
 
     private void OnDefaultModelChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_fillingDefaults)
+        {
+            return;
+        }
+
         if (DefaultModelSelector.SelectedItem is string modelName)
         {
+            _currentModel = modelName;
             ModelSelected?.Invoke(this, modelName);
         }
     }

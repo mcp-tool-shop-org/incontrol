@@ -39,16 +39,52 @@ public sealed partial class MessageCard : UserControl
         // User message context menu
         CopyMenuItem.Click += OnCopyClick;
         CopyAsMarkdownMenuItem.Click += OnCopyAsMarkdownClick;
-        AddToContextMenuItem.Click += OnAddToContextClick;
 
         DeleteMenuItem.Click += OnDeleteClick;
 
         // Assistant message context menu (includes report option)
         AssistantCopyMenuItem.Click += OnCopyClick;
         AssistantCopyAsMarkdownMenuItem.Click += OnCopyAsMarkdownClick;
-        AssistantAddToContextMenuItem.Click += OnAddToContextClick;
         ReportInappropriateMenuItem.Click += OnReportInappropriateClick;
         AssistantDeleteMenuItem.Click += OnDeleteClick;
+
+        Loaded += OnCardLoaded;
+        Unloaded += OnCardUnloaded;
+    }
+
+    /// <summary>
+    /// The message this card is listening to. Null when it listens to none.
+    /// </summary>
+    private MessageViewModel? _subscribed;
+
+    private void Subscribe(MessageViewModel message)
+    {
+        Unsubscribe();
+        message.PropertyChanged += OnMessagePropertyChanged;
+        _subscribed = message;
+    }
+
+    private void Unsubscribe()
+    {
+        if (_subscribed is not null)
+        {
+            _subscribed.PropertyChanged -= OnMessagePropertyChanged;
+            _subscribed = null;
+        }
+    }
+
+    private void OnCardLoaded(object sender, RoutedEventArgs e)
+    {
+        // A card that was unloaded stopped listening. Show what the message holds now.
+        if (_subscribed is null && Message is { IsAssistant: true })
+        {
+            UpdateDisplay();
+        }
+    }
+
+    private void OnCardUnloaded(object sender, RoutedEventArgs e)
+    {
+        Unsubscribe();
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
@@ -103,18 +139,6 @@ public sealed partial class MessageCard : UserControl
         {
             return false;
         }
-    }
-
-    private async void OnAddToContextClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = "Coming Soon",
-            Content = "Add to Context will be available in a future update.",
-            CloseButtonText = "OK",
-            XamlRoot = this.XamlRoot
-        };
-        await dialog.ShowAsync();
     }
 
     private async void OnReportInappropriateClick(object sender, RoutedEventArgs e)
@@ -247,6 +271,8 @@ public sealed partial class MessageCard : UserControl
 
     private void UpdateDisplay()
     {
+        Unsubscribe();
+
         var message = Message;
         if (message == null)
         {
@@ -318,7 +344,7 @@ public sealed partial class MessageCard : UserControl
         }
 
         // Subscribe to property changes for streaming updates
-        message.PropertyChanged += OnMessagePropertyChanged;
+        Subscribe(message);
     }
 
     private void ShowSystemMessage(MessageViewModel message)
@@ -337,10 +363,14 @@ public sealed partial class MessageCard : UserControl
 
     private void OnMessagePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (sender is not MessageViewModel message) return;
+        if (sender is not MessageViewModel message || !ReferenceEquals(message, _subscribed)) return;
 
         DispatcherQueue.TryEnqueue(() =>
         {
+            // The card may have moved on to another message before this ran.
+            if (!ReferenceEquals(message, _subscribed) || !ReferenceEquals(message, Message))
+                return;
+
             switch (e.PropertyName)
             {
                 case nameof(MessageViewModel.Content):

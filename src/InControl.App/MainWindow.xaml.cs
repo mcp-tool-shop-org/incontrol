@@ -34,6 +34,9 @@ public sealed partial class MainWindow : Window
     private readonly SessionListViewModel _sessionListVm = new();
     private CancellationTokenSource? _runCts;
     private Guid? _answeringId;
+    private readonly System.Text.StringBuilder _answerText = new();
+    private string? _answerPrompt;
+    private string? _answerModel;
 
     /// <summary>
     /// Model families that are embedding-only and cannot be used for chat.
@@ -75,6 +78,77 @@ public sealed partial class MainWindow : Window
         _ = LoadModelsAsync();
         _ = InitializeVoiceAsync();
         _ = LoadSessionsAsync();
+        ShowRecoveryNotice();
+    }
+
+    /// <summary>
+    /// Says so when the last run of the app ended without a clean exit.
+    /// </summary>
+    private void ShowRecoveryNotice()
+    {
+        var recovery = CrashRecoveryService.Instance;
+        if (!recovery.IsRecoveryMode)
+            return;
+
+        ShowNotice(recovery.GetRecoveryMessage(), InfoBarSeverity.Informational);
+        recovery.AcknowledgeRecovery();
+    }
+
+    /// <summary>
+    /// Shows a short closable message over the content area.
+    /// Safe to call from any thread.
+    /// </summary>
+    public void ShowNotice(string message, InfoBarSeverity severity = InfoBarSeverity.Error)
+    {
+        void Show()
+        {
+            foreach (var child in NoticeHost.Children)
+            {
+                if (child is InfoBar existing && existing.Message == message)
+                    return;
+            }
+
+            var bar = new InfoBar
+            {
+                Message = message,
+                Severity = severity,
+                IsClosable = true,
+                IsOpen = true
+            };
+            bar.Closed += (sender, _) =>
+            {
+                if (sender is UIElement element)
+                    NoticeHost.Children.Remove(element);
+            };
+
+            NoticeHost.Children.Add(bar);
+            while (NoticeHost.Children.Count > 3)
+                NoticeHost.Children.RemoveAt(0);
+        }
+
+        if (DispatcherQueue.HasThreadAccess)
+            Show();
+        else
+            DispatcherQueue.TryEnqueue(Show);
+    }
+
+    private void ShowFailure(string what, Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"{what}: {ex.Message}");
+        ShowNotice($"{what}: {Brief(ex)}");
+    }
+
+    private static string Brief(Exception ex)
+    {
+        var text = ex.Message.Trim();
+        var cut = text.IndexOfAny(['\r', '\n']);
+        if (cut >= 0)
+            text = text[..cut];
+
+        if (text.Length > 160)
+            text = text[..160] + "...";
+
+        return text.Length == 0 ? ex.GetType().Name : text;
     }
 
     private void InitializeTheme()
@@ -141,7 +215,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to load sessions: {ex.Message}");
+            ShowFailure("Could not load your chats", ex);
         }
     }
 
@@ -272,7 +346,7 @@ public sealed partial class MainWindow : Window
                 if (selected != null)
                 {
                     StatusStrip.SetModelStatus(selected, true);
-                    StatusStrip.SetConnectivityStatus(true);
+                    StatusStrip.SetConnectivityStatus(_isOffline);
                 }
             });
         }
@@ -282,7 +356,7 @@ public sealed partial class MainWindow : Window
             DispatcherQueue.TryEnqueue(() =>
             {
                 StatusStrip.SetModelStatus(null, false);
-                StatusStrip.SetConnectivityStatus(false);
+                StatusStrip.SetConnectivityStatus(true);
             });
         }
     }
@@ -346,6 +420,9 @@ public sealed partial class MainWindow : Window
 
         var runCts = new CancellationTokenSource();
         _runCts = runCts;
+        _answerText.Clear();
+        _answerPrompt = e.Intent;
+        _answerModel = e.Model;
 
         var chatService = App.GetService<IChatService>();
         var model = e.Model;
@@ -401,10 +478,15 @@ public sealed partial class MainWindow : Window
                 ConversationView.Composer.IntentText = string.Empty;
                 StatusStrip.SetModelStatus(model, true);
                 await Task.Yield();
-                _conversationVm.BeginModelOutput(model);
-                ConversationView.ShowMessages();
-                _conversationVm.ExecutionState = ExecutionState.Streaming;
-                ConversationView.Composer.ExecutionState = ExecutionState.Streaming;
+                if (Viewing())
+                {
+                    if (!_conversationVm.IsStreamingModelOutput)
+                        _conversationVm.BeginModelOutput(model);
+
+                    ConversationView.ShowMessages();
+                    _conversationVm.ExecutionState = ExecutionState.Streaming;
+                    ConversationView.Composer.ExecutionState = ExecutionState.Streaming;
+                }
             }
 
             timer = DispatcherQueue.CreateTimer();
@@ -418,13 +500,12 @@ public sealed partial class MainWindow : Window
 
             await Task.Yield();
 
-            var contentBuilder = new System.Text.StringBuilder();
             var yieldCounter = 0;
 
             await foreach (var token in chatService.SendMessageAsync(
                 conversation.Id, e.Intent, runCts.Token))
             {
-                contentBuilder.Append(token);
+                _answerText.Append(token);
                 if (!Viewing())
                     continue;
 
@@ -436,7 +517,7 @@ public sealed partial class MainWindow : Window
                 }
             }
 
-            completedContent = contentBuilder.ToString();
+            completedContent = _answerText.ToString();
 
             if (Viewing())
             {
@@ -472,7 +553,7 @@ public sealed partial class MainWindow : Window
                 ConversationView.Composer.ExecutionState = ExecutionState.Idle;
             }
 
-            System.Diagnostics.Debug.WriteLine($"Chat error: {ex.Message}");
+            ShowFailure("The reply failed", ex);
         }
         finally
         {
@@ -569,7 +650,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Speak failed: {ex.Message}");
+            ShowFailure("Could not read the reply aloud", ex);
         }
     }
 
@@ -625,13 +706,7 @@ public sealed partial class MainWindow : Window
                 ConversationView.ViewModel = _conversationVm;
             }
 
-            _conversationVm.LoadConversation(conversation);
-            ConversationView.Composer.ExecutionState = ExecutionState.Idle;
-            if (_answeringId != conversation.Id)
-                _conversationVm.ExecutionState = ExecutionState.Idle;
-
-            if (conversation.Messages.Count > 0)
-                ConversationView.ShowMessages();
+            ShowConversation(conversation);
 
             if (_answeringId == conversation.Id)
                 StatusStrip.SetAssistantStatus(true, "This session is still answering");
@@ -642,8 +717,41 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to load session: {ex.Message}");
+            ShowFailure("Could not open the chat", ex);
         }
+    }
+
+    /// <summary>
+    /// Puts a stored conversation in the transcript. When that conversation is the one
+    /// still answering, the reply so far comes back and new tokens keep painting.
+    /// </summary>
+    private void ShowConversation(Conversation conversation)
+    {
+        _conversationVm.LoadConversation(conversation);
+
+        if (_answeringId == conversation.Id && _runCts != null && !_runCts.IsCancellationRequested)
+        {
+            var messages = conversation.Messages;
+            if (_answerPrompt is not null
+                && (messages.Count == 0 || messages[^1].Role != MessageRole.User))
+            {
+                _conversationVm.AddUserIntent(_answerPrompt);
+            }
+
+            _conversationVm.ReattachModelOutput(_answerModel, _answerText.ToString());
+            _conversationVm.CurrentModel = _answerModel;
+            _conversationVm.ExecutionState = ExecutionState.Streaming;
+            ConversationView.Composer.ExecutionState = ExecutionState.Streaming;
+            ConversationView.ShowMessages();
+            ConversationView.ScrollToBottom();
+            return;
+        }
+
+        _conversationVm.ExecutionState = ExecutionState.Idle;
+        ConversationView.Composer.ExecutionState = ExecutionState.Idle;
+
+        if (conversation.Messages.Count > 0)
+            ConversationView.ShowMessages();
     }
 
     /// <summary>
@@ -663,12 +771,12 @@ public sealed partial class MainWindow : Window
             var current = _conversationVm.GetConversation();
             if (current?.Id == args.Id)
             {
-                _conversationVm.LoadConversation(updated);
+                ShowConversation(updated);
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to rename session: {ex.Message}");
+            ShowFailure("Could not rename the chat", ex);
         }
     }
 
@@ -716,7 +824,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to delete session: {ex.Message}");
+            ShowFailure("Could not delete the chat", ex);
         }
     }
 
@@ -741,7 +849,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to delete message: {ex.Message}");
+            ShowFailure("Could not delete the message", ex);
         }
     }
 
@@ -775,7 +883,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to export session: {ex.Message}");
+            ShowFailure("Could not export the chat", ex);
         }
     }
 
@@ -922,6 +1030,7 @@ public sealed partial class MainWindow : Window
             settings.ExtensionsRequested += (s, e) => _navigation.Navigate<ExtensionsPage>();
             settings.PolicyRequested += (s, e) => _navigation.Navigate<PolicyPage>();
             settings.OfflineModeChanged += (_, isOffline) => SetOfflineMode(isOffline);
+            settings.MemoryCleared += (_, _) => _ = RefreshProjectMemoryAsync();
             settings.IsOffline = _isOffline;
         }
         else if (page is ModelManagerPage modelManager)
@@ -933,10 +1042,12 @@ public sealed partial class MainWindow : Window
                 _ = LoadModelsAsync();
             };
             modelManager.ModelSelected += OnModelSelected;
+            modelManager.SetCurrentModel(ConversationView.Composer.SelectedModel);
         }
         else if (page is AssistantPage assistant)
         {
             assistant.BackRequested += (s, e) => _navigation.GoBack();
+            assistant.MemoryCleared += (_, _) => _ = RefreshProjectMemoryAsync();
         }
         else if (page is ExtensionsPage extensions)
         {
@@ -1018,6 +1129,7 @@ public sealed partial class MainWindow : Window
     private void OnModelSelected(object? sender, string modelName)
     {
         AppBar.SetSelectedModel(modelName);
+        ConversationView.Composer.SelectModel(modelName);
         StatusStrip.SetModelStatus(modelName, true);
     }
 
@@ -1029,6 +1141,10 @@ public sealed partial class MainWindow : Window
         SessionSidebar.ClearSessionSelection();
         _navigation.GoHome();
         _ = RefreshProjectMemoryAsync();
+
+        // A reply that is still running keeps going. Escape stops it.
+        if (_runCts != null && !_runCts.IsCancellationRequested)
+            StatusStrip.SetAssistantStatus(true, "Another session is still answering");
     }
 
     private async void OnNewProjectRequested(object? sender, string name)
@@ -1043,7 +1159,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"New project failed: {ex.Message}");
+            ShowFailure("Could not create the project", ex);
         }
     }
 
@@ -1069,7 +1185,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Remember failed: {ex.Message}");
+            ShowFailure("Could not save the note", ex);
         }
     }
 
@@ -1088,14 +1204,14 @@ public sealed partial class MainWindow : Window
                 MemorySource.ExplicitUser,
                 NoteKey(text),
                 text,
-                projectId: session.ProjectId ?? _sessionListVm.SelectedProjectId,
+                projectId: session.EffectiveProjectId,
                 sessionId: session.Id);
             await memory.RememberAsync(item);
             await RefreshProjectMemoryAsync();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Remember failed: {ex.Message}");
+            ShowFailure("Could not save the note", ex);
         }
     }
 
@@ -1108,7 +1224,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Forget failed: {ex.Message}");
+            ShowFailure("Could not forget the note", ex);
         }
     }
 
@@ -1121,7 +1237,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Instructions failed: {ex.Message}");
+            ShowFailure("Could not save the instructions", ex);
         }
     }
 
@@ -1148,7 +1264,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Memory refresh failed: {ex.Message}");
+            ShowFailure("Could not load the notes", ex);
         }
     }
 

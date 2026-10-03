@@ -54,6 +54,15 @@
             </Grid>
         </Grid>
 
+        <!-- Notices: failures the user should see, closable -->
+        <StackPanel x:Name="NoticeHost"
+                    Grid.Row="1"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    MaxWidth="640"
+                    Margin="48,8,48,0"
+                    Spacing="4" />
+
         <!-- Status Strip (Bottom) -->
         <controls:StatusStrip x:Name="StatusStrip" Grid.Row="2" />
 

@@ -30,6 +30,11 @@ public sealed class SessionItemViewModel : INotifyPropertyChanged
     public Guid? ProjectId => _conversation.ProjectId;
 
     /// <summary>
+    /// The project this session is filed under. A null ProjectId means General.
+    /// </summary>
+    public Guid EffectiveProjectId => _conversation.ProjectId ?? ChatProject.GeneralId;
+
+    /// <summary>
     /// The session title. Falls back to "Untitled session" if empty.
     /// </summary>
     public string Title => string.IsNullOrWhiteSpace(_conversation.Title)
