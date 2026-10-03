@@ -131,7 +131,8 @@ public sealed class FileStore : IFileStore
         try
         {
             EnsureDirectoryExists(Path.GetDirectoryName(fullPath)!);
-            await File.WriteAllTextAsync(fullPath, content, Encoding.UTF8, ct);
+            // File.WriteAllText with Encoding.UTF8 writes a BOM, so keep the same bytes.
+            await WriteAtomicAsync(fullPath, [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(content)], ct);
             _logger.LogDebug("Wrote {Bytes} bytes to {Path}", content.Length, relativePath);
             return Result.Success();
         }
@@ -162,7 +163,7 @@ public sealed class FileStore : IFileStore
         try
         {
             EnsureDirectoryExists(Path.GetDirectoryName(fullPath)!);
-            await File.WriteAllBytesAsync(fullPath, content, ct);
+            await WriteAtomicAsync(fullPath, content, ct);
             _logger.LogDebug("Wrote {Bytes} bytes to {Path}", content.Length, relativePath);
             return Result.Success();
         }
@@ -255,6 +256,44 @@ public sealed class FileStore : IFileStore
             _logger.LogError(ex, "IO error listing {Path}", relativeDirectory);
             return Task.FromResult(Result<IReadOnlyList<string>>.Failure(
                 InControlError.Create(ErrorCode.StorageFailed, "Failed to list files.")));
+        }
+    }
+
+    /// <summary>
+    /// Writes to a temp file in the same folder, flushes it to disk, then swaps it in.
+    /// A crash or a failed write leaves the previous file whole.
+    /// </summary>
+    private static async Task WriteAtomicAsync(string fullPath, byte[] bytes, CancellationToken ct)
+    {
+        var temp = fullPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            await using (var stream = new FileStream(
+                temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            {
+                await stream.WriteAsync(bytes, ct);
+                await stream.FlushAsync(ct);
+                stream.Flush(flushToDisk: true);
+            }
+
+            // A scanner or backup tool may hold the old file open for a moment. Try a few times.
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    File.Move(temp, fullPath, overwrite: true);
+                    break;
+                }
+                catch (Exception ex) when (attempt < 3 && ex is IOException or UnauthorizedAccessException)
+                {
+                    await Task.Delay(25 * attempt, ct);
+                }
+            }
+        }
+        catch
+        {
+            try { File.Delete(temp); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            throw;
         }
     }
 

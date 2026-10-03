@@ -78,7 +78,11 @@ public sealed class JsonConversationStorage : IConversationStorage
         {
             try
             {
+                // A cancelled read comes back as a failed result. Stop instead of
+                // returning a partial list as if the rest were corrupt.
+                ct.ThrowIfCancellationRequested();
                 var textResult = await _fileStore.ReadTextAsync(filePath, ct);
+                ct.ThrowIfCancellationRequested();
                 if (textResult.IsFailure) continue;
 
                 var deserialized = StateSerializer.Deserialize<Conversation>(textResult.Value);
@@ -86,6 +90,10 @@ public sealed class JsonConversationStorage : IConversationStorage
                 {
                     conversations.Add(deserialized.Value);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

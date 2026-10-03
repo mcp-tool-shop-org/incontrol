@@ -23,6 +23,12 @@ public interface IChatService
     event EventHandler<ConversationEventArgs>? ConversationDeleted;
 
     /// <summary>
+    /// Event raised when a session could not be written to or deleted from disk.
+    /// The chat on screen may then differ from what is stored.
+    /// </summary>
+    event EventHandler<ConversationPersistenceFailedEventArgs>? PersistenceFailed;
+
+    /// <summary>
     /// Creates a new conversation.
     /// </summary>
     /// <param name="title">Optional title.</param>
@@ -75,7 +81,11 @@ public interface IChatService
     /// </summary>
     /// <param name="conversationId">The conversation ID.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task DeleteConversationAsync(
+    /// <returns>
+    /// True when the session is gone (or was not there). False when the file could not be
+    /// deleted: the session stays, and <see cref="PersistenceFailed"/> is raised.
+    /// </returns>
+    Task<bool> DeleteConversationAsync(
         Guid conversationId,
         CancellationToken ct = default);
 
@@ -118,6 +128,31 @@ public interface IChatService
     /// </summary>
     /// <param name="conversationId">The conversation ID.</param>
     void StopGeneration(Guid conversationId);
+}
+
+/// <summary>
+/// Which disk change failed.
+/// </summary>
+public enum ConversationPersistenceOperation
+{
+    Save,
+    Delete
+}
+
+/// <summary>
+/// Event args for a failed save or delete.
+/// </summary>
+public sealed class ConversationPersistenceFailedEventArgs : EventArgs
+{
+    /// <summary>
+    /// The session whose file was not written or deleted.
+    /// </summary>
+    public required Guid ConversationId { get; init; }
+
+    /// <summary>
+    /// Whether the save or the delete failed.
+    /// </summary>
+    public required ConversationPersistenceOperation Operation { get; init; }
 }
 
 /// <summary>

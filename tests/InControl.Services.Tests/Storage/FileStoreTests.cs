@@ -287,6 +287,65 @@ public class FileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task WriteTextAsync_WhenTheFileCannotBeReplaced_LeavesItWhole()
+    {
+        await _store.WriteTextAsync("keep.txt", "original content");
+        var path = _store.GetFullPath("keep.txt");
+
+        // An open reader blocks the swap. The old file must stay whole and the failure must be
+        // reported. An in-place truncate would have rewritten it under the reader.
+        using var reader = new FileStream(path, FileMode.Open, FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+        var before = reader.Length;
+
+        var result = await _store.WriteTextAsync("keep.txt", "new");
+
+        result.IsFailure.Should().BeTrue();
+        reader.Length.Should().Be(before);
+        (await _store.ReadTextAsync("keep.txt")).Value.Should().Be("original content");
+        Directory.GetFiles(_testRoot).Select(Path.GetFileName).Should().Equal("keep.txt");
+    }
+
+    [Fact]
+    public async Task WriteBytesAsync_WhenTheFileCannotBeReplaced_LeavesItWhole()
+    {
+        await _store.WriteBytesAsync("keep.bin", [1, 2, 3, 4, 5, 6]);
+        var path = _store.GetFullPath("keep.bin");
+
+        using var reader = new FileStream(path, FileMode.Open, FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+
+        var result = await _store.WriteBytesAsync("keep.bin", [9]);
+
+        result.IsFailure.Should().BeTrue();
+        reader.Length.Should().Be(6);
+        (await _store.ReadBytesAsync("keep.bin")).Value.Should().Equal(1, 2, 3, 4, 5, 6);
+    }
+
+    [Fact]
+    public async Task WriteTextAsync_LeavesNoTempFileBehind()
+    {
+        await _store.WriteTextAsync("once.json", "{}");
+        await _store.WriteTextAsync("once.json", "{\"a\":1}");
+
+        Directory.GetFiles(_testRoot).Select(Path.GetFileName).Should().Equal("once.json");
+    }
+
+    [Fact]
+    public async Task WriteTextAsync_WhenTheWriteFails_KeepsTheOldFileAndLeavesNoTempFile()
+    {
+        await _store.WriteTextAsync("stay.txt", "old");
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var result = await _store.WriteTextAsync("stay.txt", "new", cts.Token);
+
+        result.IsFailure.Should().BeTrue();
+        (await _store.ReadTextAsync("stay.txt")).Value.Should().Be("old");
+        Directory.GetFiles(_testRoot).Select(Path.GetFileName).Should().Equal("stay.txt");
+    }
+
+    [Fact]
     public async Task WriteTextAsync_HandlesWhitespacePath()
     {
         var result = await _store.WriteTextAsync("   ", "Content");

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using Microsoft.Extensions.Options;
 using InControl.Core.Compute;
+using InControl.Core.Configuration;
 using InControl.Core.Models;
 using InControl.Inference.Interfaces;
 
@@ -12,101 +14,27 @@ namespace InControl.Inference.Ollama;
 /// </summary>
 public sealed class OllamaModelManager : IModelManager
 {
-    private readonly IOllamaEndpoint _endpoint;
     private readonly ILogger<OllamaModelManager> _logger;
-    private readonly object _clientGate = new();
-    private OllamaApiClient? _client;
-    private HttpClient? _http;
-    private string? _clientUrl;
+    private readonly OllamaClientCache _clients;
+    private readonly TimeSpan _timeout;
 
     public event EventHandler<ModelListChangedEventArgs>? ModelsChanged;
     public event EventHandler<ModelDownloadProgressEventArgs>? DownloadProgress;
 
     public OllamaModelManager(
         IOllamaEndpoint endpoint,
-        ILogger<OllamaModelManager> logger)
+        ILogger<OllamaModelManager> logger,
+        IOptions<InferenceOptions>? inference = null)
     {
-        _endpoint = endpoint;
         _logger = logger;
-        _endpoint.Changed += (_, _) => DropClient();
-    }
-
-    private OllamaApiClient GetClient()
-    {
-        var url = _endpoint.BaseUrl;
-        lock (_clientGate)
-        {
-            if (_client is not null && string.Equals(_clientUrl, url, StringComparison.Ordinal))
-                return _client;
-
-            DisposeClientLocked();
-            (_client, _http) = CreateNonRedirectingClient(url);
-            _clientUrl = url;
-            return _client;
-        }
-    }
-
-    private void DropClient()
-    {
-        lock (_clientGate)
-        {
-            DisposeClientLocked();
-        }
-    }
-
-    /// <summary>
-    /// Drops the cached client. The <see cref="HttpClient"/> overload does not dispose the handler,
-    /// so the previous client and its handler are both disposed when the endpoint URL changes.
-    /// </summary>
-    private void DisposeClientLocked()
-    {
-        var client = _client;
-        var http = _http;
-        _client = null;
-        _http = null;
-        _clientUrl = null;
-        try
-        {
-            client?.Dispose();
-        }
-        finally
-        {
-            http?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Same endpoint URL as <see cref="IOllamaEndpoint.BaseUrl"/>. Redirects are off so a 307 or 308
-    /// cannot replay a pull or delete onto another host.
-    /// </summary>
-    private static (OllamaApiClient Client, HttpClient Http) CreateNonRedirectingClient(string baseUrl)
-    {
-        HttpClientHandler? handler = null;
-        HttpClient? http = null;
-        try
-        {
-            handler = new HttpClientHandler { AllowAutoRedirect = false };
-            http = new HttpClient(handler, disposeHandler: true)
-            {
-                BaseAddress = new Uri(baseUrl)
-            };
-            handler = null;
-            var client = new OllamaApiClient(http);
-            var ownedHttp = http;
-            http = null;
-            return (client, ownedHttp);
-        }
-        finally
-        {
-            http?.Dispose();
-            handler?.Dispose();
-        }
+        _clients = new OllamaClientCache(endpoint);
+        _timeout = OllamaTimeouts.FromSeconds((inference?.Value ?? new InferenceOptions()).TimeoutSeconds);
     }
 
     public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
     {
-        var client = GetClient();
-        var models = await client.ListLocalModelsAsync(ct);
+        using var lease = _clients.Acquire();
+        var models = await OllamaTimeouts.RunAsync(token => lease.Client.ListLocalModelsAsync(token), _timeout, ct);
 
         return models.Select(m => new ModelInfo
         {
@@ -122,10 +50,13 @@ public sealed class OllamaModelManager : IModelManager
 
     public async Task<ModelInfo> PullModelAsync(string modelId, CancellationToken ct = default)
     {
-        var client = GetClient();
+        using var lease = _clients.Acquire();
+        var client = lease.Client;
         _logger.LogInformation("Pulling model {ModelId}", modelId);
 
-        await foreach (var status in client.PullModelAsync(modelId, ct))
+        // A pull can run for many minutes. Only a long silence ends it.
+        var progress = OllamaTimeouts.StreamAsync(token => client.PullModelAsync(modelId, token), _timeout, ct);
+        await foreach (var status in progress.WithCancellation(ct))
         {
             if (status != null)
             {
@@ -162,10 +93,10 @@ public sealed class OllamaModelManager : IModelManager
 
     public async Task DeleteModelAsync(string modelId, CancellationToken ct = default)
     {
-        var client = GetClient();
+        using var lease = _clients.Acquire();
         _logger.LogInformation("Deleting model {ModelId}", modelId);
 
-        await client.DeleteModelAsync(modelId, ct);
+        await OllamaTimeouts.RunAsync(token => lease.Client.DeleteModelAsync(modelId, token), _timeout, ct);
 
         ModelsChanged?.Invoke(this, new ModelListChangedEventArgs
         {
