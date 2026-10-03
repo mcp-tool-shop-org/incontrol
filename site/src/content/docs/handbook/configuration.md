@@ -95,13 +95,13 @@ All data is stored locally on your machine:
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8GB) | RTX 4080/5080 (16GB) |
 | RAM | 16GB | 32GB |
-| OS | Windows 10 1809+ | Windows 11 |
-| .NET | 9.0 | 9.0 |
+| OS | Windows 10 version 2004 (x64) | Windows 11 |
+| .NET | Bundled in the Store package | 9.0 SDK to build from source |
 
 ## Troubleshooting
 
-**App won't start:**
-- Check that .NET 9.0 Runtime is installed: `dotnet --list-runtimes`
+**App won't start (source build):**
+- Check that the .NET 9 SDK is installed: `dotnet --list-sdks`. The Store package needs nothing else.
 
 **No models available:**
 - Ensure Ollama is running: `ollama serve`

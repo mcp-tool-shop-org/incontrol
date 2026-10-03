@@ -43,14 +43,14 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) (2026-02-27)
-- [ ] `[all]` App version in this tree is 2.0.0. Prepared MSIX identity is mcp-tool-shop.InControl-Desktop 2.0.0.0. No MSIX file is in the repo. Tag v0.3.0 is an older source-only release and is not the current app version, so the release tag does not match 2.0.0. NuGet ids InControl.Core 1.2.2 and InControl.Inference 1.0.2 stay at the versions already on the feed. (2026-10-02)
+- [x] `[all]` Version matches the tag: app 2.0.0, git tag v2.0.0, MSIX identity mcp-tool-shop.InControl-Desktop 2.0.0.0. NuGet ids InControl.Core 1.2.2 and InControl.Inference 1.0.2 stay at the versions already on the feed. (2026-10-02)
 - [x] `[all]` Dependency scanning runs in CI (`dotnet list package --vulnerable` in ci.yml) (2026-10-02)
 - [x] `[all]` Automated dependency update mechanism exists (Dependabot for NuGet, npm, and GitHub Actions) (2026-10-02)
 - [ ] `[npm]` SKIP: not an npm package
 - [ ] `[npm]` SKIP: not an npm package
 - [ ] `[npm]` SKIP: not an npm package
 - [ ] `[vsix]` SKIP: not a VS Code extension
-- [ ] `[desktop]` SKIP: MSIX was not rebuilt. `dotnet build` of the app compiles the assembly, then Windows App SDK PRI generation fails on a plain .NET SDK because the Appx MSBuild task is absent.
+- [x] `[desktop]` MSIX builds with Visual Studio MSBuild (`packaging/README.md`), unsigned for the Store to re-sign. Windows App Certification Kit: overall PASS, 22 of 24 tests; the two optional failures are Windows App SDK metadata and string matches in bundled runtime files. (2026-10-02)
 
 ## E. Identity (soft gate — does not block ship)
 

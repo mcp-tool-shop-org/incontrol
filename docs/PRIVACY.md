@@ -1,41 +1,38 @@
 # Privacy & Security
 
-**InControl-Desktop — Data Handling & Security**
+**InControl — data handling details**
 
-This document describes how InControl handles your data, what information is stored, and the security measures in place.
+The privacy policy is [PRIVACY.md](../PRIVACY.md) at the root of this repository. The Microsoft Store listing links to that one. This page gives the technical detail behind it.
 
 ---
 
 ## Data Storage
 
-Sessions, settings, and logs stay on this PC. InControl does not run an account service and it does not send telemetry.
+Sessions, projects, remembered notes, settings and logs stay on this PC. InControl does not run an account service and it does not send telemetry.
 
-The chat stays on this PC until you connect a rented GPU in **Where this chat runs**. That connection sends the conversation to Ollama on the machine you named. It is a different decision from the tool-URL allowlist. Disconnect, and the chat is local again.
+The chat stays on this PC until you connect a rented GPU in **Where this chat runs**. That connection sends the conversation, the project's instructions, and any remembered notes that match the message to Ollama on the machine you named. Disconnect, and the chat is local again. This is a different decision from the tool-URL allowlist.
 
 ### Storage Locations
 
 | Data Type | Location | Purpose |
 |-----------|----------|---------|
-| Sessions | `%LOCALAPPDATA%\InControl\sessions\` | Conversation history and context |
+| Sessions | `%LOCALAPPDATA%\InControl\sessions\` | Conversation history |
+| Projects and notes | `%LOCALAPPDATA%\InControl\` (`projects.json`, `memories.json`) | Projects, their instructions, and remembered notes |
 | Logs | `%LOCALAPPDATA%\InControl\logs\` | Application logs for troubleshooting |
-| Cache | `%LOCALAPPDATA%\InControl\cache\` | Temporary data and model caches |
+| Cache | `%LOCALAPPDATA%\InControl\cache\` | The Kokoro voice model, once downloaded |
 | Config | `%LOCALAPPDATA%\InControl\config\` | User preferences and settings |
-| Temp | `%LOCALAPPDATA%\InControl\temp\` | Temporary processing files |
-| Support | `%LOCALAPPDATA%\InControl\support\` | Support bundles when exported |
-| Exports | `%USERPROFILE%\Documents\InControl\exports\` | User-exported data |
+| Support | `%LOCALAPPDATA%\InControl\support\` | Support bundles you export |
+| Exports | `%USERPROFILE%\Documents\InControl\exports\` | Data you export |
 
-### What Is Stored
+A Microsoft Store install may keep the `%LOCALAPPDATA%\InControl\` folder inside the app's own storage, `%LOCALAPPDATA%\Packages\mcp-tool-shop.InControl-Desktop_yn6b8xqrexa5j\`. Uninstalling the app removes that storage.
 
-- **Session Data**: Your conversation history, including messages you send and responses received from local AI models
-- **Model Selections**: Which models you've chosen to use
-- **UI Preferences**: Theme, layout, and display settings
-- **Application Logs**: Operational logs (no message content by default)
+Session, project and note files are written to a temporary file and then swapped in, so a crash during a save leaves the previous file whole.
 
 ### What Is NOT Stored
 
-- No data is stored on external servers
-- No telemetry is sent to Anthropic, Microsoft, or any third party
-- No usage analytics are collected
+- No data is stored on an InControl server. There is no InControl server.
+- No telemetry is sent to Anthropic, Microsoft, or any third party.
+- No usage analytics are collected.
 
 ---
 
@@ -43,98 +40,75 @@ The chat stays on this PC until you connect a rented GPU in **Where this chat ru
 
 ### Ollama, and a rental when you connect one
 
-The app talks to Ollama. Chat stays on this PC until a rented GPU is connected. A rental is an SSH local forward. A rental sends the prompts you submit to Ollama on that machine. The banner names that machine.
+The app talks to Ollama. Chat stays on this PC until a rented GPU is connected. A rental is an SSH local forward, and the banner names that machine while it is connected.
 
-RunPod lookup reads `RUNPOD_API_KEY` from the environment and does not send the chat. The key is not stored.
+### Other connections, each started by something you do
 
-Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model download. Chat on this PC still works. The switch does not block web search, app updates, or extension network. It is not a kill switch for every socket, and it is not the default.
+| Connection | When | What is sent |
+|------------|------|--------------|
+| Ollama model pull | You start a pull | The model name, to Ollama's registry through the Ollama the banner names |
+| RunPod API | You press **Look up my RunPod pods** with `RUNPOD_API_KEY` set | The key, to list pods. The key is not stored, and the chat is not sent |
+| GitHub | The first time a reply is spoken | A download request for the Kokoro voice model (about 300 MB). Speech runs on this PC |
+| ollama.com | You run diagnostics on the Help page | A reachability check |
+
+Offline is off when the app is installed. Turning it on refuses a rented GPU, a RunPod lookup, and a model pull. Chat on this PC still works. It does not stop the voice model download, and it is not a kill switch for every socket.
 
 There is no llama.cpp backend.
 
 ### What InControl Does NOT Do
 
-- Does not phone home
-- Does not check for updates automatically (manual check only)
-- Does not send crash reports without explicit user action
-- Does not send the chat to a rental unless you connect one in **Where this chat runs**
+- Does not check for updates. A Store install is updated by the Microsoft Store.
+- Does not send crash reports.
+- Does not send the chat to a rental unless you connect one in **Where this chat runs**.
 
 ---
 
 ## Secrets Policy
 
-### No Secrets in Logs
-
-InControl is designed to **never log sensitive information**:
-
-- API keys are never written to logs
-- Tokens and credentials are never logged
-- Session content is not logged (only metadata)
-
-### Secure Storage
-
-Any sensitive configuration (if applicable) uses:
-- Windows Credential Manager for secure credential storage
-- File system permissions appropriate for user data
+- The RunPod API key is read from the environment and never written to disk or to logs.
+- The SSH private key stays where you keep it. InControl passes its path to the Windows OpenSSH client and does not copy or upload it.
+- Message content is not written to the logs.
 
 ### Support Bundles
 
 When you export a support bundle:
-- **Included**: Version info, runtime info, log files, sanitized config
-- **Excluded**: Session content, API keys, tokens, credentials
-- **User-Approved Only**: Session metadata is only included with explicit opt-in
+- **Included**: version and runtime info, log files, sanitized configuration
+- **Excluded**: session content, API keys, tokens, credentials
+- **Opt-in only**: session metadata
 
 ---
 
 ## Data Retention
 
-### Automatic Cleanup
-
-- **Logs**: Rolling file system with size caps (default: 10MB per file, 5 files max)
-- **Cache**: Automatic cleanup of stale cache entries
-- **Temp**: Cleaned on application startup
-
-### User Control
-
-You have full control over your data:
-- **Export**: Export sessions to JSON or Markdown anytime
-- **Delete**: Delete individual sessions or all data
-- **Reset**: Full application reset with export-first prompt
+- **Logs**: rolling files, 10 MB each, five files kept.
+- **Sessions, projects and notes**: kept until you delete them.
+- **Clear All Memory** (Settings) deletes every remembered note. It does not delete chats.
+- **Export** copies a session as JSON to the clipboard.
+- **Delete** removes a session file. If the file cannot be deleted, the session stays in the list and the window says so.
 
 ---
 
 ## Write Boundaries
 
-InControl enforces strict write boundaries:
+InControl writes only to:
 
-### Allowed Write Locations
+- `%LOCALAPPDATA%\InControl\*` (or the Store app's own storage)
+- `%USERPROFILE%\Documents\InControl\exports\*`
 
-- `%LOCALAPPDATA%\InControl\*` - Application data
-- `%USERPROFILE%\Documents\InControl\exports\*` - User exports
-
-### Forbidden Write Locations
-
-InControl will **never** write to:
-- System directories (`C:\Windows\*`)
-- Program Files (`C:\Program Files\*`)
-- Other users' directories
-- Any location outside the allowed roots
+It does not write to system directories, Program Files, its own install folder, or other users' directories.
 
 ---
 
 ## Dependency Security
 
-### Vulnerability Scanning
+- CI runs `dotnet list package --vulnerable --include-transitive`.
+- Dependabot opens grouped update pull requests.
 
-Dependencies are scanned for known vulnerabilities:
-- Run `dotnet list package --vulnerable` to check
-- Security advisories are monitored for critical packages
-
-### Key Dependencies
-
-| Package | Purpose | Security Notes |
-|---------|---------|----------------|
-| Microsoft.WindowsAppSDK | UI framework | Microsoft-maintained |
-| System.Text.Json | Serialization | .NET BCL |
+| Package | Purpose | Notes |
+|---------|---------|-------|
+| Microsoft.WindowsAppSDK | UI framework | Microsoft-maintained, bundled in the package |
+| OllamaSharp | Ollama HTTP client | Talks to loopback only |
+| KokoroSharp | On-device speech | Its model is downloaded data, not code |
 
 ---
 
@@ -143,33 +117,21 @@ Dependencies are scanned for known vulnerabilities:
 ### In Scope
 
 - Local data confidentiality
-- Protection against data exfiltration
-- Secure handling of model outputs
+- Keeping the chat on this PC until you connect a rental, and saying where it goes when you do
+- Not exposing Ollama: a rental is reached through an SSH forward to its loopback port, never a public port
 
 ### Out of Scope
 
 - Physical access attacks
-- Compromised operating system
-- Malicious local inference backends
+- A compromised operating system
+- A malicious inference backend, or a rental host you do not trust
 
 ---
 
 ## Reporting Security Issues
 
-If you discover a security vulnerability:
-
-1. **Do not** open a public GitHub issue
-2. Email security concerns to the maintainers privately
-3. Include steps to reproduce if possible
+Follow [SECURITY.md](../SECURITY.md). Do not open a public issue for a vulnerability.
 
 ---
 
-## Compliance Notes
-
-- **No account, no telemetry.** InControl does not collect an account or a usage stream.
-- **A connected rental receives the chat you send.** That machine is yours to account for. The app's copy names it while the tunnel is up.
-- **Export.** You can export session data from this PC.
-
----
-
-*Last updated: 2026-02-03*
+*Last updated: 2026-10-02*

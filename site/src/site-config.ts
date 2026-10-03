@@ -13,10 +13,10 @@ export const config: SiteConfig = {
     headline: 'Ollama.',
     headlineAccent: 'On your terms.',
     description: 'Chat on this PC by default. Connect a GPU you rented over SSH when you want one. The app names that machine while prompts leave this PC.',
-    primaryCta: { href: '#install', label: 'Get started' },
+    primaryCta: { href: 'https://apps.microsoft.com/detail/9N1FG39JWF83', label: 'Get it from the Microsoft Store' },
     secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
-      { label: 'Install', code: 'git clone … && dotnet test tests/InControl.Core.Tests' },
+      { label: 'Install', code: 'Microsoft Store → InControl-Desktop' },
       { label: 'Build', code: 'git clone … && dotnet restore && dotnet build' },
       { label: 'Run', code: 'dotnet run --project src/InControl.App' },
     ],
@@ -33,6 +33,8 @@ export const config: SiteConfig = {
         { title: 'SSH, not a public port', desc: 'The rental runs Ollama on 127.0.0.1. InControl opens an SSH local forward. It does not publish port 11434.' },
         { title: 'Native Windows', desc: 'WinUI 3 with Fluent Design. Looks and feels like a real Windows app, not an Electron wrapper.' },
         { title: 'Ollama', desc: 'One HTTP API, on this PC or at the near end of the tunnel. The tool-URL allowlist is a different screen.' },
+        { title: 'Projects and notes', desc: 'File sessions under projects with their own instructions. Notes you ask it to remember come along with the next message that matches them.' },
+        { title: 'Voice on this PC', desc: 'Kokoro reads replies aloud on this PC. The voice model downloads once, the first time it speaks.' },
         { title: 'Markdown rendering', desc: 'Rich text, code blocks, and syntax highlighting in every response.' },
         { title: 'NuGet libraries', desc: 'Core and Inference packages available on NuGet for building your own local AI integrations.' },
       ],
@@ -43,18 +45,15 @@ export const config: SiteConfig = {
       title: 'Installation',
       cards: [
         {
-          title: 'Build from source',
-          code: `# App 2.0.0. No MSIX file in the repo.
-# Package identity mcp-tool-shop.InControl-Desktop 2.0.0.0 is being prepared.
-# Tag v0.3.0 is an older source-only release.
-git clone https://github.com/mcp-tool-shop-org/incontrol.git
-cd incontrol
-dotnet test tests/InControl.Core.Tests
+          title: 'Microsoft Store',
+          code: `# Search the Store for InControl-Desktop, or open
+# https://apps.microsoft.com/detail/9N1FG39JWF83
+# Windows 10 version 2004 or later, x64.
+# The package carries its own .NET and Windows App SDK.
 
-# Prerequisite: Ollama on this PC
-# https://ollama.ai/download
-ollama pull llama3.2
-ollama serve`,
+# Then install Ollama on this PC
+# https://ollama.com/download
+ollama pull llama3.2`,
         },
         {
           title: 'From Source',
@@ -98,8 +97,8 @@ await foreach (var token in client.StreamChatAsync(request))
       rows: [
         ['GPU', 'RTX 3060 (8GB)', 'RTX 4080/5080 (16GB)'],
         ['RAM', '16GB', '32GB'],
-        ['OS', 'Windows 10 1809+', 'Windows 11'],
-        ['.NET', '9.0', '9.0'],
+        ['OS', 'Windows 10 version 2004 (x64)', 'Windows 11'],
+        ['.NET', 'Bundled in the Store package', '9.0 SDK to build from source'],
       ],
     },
     {

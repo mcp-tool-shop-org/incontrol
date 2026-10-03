@@ -51,7 +51,7 @@ The manifest template uses one placeholder:
 msbuild src\InControl.App\InControl.App.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=StoreUpload
 ```
 
-The unsigned package and its `.msixupload` land under `AppPackages\`, which is gitignored. Check the manifest inside before uploading: `Name="mcp-tool-shop.InControl-Desktop"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, `PublisherDisplayName` `mcp-tool-shop`, `Version="2.0.0.0"`, and `MinVersion="10.0.19041.0"`.
+The unsigned package and its `.msixsym` land under `AppPackages\`, which is gitignored. If no `.msixupload` is written, zip one yourself: the `.msix` and the symbols at the root of the zip, with the symbols renamed to `.appxsym`. Partner Center rejects a `.msixsym` inside an upload. Check the manifest inside before uploading: `Name="mcp-tool-shop.InControl-Desktop"`, `Publisher="CN=5305D976-6952-4F00-9C21-3A5DB090359F"`, `PublisherDisplayName` `mcp-tool-shop`, `Version="2.0.0.0"`, and `MinVersion="10.0.19041.0"`.
 
 KokoroSharp copies its voices and eSpeak data with an after-build step that never reaches the package. `InControl.App.csproj` adds that folder as package content. A package without `voices\` and `espeak\` at its root cannot speak.
 

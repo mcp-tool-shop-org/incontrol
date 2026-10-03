@@ -87,9 +87,9 @@ Three built-in health checks report system readiness:
 
 | Aspect | Detail |
 |--------|--------|
-| Data accessed | Ollama on this PC, chat history in local storage, and Ollama on a rental only after you connect one |
+| Data accessed | Ollama on this PC, chat history, projects and notes in local storage, and Ollama on a rental only after you connect one |
 | Data NOT accessed | No InControl account, no telemetry, no analytics |
-| Permissions | Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. App 2.0.0 has no MSIX file in the repo, so it is not AppContainer-sandboxed. Package identity mcp-tool-shop.InControl-Desktop 2.0.0.0 is being prepared. Tag v0.3.0 is an older source-only release. |
+| Permissions | Loopback HTTP, an SSH client when you connect a rental, and the file system for chat history. The Store package is a full-trust desktop app (`runFullTrust`), not AppContainer-sandboxed, because it starts the Windows OpenSSH client. |
 | Support bundles | Never include conversation content or secrets. Sanitized configs only. |
 
 See [SECURITY.md](https://github.com/mcp-tool-shop-org/incontrol/blob/main/SECURITY.md) for vulnerability reporting.

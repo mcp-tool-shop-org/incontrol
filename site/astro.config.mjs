@@ -10,6 +10,12 @@ export default defineConfig({
     starlight({
       title: 'InControl',
       description: 'Ollama chat for Windows. On this PC, or a GPU you rented, over SSH.',
+      logo: {
+        src: './src/assets/logo.png',
+        alt: 'InControl',
+        href: '/incontrol/',
+        replacesTitle: false,
+      },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/mcp-tool-shop-org/incontrol' },
       ],
