@@ -226,18 +226,35 @@ public class AssistantMemoryStoreTests
     }
 
     [Fact]
-    public void ClearSessionMemories_OnlyRemovesSessionScoped()
+    public void ClearSessionMemories_OnlyRemovesTheTargetSessionsNotes()
     {
+        var target = Guid.NewGuid();
+        var other = Guid.NewGuid();
         var store = new AssistantMemoryStore();
-        store.Add(CreateTestMemory("session1", scope: MemoryScope.Session));
-        store.Add(CreateTestMemory("user1", scope: MemoryScope.User));
-        store.Add(CreateTestMemory("session2", scope: MemoryScope.Session));
+        store.Add(CreateTestMemory("target-a", scope: MemoryScope.Session, sessionId: target));
+        store.Add(CreateTestMemory("target-b", scope: MemoryScope.Session, sessionId: target));
+        store.Add(CreateTestMemory("other-a", scope: MemoryScope.Session, sessionId: other));
+        store.Add(CreateTestMemory("project-wide", scope: MemoryScope.Session, sessionId: null));
+        store.Add(CreateTestMemory("user-in-target", scope: MemoryScope.User, sessionId: target));
+        store.Add(CreateTestMemory("global-in-target", scope: MemoryScope.Global, sessionId: target));
 
-        var removed = store.ClearSessionMemories();
+        var removed = store.ClearSessionMemories(target);
 
         removed.Should().Be(2);
-        store.Count.Should().Be(1);
-        store.All.Single().Scope.Should().Be(MemoryScope.User);
+        store.All.Select(m => m.Key).Should().BeEquivalentTo(
+            "other-a", "project-wide", "user-in-target", "global-in-target");
+    }
+
+    [Fact]
+    public void ClearSessionMemories_UnknownSession_RemovesNothing()
+    {
+        var store = new AssistantMemoryStore();
+        store.Add(CreateTestMemory("a", scope: MemoryScope.Session, sessionId: Guid.NewGuid()));
+        store.Add(CreateTestMemory("b", scope: MemoryScope.Session));
+
+        store.ClearSessionMemories(Guid.NewGuid()).Should().Be(0);
+
+        store.Count.Should().Be(2);
     }
 
     [Fact]
@@ -304,14 +321,16 @@ public class AssistantMemoryStoreTests
     private static AssistantMemoryItem CreateTestMemory(
         string key = "test_key",
         MemoryType type = MemoryType.Preference,
-        MemoryScope scope = MemoryScope.User)
+        MemoryScope scope = MemoryScope.User,
+        Guid? sessionId = null)
     {
         return AssistantMemoryItem.Create(
             type,
             scope,
             MemorySource.ExplicitUser,
             key,
-            "test_value"
+            "test_value",
+            sessionId: sessionId
         );
     }
 }

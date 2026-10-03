@@ -350,15 +350,18 @@ public sealed class AssistantMemoryStore
     }
 
     /// <summary>
-    /// Removes session-scoped memories.
+    /// Removes the session-scoped memories that belong to one session. Other sessions' notes,
+    /// session-scoped notes with no session (recalled project-wide), and notes of any other
+    /// scope are kept.
     /// </summary>
-    public int ClearSessionMemories()
+    /// <returns>How many memories were removed.</returns>
+    public int ClearSessionMemories(Guid sessionId)
     {
         List<Guid> toRemove;
         lock (_lock)
         {
             toRemove = _memories.Values
-                .Where(m => m.Scope == MemoryScope.Session)
+                .Where(m => m.Scope == MemoryScope.Session && m.SessionId == sessionId)
                 .Select(m => m.Id)
                 .ToList();
 

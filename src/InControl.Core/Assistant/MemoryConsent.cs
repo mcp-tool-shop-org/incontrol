@@ -49,7 +49,9 @@ public sealed class MemoryConsentManager
         string value,
         string justification,
         MemorySource source = MemorySource.Inferred,
-        double confidence = 0.8)
+        double confidence = 0.8,
+        Guid? projectId = null,
+        Guid? sessionId = null)
     {
         var request = new MemoryConsentRequest(
             Id: Guid.NewGuid(),
@@ -60,7 +62,9 @@ public sealed class MemoryConsentManager
             Source: source,
             Confidence: confidence,
             RequestedAt: DateTimeOffset.UtcNow,
-            Status: ConsentStatus.Pending
+            Status: ConsentStatus.Pending,
+            ProjectId: projectId,
+            SessionId: sessionId
         );
 
         lock (_lock)
@@ -96,7 +100,9 @@ public sealed class MemoryConsentManager
             request.Key,
             request.Value,
             request.Justification,
-            request.Confidence
+            request.Confidence,
+            request.ProjectId,
+            request.SessionId
         );
 
         _store.Add(memory);
@@ -148,7 +154,9 @@ public sealed class MemoryConsentManager
         MemoryType type,
         string key,
         string value,
-        MemoryScope scope = MemoryScope.User)
+        MemoryScope scope = MemoryScope.User,
+        Guid? projectId = null,
+        Guid? sessionId = null)
     {
         var memory = AssistantMemoryItem.Create(
             type,
@@ -157,7 +165,9 @@ public sealed class MemoryConsentManager
             key,
             value,
             "User explicitly requested to remember this",
-            confidence: 1.0
+            confidence: 1.0,
+            projectId: projectId,
+            sessionId: sessionId
         );
 
         _store.Add(memory);
@@ -178,7 +188,9 @@ public sealed record MemoryConsentRequest(
     MemorySource Source,
     double Confidence,
     DateTimeOffset RequestedAt,
-    ConsentStatus Status
+    ConsentStatus Status,
+    Guid? ProjectId = null,
+    Guid? SessionId = null
 );
 
 /// <summary>
