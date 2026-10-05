@@ -9,6 +9,12 @@ The app version is **2.0.1**. The Microsoft Store already has this product, Stor
 
 ## [Unreleased]
 
+### Added
+- A portable, self-contained zip on GitHub Releases, built by `.github/workflows/release-portable.yml` when a release is published, with a `.sha256` file next to it. It is unsigned. v2.0.1 gets one by a manual run of that workflow.
+
+### Changed
+- The app project adds the package manifest only to packaged builds, so `WindowsPackageType=None` builds the portable app.
+
 ## [2.0.1] - 2026-10-02
 
 ### Added

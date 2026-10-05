@@ -1,0 +1,95 @@
+# Portable build attached to a GitHub release.
+#
+# A self-contained, unpackaged InControl (the .NET and Windows App SDK runtimes
+# are inside the zip), so it runs without installing anything. It is not
+# code-signed: Windows SmartScreen may ask the user to confirm the first run.
+# The Store package is built elsewhere (scripts/Build-MsixUpload.ps1).
+#
+# Triggers: a published release, or workflow_dispatch with a tag, which
+# attaches the zip to that existing release. The optional ref builds another
+# commit for that tag: v2.0.1 predates the manifest condition that lets the
+# app build unpackaged, so it was built from main, whose src/ matches v2.0.1.
+# The version check still compares the built app's version with the tag.
+# Release-only and manual: no push cost. Windows runner because WinUI 3
+# only builds on Windows.
+#
+# Undo: gh release delete-asset <tag> InControl-<version>-win-x64-portable.zip
+#       (and the .sha256 file). The release itself is untouched.
+
+name: Release Portable
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach the portable zip to (for example v2.0.1)'
+        required: true
+        type: string
+      ref:
+        description: 'Commit to build, if not the tag itself. v2.0.1 was backfilled from main, whose src/ is identical to the tag.'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.ref || github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Check the tag matches the app version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$proj = Get-Content src/InControl.App/InControl.App.csproj
+          $version = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          if ("v$version" -ne $env:TAG) { throw "Tag $env:TAG does not match the app version $version." }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish (self-contained, unpackaged)
+        shell: pwsh
+        run: |
+          dotnet publish src/InControl.App/InControl.App.csproj `
+            --configuration Release --runtime win-x64 --self-contained true `
+            -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true `
+            -p:ContinuousIntegrationBuild=true -p:DebugType=none `
+            --output portable --nologo
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit $LASTEXITCODE" }
+          if (-not (Test-Path portable/InControl.App.exe)) { throw "InControl.App.exe is missing from the publish output." }
+
+      - name: Zip and checksum
+        shell: pwsh
+        run: |
+          $name = "InControl-${{ steps.version.outputs.version }}-win-x64-portable.zip"
+          Compress-Archive -Path portable/* -DestinationPath $name -CompressionLevel Optimal
+          $hash = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Out-File -Encoding ascii "$name.sha256"
+          Get-Content "$name.sha256"
+
+      - name: Attach to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $name = "InControl-${{ steps.version.outputs.version }}-win-x64-portable.zip"
+          gh release upload $env:TAG $name "$name.sha256" --clobber --repo ${{ github.repository }}

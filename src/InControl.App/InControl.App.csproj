@@ -53,7 +53,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(Configuration)'=='Release'">
+  <!-- A portable build (WindowsPackageType=None) has no package manifest. -->
+  <ItemGroup Condition="'$(Configuration)'=='Release' and '$(WindowsPackageType)'!='None'">
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
