@@ -14,22 +14,22 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
 </p>
 
-**适用于 Windows 的 Ollama 聊天应用。** 默认情况下，在您的本地 PC 上运行。当您需要时，可以通过 SSH 租用 GPU。
+**适用于 Windows 的 Ollama 聊天。** 默认情况下，在您的本地 PC 上运行。如果您需要，可以通过 SSH 租用 GPU。
 
 InControl 使用 Ollama HTTP API。在您连接到租用的 GPU 之前，不会向租用服务器发送任何数据。顶部栏会显示已连接的机器的名称，并说明聊天内容将从本地 PC 发送。
 
 ## 为什么选择 InControl？
 
-- **首先使用这台电脑。** 提示会一直显示，直到您连接租用的 GPU。
-- **无论哪种方式，都使用相同的 Ollama。** 租用服务会在 `127.0.0.1:11434` 上运行 Ollama。InControl 通过 SSH 本地转发连接到它。HTTP 客户端不会与公共端口进行通信。
-- **这不是工具白名单。** 连接控制助手工具的 URL。它不会决定聊天运行的位置。
-- **项目和笔记。** 将会话归类到具有各自指令的项目中。要求它记住某个项目或会话的笔记，然后匹配的笔记会与下一条消息一起发送。
-- **启用网络搜索时。** “网络”按钮允许能够使用工具的模型搜索 DuckDuckGo 并读取公共页面。在您启用它之前，该功能处于关闭状态，并且每条回复都会列出它进行的搜索。
-- **附加文件。** 将文本和代码文件添加到消息中，或者将图像添加到视觉模型中，例如 gemma3 或 llama3.2-vision。使用回形针、Ctrl+Shift+O，或将文件拖放到作曲器中。
-- **在本电脑上使用语音。** 回复可以由 Kokoro 朗读，Kokoro 运行在本电脑上。语音模型只需下载一次，即第一次需要语音时：当回复被朗读时，或者当您打开“设置”时。
-- **WinUI 3。** 一个原生 Windows 应用程序。回复会渲染 Markdown：强调、代码块、列表、表格和链接。
+- **首先使用本地 PC。** 提示信息会保留在本地，直到您连接到租用的 GPU。
+- **无论哪种方式，都使用相同的 Ollama。** 租用服务器运行 Ollama `127.0.0.1:11434`。InControl 通过 SSH 本地端口转发与其连接。HTTP 客户端不会与公共端口通信。
+- **不使用工具白名单。** 连接控制助手工具的 URL。它不会决定聊天在何处运行。
+- **项目和笔记。** 将会话存储在具有自己指令的项目中。您可以要求它记住某个项目或会话的笔记，并且匹配的笔记会与下一条消息一起发送。
+- **网络搜索（在您启用时）。** “网络”按钮允许可以使用工具的模型搜索 DuckDuckGo 并读取公共页面。默认情况下，该功能处于关闭状态，直到您启用它，并且每次回复都会列出它执行的搜索。
+- **附加文件。** 将文本和代码文件添加到消息中，或者将图像添加到视觉模型（如 gemma3 或 llama3.2-vision）中。使用回形针、Ctrl+Shift+O，或将文件拖放到编辑器中。
+- **本地 PC 上的语音。** 回复可以由 Kokoro 朗读，Kokoro 在本地 PC 上运行。语音模型只需下载一次，即第一次需要语音时：当回复被朗读时，或者当您打开“设置”时。
+- **WinUI 3。** 本地 Windows 应用程序。回复会渲染 Markdown：强调、代码块、列表、表格和链接。
 - **策略引擎。** 组织、团队和用户策略文档控制工具、内存和连接。
-- **连接模式。** 仅限离线、辅助或连接，并带有审计日志。
+- **连接模式。** 仅限离线、辅助或连接模式，并具有审核日志。
 
 ## NuGet 包
 
@@ -66,7 +66,9 @@ await foreach (var token in client.StreamChatAsync(request))
 
 ## 安装
 
-**Microsoft Store：**[InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83)。Store 包包含其自身的 .NET 和 Windows App SDK 运行时，并且 Store 会对其进行更新。
+**Microsoft Store：** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83)。商店包自带自己的 .NET 和 Windows App SDK 运行时，并且商店会对其进行更新。
+
+**可移植下载：** `InControl-<version>-win-x64-portable.zip` 位于 [GitHub Releases](https://github.com/mcp-tool-shop-org/incontrol/releases/latest) 上。将其解压缩到任何位置并运行 `InControl.App.exe`；运行时包含在其中，因此无需安装。它未进行代码签名，因此 Windows 可能会要求您确认首次运行。一个 `.sha256` 文件位于其旁边。
 
 **从源代码构建：**
 
@@ -82,7 +84,7 @@ dotnet run --project src/InControl.App
 
 ## 先决条件
 
-InControl 需要一个本地 LLM 后端。我们推荐 [Ollama](https://ollama.ai/)：
+InControl 需要本地 LLM 后端。我们推荐 [Ollama](https://ollama.ai/)：
 
 ```bash
 # Install Ollama from https://ollama.ai/download
@@ -96,13 +98,13 @@ ollama serve
 
 ## 租用的 GPU
 
-设置 → **此聊天运行的位置**。粘贴从租用服务器获取的直接 SSH 命令（`ssh -p <mapped-port> root@<public-ip> -i <key>`）。按钮会显示聊天将被发送到该机器。
+设置 → **此聊天运行的位置。** 从租用服务器粘贴直接的 SSH 命令（`ssh -p <mapped-port> root@<public-ip> -i <key>`）。该按钮会显示聊天将被发送到该机器。
 
-转发将在本地 PC 上的 `127.0.0.1:11436` 端口上侦听，而不是 `11434` 端口。聊天将保留在本地，直到 Ollama 通过该端口进行响应。
+转发在本地 PC 上的 `127.0.0.1:11436` 处侦听，而不是在 `11434` 处侦听。聊天会保留在本地，直到 Ollama 通过该端口进行响应。
 
-在租用服务器上，让 Ollama 运行在 `127.0.0.1:11434` 端口。不要设置 `OLLAMA_HOST=0.0.0.0` 端口，也不要发布 11434 端口。SSH 端口是映射的 sshd 端口，而不是 11434。
+在租用服务器上保留 Ollama 运行在 `127.0.0.1:11434`。不要设置 `OLLAMA_HOST=0.0.0.0`，并且不要发布端口 11434。SSH 端口是映射的 sshd 端口，而不是 11434。
 
-RunPod 的 `ssh.runpod.io` 代理只是一个 shell。它无法转发端口。**查找我的 RunPod 实例** 使用来自环境的 `RUNPOD_API_KEY`，并填充实例的直接公共 IP SSH。密钥不会被存储。查找操作不会启动实例，也不会发送聊天内容。Vast 文档说明了在直接地址上进行的转发。当租用服务器重新启动时，该地址将失效。再次查找实例，或粘贴新的命令。私钥将保留在本地 PC 上。
+RunPod 的 `ssh.runpod.io` 代理只是一个 shell。它无法转发端口。**查找我的 RunPod pod** 使用 `RUNPOD_API_KEY` 从环境中获取，并填充 pod 的直接公共 IP SSH。密钥不会被存储。查找不会启动 pod，也不会发送聊天。Vast 记录了直接地址上的转发。当租用服务器重新启动时，该地址将失效。再次查找 pod，或粘贴新的命令。私钥保留在本地 PC 上。
 
 完整的规则位于 [docs/COMPUTE.md](docs/COMPUTE.md)。
 
@@ -159,9 +161,9 @@ InControl 遵循清晰的分层架构：
 | 子系统 | 命名空间 | 目的 |
 |-----------|-----------|---------|
 | 助手 | `InControl.Core.Assistant` | 配置文件、内存存储、个性保护、入职 |
-| 插件 | `InControl.Core.Plugins` | 基于清单验证的、具有 SDK 的沙盒可扩展性 |
-| 策略 | `InControl.Core.Policy` | JSON 策略文档（组织/团队/用户）、工具/插件/内存/连接性规则 |
-| 连接性 | `InControl.Core.Connectivity` | 具有审计跟踪的三种模式网络管理 |
+| 插件 | `InControl.Core.Plugins` | 使用 SDK 进行清单验证的、沙盒化的可扩展性 |
+| 策略 | `InControl.Core.Policy` | JSON 策略文档（组织/团队/用户）、工具/插件/内存/连接规则 |
+| 连接 | `InControl.Core.Connectivity` | 具有审核跟踪的三种模式网络管理 |
 | 运行状况 | `InControl.Services.Health` | 可插拔的运行状况检查（应用程序、推理、存储） |
 | 诊断 | `InControl.Core.Diagnostics` | 使用清理后的配置创建支持包 |
 
@@ -177,9 +179,9 @@ InControl 遵循清晰的分层架构：
 | 缓存（语音模型） | `%LOCALAPPDATA%\InControl\cache\` |
 | 导出 | `%USERPROFILE%\Documents\InControl\exports\` |
 
-Store 安装可能会将该文件夹保存在应用程序自己的存储中，Windows 在卸载时会删除该文件夹。
+商店安装可能会将该文件夹保留在应用程序自己的存储中，Windows 会在卸载时删除该文件夹。
 
-隐私政策为 [PRIVACY.md](./PRIVACY.md)。数据处理详情请参见 [docs/PRIVACY.md](./docs/PRIVACY.md)。
+隐私政策位于 [PRIVACY.md](./PRIVACY.md)。数据处理详情请参见 [docs/PRIVACY.md](./docs/PRIVACY.md)。
 
 ## 故障排除
 
@@ -189,15 +191,15 @@ Store 安装可能会将该文件夹保存在应用程序自己的存储中，Wi
 
 **应用程序无法启动（源代码构建）：**
 - 检查是否已安装 .NET 9 SDK：`dotnet --list-sdks`
-- Store 包不需要单独的运行时
+- Store 包不需要单独的运行时环境
 
 **没有可用的模型：**
 - 确保 Ollama 正在运行：`ollama serve`
-- 拉取一个模型：`ollama pull llama3.2`
+- 下载一个模型：`ollama pull llama3.2`
 
 **回复速度慢：**
-- Ollama 决定模型是否在 GPU 上运行。`ollama ps` 显示有多少模型在 GPU 上运行
-- 更新 GPU 驱动程序，或下载较小的模型
+- Ollama 决定模型是否在 GPU 上运行。`ollama ps` 显示有多少部分在 GPU 上运行
+- 更新 GPU 驱动程序，或下载一个较小的模型
 
 ## 贡献
 
@@ -212,13 +214,13 @@ Store 安装可能会将该文件夹保存在应用程序自己的存储中，Wi
 
 1. 首先查看 [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 2. 使用应用程序中的“复制诊断信息”功能
-3. 附加诊断信息并打开一个问题
+3. 附上诊断信息，并创建一个问题
 
 ## 技术栈
 
 | 层 | 技术 |
 |-------|------------|
-| UI 框架 | WinUI 3 (Windows App SDK 1.6) |
+| UI 框架 | WinUI 3（Windows App SDK 1.6） |
 | 架构 | 使用 CommunityToolkit.Mvvm 的 MVVM |
 | LLM 集成 | OllamaSharp、Microsoft.Extensions.AI |
 | DI 容器 | Microsoft.Extensions.DependencyInjection |
@@ -227,7 +229,7 @@ Store 安装可能会将该文件夹保存在应用程序自己的存储中，Wi
 
 ## 版本
 
-当前版本：**2.0.1**。在 Microsoft Store 中，它名为 InControl-Desktop，包标识为 `mcp-tool-shop.InControl-Desktop`，版本为 `2.0.1.0`。该应用已经在 1.4.0 版本时存在于 Store 中，因此包版本从该版本之上开始。在仓库中、窗口中以及“开始”磁贴上的名称均为 InControl。
+当前版本：**2.0.1**。在 Microsoft Store 中，它名为 InControl-Desktop，包标识为 `mcp-tool-shop.InControl-Desktop`，版本为 `2.0.1.0`。Store 已经有这个应用程序，版本为 1.4.0，因此包版本从高于该版本开始。在仓库中、窗口中以及“开始”磁贴上的名称均为 InControl。
 
 请参阅 [CHANGELOG.md](./CHANGELOG.md)，了解版本为何跳跃，以及 0.3.0 版本的历史记录。
 
@@ -235,9 +237,9 @@ Store 安装可能会将该文件夹保存在应用程序自己的存储中，Wi
 
 InControl 是一款用于 Ollama 的 WinUI 3 聊天应用程序。
 
-- **访问的数据：** 此电脑上的 Ollama、聊天历史记录、本地存储中的项目和笔记，以及在您连接到某个设备后，通过 SSH 连接到的设备上的 Ollama
-- **未访问的数据：** 没有 InControl 帐户、没有遥测数据、没有分析数据
-- **权限：** 循环 HTTP 连接到 Ollama，当您连接到租用服务时，此电脑上的 SSH 客户端，以及用于存储聊天历史记录的文件系统
+- **访问的数据：** 此 PC 上的 Ollama、聊天历史记录、本地存储中的项目和笔记，以及在您连接后，通过 SSH 访问的机器上的 Ollama
+- **未访问的数据：** 没有 InControl 帐户，没有遥测数据，没有分析数据
+- **权限：** 回环 HTTP 连接到 Ollama，当您连接到远程服务器时，此 PC 上的 SSH 客户端，以及用于聊天历史记录的文件系统
 
 完整策略：[SECURITY.md](SECURITY.md)
 
@@ -248,9 +250,9 @@ InControl 是一款用于 Ollama 的 WinUI 3 聊天应用程序。
 - **错误报告：** [Issues](https://github.com/mcp-tool-shop-org/incontrol/issues)
 - **安全：** [SECURITY.md](SECURITY.md)
 
-## 许可
+## 许可证
 
-[MIT](LICENSE)——请参阅 [LICENSE](LICENSE) 以获取完整文本。
+[MIT](LICENSE) — 完整的文本请参见 [LICENSE](LICENSE)。
 
 ---
 

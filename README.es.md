@@ -16,18 +16,18 @@
 
 **Ollama chat para Windows.** En este PC, por defecto. Una GPU que alquilaste, a través de SSH, cuando lo indiques.
 
-InControl utiliza la API HTTP de Ollama. Nada se envía a un servidor alquilado hasta que conectes uno. La barra en la parte superior luego identifica esa máquina y muestra que el chat se ejecuta en este PC.
+InControl utiliza la API HTTP de Ollama. Nada se envía a un servidor alquilado hasta que conectes uno. La barra en la parte superior muestra el nombre de esa máquina e indica que el chat se ejecuta en este PC.
 
 ## ¿Por qué InControl?
 
-- **Este PC primero.** Los mensajes de solicitud permanecen aquí hasta que conectes una GPU alquilada.
-- **La misma instancia de Ollama en ambos casos.** El servicio de alquiler ejecuta Ollama en `127.0.0.1:11434`. InControl se conecta a ella mediante un reenvío SSH local. El cliente HTTP nunca se comunica con un puerto público.
-- **No es la lista de herramientas permitidas.** La conectividad controla las URL de las herramientas de asistencia. No decide dónde se ejecuta el chat.
+- **Este PC primero.** Los mensajes permanecen aquí hasta que conectes una GPU alquilada.
+- **La misma versión de Ollama en ambos casos.** Un servidor alquilado ejecuta Ollama en `127.0.0.1:11434`. InControl se conecta a él mediante un reenvío local SSH. El cliente HTTP nunca se comunica con un puerto público.
+- **No está en la lista de herramientas permitidas.** La conectividad controla las URL de las herramientas de asistencia. No decide dónde se ejecuta el chat.
 - **Proyectos y notas.** Guarda las sesiones en proyectos con sus propias instrucciones. Pídele que recuerde una nota para un proyecto o una sesión, y las notas correspondientes se incluirán en el siguiente mensaje.
-- **Búsqueda web, cuando la actives.** El botón Web permite que un modelo que puede usar herramientas realice búsquedas en DuckDuckGo y lea páginas públicas. Está desactivado hasta que lo actives, y cada respuesta muestra las búsquedas que realizó.
-- **Adjunta archivos.** Agrega archivos de texto y código a un mensaje, o imágenes para un modelo de visión como gemma3 o llama3.2-vision. Usa el icono de clip, Ctrl+Shift+O o arrastra los archivos al compositor.
+- **Búsqueda web, cuando la actives.** El botón Web permite que un modelo que puede usar herramientas busque en DuckDuckGo y lea páginas públicas. Está desactivado hasta que lo actives, y cada respuesta muestra las búsquedas que realizó.
+- **Adjuntar archivos.** Agrega archivos de texto y código a un mensaje, o imágenes para un modelo de visión como gemma3 o llama3.2-vision. Usa el clip, Ctrl+Shift+O o arrastra los archivos al cuadro de composición.
 - **Voz en este PC.** Las respuestas pueden ser leídas en voz alta por Kokoro, que se ejecuta en este PC. El modelo de voz se descarga una vez, la primera vez que se necesita la voz: cuando se lee una respuesta o cuando abres la Configuración.
-- **WinUI 3.** Una aplicación nativa de Windows. Las respuestas se renderizan en formato Markdown: énfasis, bloques de código, listas, tablas y enlaces.
+- **WinUI 3.** Una aplicación nativa de Windows. Las respuestas se muestran en formato markdown: énfasis, bloques de código, listas, tablas y enlaces.
 - **Motor de políticas.** Los documentos de políticas de la organización, el equipo y el usuario rigen las herramientas, la memoria y la conectividad.
 - **Modos de conectividad.** Solo sin conexión, asistido o conectado, con un registro de auditoría.
 
@@ -38,7 +38,7 @@ Las bibliotecas principales están disponibles como paquetes NuGet independiente
 | Paquete | Versión | Descripción |
 |---------|---------|-------------|
 | [InControl.Core](https://www.nuget.org/packages/InControl.Core) | [![NuGet](https://img.shields.io/nuget/v/InControl.Core?style=flat-square)](https://www.nuget.org/packages/InControl.Core) | Modelos de dominio, tipos de conversación y abstracciones compartidas para aplicaciones de chat de IA locales. |
-| [InControl.Inference](https://www.nuget.org/packages/InControl.Inference) | [![NuGet](https://img.shields.io/nuget/v/InControl.Inference?style=flat-square)](https://www.nuget.org/packages/InControl.Inference) | Capa de abstracción del backend LLM con chat en streaming, administración de modelos y comprobaciones de estado. Incluye la implementación de Ollama. |
+| [InControl.Inference](https://www.nuget.org/packages/InControl.Inference) | [![NuGet](https://img.shields.io/nuget/v/InControl.Inference?style=flat-square)](https://www.nuget.org/packages/InControl.Inference) | Capa de abstracción de backend LLM con chat en streaming, administración de modelos y comprobaciones de estado. Incluye la implementación de Ollama. |
 
 ```bash
 dotnet add package InControl.Core
@@ -61,12 +61,14 @@ await foreach (var token in client.StreamChatAsync(request))
 |-----------|---------|-------------|
 | GPU | RTX 3060 (8 GB) | RTX 4080/5080 (16 GB) |
 | RAM | 16 GB | 32 GB |
-| OS | Windows 10, versión 2004 (x64) | Windows 11 |
+| OS | Windows 10 versión 2004 (x64) | Windows 11 |
 | .NET | 9.0 | 9.0 |
 
 ## Instalación
 
 **Microsoft Store:** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83). El paquete de la tienda incluye sus propios entornos de ejecución de .NET y Windows App SDK, y la tienda se encarga de mantenerlo actualizado.
+
+**Descarga portátil:** `InControl-<version>-win-x64-portable.zip` en [GitHub Releases](https://github.com/mcp-tool-shop-org/incontrol/releases/latest). Descomprímelo en cualquier lugar y ejecuta `InControl.App.exe`; los entornos de ejecución están dentro, por lo que no se instala nada. No está firmado digitalmente, por lo que Windows puede pedirte que confirmes la primera ejecución. Un archivo `.sha256` se encuentra junto a él.
 
 **Desde el código fuente:**
 
@@ -136,7 +138,7 @@ dotnet test
 
 ## Arquitectura
 
-InControl sigue una arquitectura limpia y por capas:
+InControl sigue una arquitectura limpia y en capas:
 
 ```
 +-------------------------------------------+
@@ -158,9 +160,9 @@ Consulta [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para obtener documentación d
 
 | Subsistema | Espacio de nombres | Propósito |
 |-----------|-----------|---------|
-| Asistente | `InControl.Core.Assistant` | Perfiles, almacenamiento de memoria, protección de la personalidad, incorporación |
-| Complementos | `InControl.Core.Plugins` | Extensibilidad validada por manifiesto y aislada con SDK |
-| Política | `InControl.Core.Policy` | Documentos de política JSON (organización/equipo/usuario), reglas de herramientas/complementos/memoria/conectividad |
+| Asistente | `InControl.Core.Assistant` | Perfiles, almacén de memoria, protección de la personalidad, incorporación |
+| Plugins | `InControl.Core.Plugins` | Extensibilidad con SDK validada por manifiesto y en un entorno aislado |
+| Política | `InControl.Core.Policy` | Documentos de política JSON (organización/equipo/usuario), reglas de herramientas/plugins/memoria/conectividad |
 | Conectividad | `InControl.Core.Connectivity` | Gobernanza de red de tres modos con registro de auditoría |
 | Estado | `InControl.Services.Health` | Comprobaciones de estado conectables (aplicación, inferencia, almacenamiento) |
 | Diagnóstico | `InControl.Core.Diagnostics` | Creación de paquetes de soporte con configuraciones sanitizadas |
@@ -177,9 +179,9 @@ Todos los datos se almacenan localmente:
 | Caché (modelo de voz) | `%LOCALAPPDATA%\InControl\cache\` |
 | Exportaciones | `%USERPROFILE%\Documents\InControl\exports\` |
 
-Una instalación desde la tienda puede guardar esa carpeta dentro del almacenamiento propio de la aplicación, que Windows elimina al desinstalarla.
+Una instalación de la tienda puede mantener esa carpeta dentro del propio almacenamiento de la aplicación, que Windows elimina al desinstalarla.
 
-La política de privacidad es [PRIVACY.md](./PRIVACY.md). Los detalles del manejo de datos se encuentran en [docs/PRIVACY.md](./docs/PRIVACY.md).
+La política de privacidad es [PRIVACY.md](./PRIVACY.md). Los detalles sobre el manejo de datos se encuentran en [docs/PRIVACY.md](./docs/PRIVACY.md).
 
 ## Solución de problemas
 
@@ -188,37 +190,37 @@ Los problemas comunes y sus soluciones se documentan en [TROUBLESHOOTING.md](./d
 ### Soluciones rápidas
 
 **La aplicación no se inicia (compilación desde el código fuente):**
-- Compruebe que está instalado el SDK de .NET 9: `dotnet --list-sdks`
+- Compruebe que el SDK de .NET 9 esté instalado: `dotnet --list-sdks`
 - El paquete de la tienda no necesita un entorno de ejecución independiente
 
 **No hay modelos disponibles:**
-- Asegúrate de que Ollama se esté ejecutando: `ollama serve`
-- Descarga un modelo: `ollama pull llama3.2`
+- Asegúrese de que Ollama esté en ejecución: `ollama serve`
+- Descargue un modelo: `ollama pull llama3.2`
 
 **Las respuestas son lentas:**
 - Ollama decide si el modelo se ejecuta en la GPU. `ollama ps` muestra cuánta parte de él se ejecuta en la GPU
 - Actualice el controlador de la GPU o descargue un modelo más pequeño
 
-## Contribución
+## Contribuciones
 
 ¡Las contribuciones son bienvenidas! Por favor:
 
-1. Haz un fork del repositorio
-2. Crea una rama de características
-3. Escribe pruebas para la nueva funcionalidad
-4. Envía una solicitud de extracción
+1. Haga una bifurcación del repositorio
+2. Cree una rama de características
+3. Escriba pruebas para la nueva funcionalidad
+4. Envíe una solicitud de incorporación de cambios
 
 ## Informar de problemas
 
-1. Primero, consulta [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
-2. Utiliza la función "Copiar diagnóstico" en la aplicación
-3. Abre un problema con la información de diagnóstico adjunta
+1. Primero, consulte [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+2. Utilice la función "Copiar diagnósticos" en la aplicación
+3. Abra un problema con la información de diagnóstico adjunta
 
 ## Pila tecnológica
 
 | Capa | Tecnología |
 |-------|------------|
-| Marco de la interfaz de usuario | WinUI 3 (Windows App SDK 1.6) |
+| Marco de interfaz de usuario | WinUI 3 (Windows App SDK 1.6) |
 | Arquitectura | MVVM con CommunityToolkit.Mvvm |
 | Integración de LLM | OllamaSharp, Microsoft.Extensions.AI |
 | Contenedor de DI | Microsoft.Extensions.DependencyInjection |
@@ -227,17 +229,17 @@ Los problemas comunes y sus soluciones se documentan en [TROUBLESHOOTING.md](./d
 
 ## Versión
 
-Versión actual: **2.0.1**. En la Microsoft Store, se llama InControl-Desktop, con el identificador de paquete `mcp-tool-shop.InControl-Desktop` en `2.0.1.0`. La Store ya tenía esta aplicación en la versión 1.4.0, por lo que la versión del paquete comienza por encima de esa. El nombre en el repositorio, en la ventana y en el icono del menú Inicio es InControl.
+Versión actual: **2.0.1**. En la Microsoft Store, se llama InControl-Desktop, la identidad del paquete es `mcp-tool-shop.InControl-Desktop` y la versión es `2.0.1.0`. La tienda ya tenía esta aplicación en la versión 1.4.0, por lo que la versión del paquete comienza por encima de esa. El nombre en el repositorio, en la ventana y en el icono del menú Inicio es InControl.
 
-Consulte [CHANGELOG.md](./CHANGELOG.md) para saber por qué la versión saltó y para conocer el historial de la versión 0.3.0.
+Consulte [CHANGELOG.md](./CHANGELOG.md) para saber por qué la versión cambió y para ver el historial de la versión 0.3.0.
 
-## Seguridad y ámbito de los datos
+## Seguridad y alcance de los datos
 
 InControl es una aplicación de chat WinUI 3 para Ollama.
 
-- **Datos a los que se accede:** Ollama en este PC, historial del chat, proyectos y notas en el almacenamiento local y, solo después de que se conecte uno, Ollama en una máquina a la que se accede a través de SSH
+- **Datos a los que se accede:** Ollama en este PC, historial de chat, proyectos y notas en el almacenamiento local y, solo después de que se conecte uno, Ollama en una máquina a la que se accede a través de SSH
 - **Datos a los que no se accede:** Ninguna cuenta de InControl, ningún telemetría, ningún análisis
-- **Permisos:** HTTP de bucle de retorno a Ollama, un cliente SSH en este PC cuando se conecta un servicio de alquiler y el sistema de archivos para el historial del chat
+- **Permisos:** HTTP de bucle de retorno a Ollama, un cliente SSH en este PC cuando se conecta un servidor y el sistema de archivos para el historial de chat
 
 Política completa: [SECURITY.md](SECURITY.md)
 
@@ -250,7 +252,7 @@ Política completa: [SECURITY.md](SECURITY.md)
 
 ## Licencia
 
-[MIT](LICENSE) — consulte [LICENSE](LICENSE) para ver el texto completo.
+[MIT](LICENSE) -- consulte [LICENSE](LICENSE) para ver el texto completo.
 
 ---
 

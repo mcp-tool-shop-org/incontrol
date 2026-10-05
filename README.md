@@ -68,6 +68,8 @@ await foreach (var token in client.StreamChatAsync(request))
 
 **Microsoft Store:** [InControl-Desktop](https://apps.microsoft.com/detail/9N1FG39JWF83). The Store package carries its own .NET and Windows App SDK runtimes, and the Store keeps it updated.
 
+**Portable download:** `InControl-<version>-win-x64-portable.zip` on [GitHub Releases](https://github.com/mcp-tool-shop-org/incontrol/releases/latest). Unzip it anywhere and run `InControl.App.exe`; the runtimes are inside, so nothing is installed. It is not code-signed, so Windows may ask you to confirm the first run. A `.sha256` file sits next to it.
+
 **From source:**
 
 ```bash
