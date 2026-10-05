@@ -83,7 +83,8 @@ jobs:
           $name = "InControl-${{ steps.version.outputs.version }}-win-x64-portable.zip"
           Compress-Archive -Path portable/* -DestinationPath $name -CompressionLevel Optimal
           $hash = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
-          "$hash  $name" | Out-File -Encoding ascii "$name.sha256"
+          # LF only, so `sha256sum -c` reads it on any system.
+          [IO.File]::WriteAllText("$PWD/$name.sha256", "$hash  $name`n")
           Get-Content "$name.sha256"
 
       - name: Attach to the release
