@@ -4,6 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # FluentAssertions 8 moved from Apache-2.0 to a commercial Xceed licence.
+      # Stay on 7.x (maintainer decision, 2026-11-25).
+      - dependency-name: FluentAssertions
+        versions: [">=8.0.0"]
   - package-ecosystem: npm
     directory: /site
     schedule:
